@@ -3,7 +3,7 @@ const User = require("../models/User");
 const AppError = require("../utils/appError");
 const jwt = require("jsonwebtoken");
 const { promisify } = require("util");
-const { pickUserFields, freelancerOnlyFields } = require("../utils/userFields");
+const { freelancerOnlyFields } = require("../utils/userFields");
 
 const profileFields = [
   "phone",
@@ -12,7 +12,7 @@ const profileFields = [
   "location",
 ];
 
-const pickProfileFields = (payload = {}, role = []) => {
+const pickProfileFields = (payload = {}) => {
   const allowedFields = [...profileFields, ...freelancerOnlyFields];
   return allowedFields.reduce((acc, field) => {
     if (payload[field] !== undefined) {
@@ -71,7 +71,7 @@ const createSendTokens = (user, statusCode, res) => {
 
 const register = catchAsync(async (req, res, next) => {
   const { name, email, password, passwordConfirm, role } = req.body;
-  const profilePayload = pickProfileFields(req.body, role);
+  const profilePayload = pickProfileFields(req.body);
 
   const freshUser = await User.create({
     name,

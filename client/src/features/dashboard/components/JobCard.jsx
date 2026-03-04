@@ -20,7 +20,6 @@ export const JobCard = ({
   job,
   variant = "default",
   onSubmitProposal,
-  onViewDetails: _onViewDetails,
   onPostJob,
   onDeleteJob,
   onEditJob,
@@ -483,7 +482,6 @@ export const JobCard = ({
 
 export const ProposalCard = ({
   proposal,
-  onViewDetails: _onViewDetails,
   onWithdraw,
 }) => {
   const {

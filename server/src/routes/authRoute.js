@@ -16,6 +16,6 @@ router.route("/login").post(loginLimiter, login);
 router.route("/logout").get(authLimiter, logout);
 router.route("/register").post(authLimiter, register);
 router.route("/refresh").get(refreshLimiter, refreshAccessToken);
-router.route("/me").get(protect, getMe, getUser);
+router.route("/me").get(protect, getUser);
 
 module.exports = router;
