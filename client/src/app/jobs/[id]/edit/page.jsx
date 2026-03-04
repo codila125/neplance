@@ -26,7 +26,7 @@ export default function EditJobPage() {
   const [loadError, setLoadError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState([]);
-  const [milestoneErrors, _setMilestoneErrors] = useState({});
+  const [milestoneErrors, setMilestoneErrors] = useState({});
   const [formState, setFormState] = useState({
     title: "",
     description: "",

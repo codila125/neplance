@@ -38,8 +38,8 @@ export const signupSchema = z
     city: z.string().optional(),
     district: z.string().optional(),
     province: z.string().optional(),
-    skills: z.string().optional(),
-    languages: z.string().optional(),
+    skills: z.union([z.string(), z.array(z.string())]).optional(),
+    languages: z.union([z.string(), z.array(z.string())]).optional(),
     hourlyRate: z.string().optional(),
     experienceLevel: z
       .enum(["entry", "intermediate", "expert"])

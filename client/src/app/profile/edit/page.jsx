@@ -178,12 +178,22 @@ export default function EditProfilePage() {
         return;
       }
 
+      const locationPayload = { ...location };
+      if (hasCoordinates) {
+        const coordinates = {};
+        if (data.lat !== undefined) coordinates.lat = data.lat;
+        if (data.lng !== undefined) coordinates.lng = data.lng;
+        if (Object.keys(coordinates).length) {
+          locationPayload.coordinates = coordinates;
+        }
+      }
+
       const finalPayload = {
         name: data.name,
         phone: data.phone,
         avatar: data.avatar,
         bio: data.bio,
-        location,
+        location: locationPayload,
       };
 
       if (isFreelancerProfile) {

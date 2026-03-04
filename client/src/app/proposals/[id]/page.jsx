@@ -121,7 +121,6 @@ export default function ProposalDetailPage({ params }) {
       return;
     }
 
-    setResubmitting(true);
     const attachmentsArray = resubmitData.attachments
       ? resubmitData.attachments
           .split(",")
@@ -135,6 +134,8 @@ export default function ProposalDetailPage({ params }) {
       setResubmitError("Attachments must be valid URLs");
       return;
     }
+
+    setResubmitting(true);
 
     try {
       const response = await apiCall("/api/proposals", {
