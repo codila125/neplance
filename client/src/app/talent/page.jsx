@@ -102,9 +102,6 @@ export default function TalentPage() {
                   className="form-input"
                   style={{ flex: 1 }}
                 />
-                <button type="button" className="btn btn-primary">
-                  Search
-                </button>
               </div>
             </div>
           </div>
