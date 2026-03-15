@@ -5,7 +5,6 @@ import { useActionState, useState } from "react";
 import { EditProfileBasicSection } from "@/features/profile/components/EditProfileBasicSection";
 import { EditProfileFreelancerSection } from "@/features/profile/components/EditProfileFreelancerSection";
 import { updateProfileAction } from "@/lib/actions/profile";
-import { Navbar } from "@/shared/components/Navbar";
 
 const toCsv = (value = []) => (Array.isArray(value) ? value.join(", ") : "");
 
@@ -51,15 +50,14 @@ const INITIAL_ACTION_STATE = {
 
 export function EditProfilePageClient({ initialUser }) {
   const router = useRouter();
-  const user = initialUser;
-  const activeRole = user?.role?.[0] || "freelancer";
+  const activeRole = initialUser?.role?.[0] || "freelancer";
   const [formData, setFormData] = useState(makeInitialForm(initialUser));
   const [actionState, formAction, isPending] = useActionState(
     updateProfileAction,
     INITIAL_ACTION_STATE,
   );
 
-  const roleLabel = activeRole || user?.role?.[0] || "freelancer";
+  const roleLabel = activeRole || initialUser?.role?.[0] || "freelancer";
   const isFreelancerProfile = roleLabel === "freelancer";
   const actionErrors = actionState?.errors || {};
 
@@ -106,74 +104,71 @@ export function EditProfilePageClient({ initialUser }) {
   const serializedPayload = JSON.stringify(formData);
 
   return (
-    <>
-      <Navbar user={user} />
-      <div className="dashboard">
-        <div className="container section-sm">
-          <button
-            type="button"
-            onClick={() => router.push("/profile")}
-            className="btn btn-ghost"
-            style={{ marginBottom: "var(--space-4)", padding: 0 }}
-          >
-            Back to Profile
-          </button>
+    <div className="dashboard">
+      <div className="container section-sm">
+        <button
+          type="button"
+          onClick={() => router.push("/profile")}
+          className="btn btn-ghost"
+          style={{ marginBottom: "var(--space-4)", padding: 0 }}
+        >
+          Back to Profile
+        </button>
 
-          <div className="card">
-            <h1 style={{ marginBottom: "var(--space-6)" }}>Edit Profile</h1>
-            {actionState?.message && (
-              <div
-                className="card-error"
-                style={{ marginBottom: "var(--space-4)" }}
-              >
-                {actionState.message}
-              </div>
-            )}
-            <form id="profile-edit-form" action={formAction}>
-              <input type="hidden" name="payload" value={serializedPayload} />
-              <EditProfileBasicSection
-                actionErrors={actionErrors}
+        <div className="card">
+          <h1 style={{ marginBottom: "var(--space-6)" }}>Edit Profile</h1>
+          {actionState?.message && (
+            <div
+              className="card-error"
+              style={{ marginBottom: "var(--space-4)" }}
+            >
+              {actionState.message}
+            </div>
+          )}
+          <form id="profile-edit-form" action={formAction}>
+            <input type="hidden" name="payload" value={serializedPayload} />
+            <EditProfileBasicSection
+              actionErrors={actionErrors}
+              formData={formData}
+              handleChange={handleChange}
+            />
+
+            {isFreelancerProfile && (
+              <EditProfileFreelancerSection
+                addPortfolioItem={addPortfolioItem}
                 formData={formData}
                 handleChange={handleChange}
+                handlePortfolioChange={handlePortfolioChange}
+                removePortfolioItem={removePortfolioItem}
               />
+            )}
 
-              {isFreelancerProfile && (
-                <EditProfileFreelancerSection
-                  addPortfolioItem={addPortfolioItem}
-                  formData={formData}
-                  handleChange={handleChange}
-                  handlePortfolioChange={handlePortfolioChange}
-                  removePortfolioItem={removePortfolioItem}
-                />
-              )}
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: "var(--space-3)",
-                  marginTop: "var(--space-8)",
-                }}
+            <div
+              style={{
+                display: "flex",
+                gap: "var(--space-3)",
+                marginTop: "var(--space-8)",
+              }}
+            >
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => router.push("/profile")}
               >
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => router.push("/profile")}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  form="profile-edit-form"
-                  className="btn btn-primary"
-                  disabled={isPending}
-                >
-                  {isPending ? "Saving..." : "Save Profile"}
-                </button>
-              </div>
-            </form>
-          </div>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="profile-edit-form"
+                className="btn btn-primary"
+                disabled={isPending}
+              >
+                {isPending ? "Saving..." : "Save Profile"}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
-    </>
+    </div>
   );
 }

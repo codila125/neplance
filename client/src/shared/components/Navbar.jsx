@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { logoutAction, switchRoleAction } from "@/lib/actions/session";
 
@@ -35,9 +35,8 @@ const Logo = () => (
  * Props:
  * - user: user object (null when logged out)
  */
-export function Navbar({ user }) {
+export function Navbar({ activeRole: activeRoleProp, user }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -45,10 +44,15 @@ export function Navbar({ user }) {
   const roleList = Array.isArray(user?.role)
     ? user.role
     : user?.role
-      ? [user.role]
-      : [];
-  const activeRole = roleList[0] || "freelancer";
+    ? [user.role]
+    : [];
+  const activeRole =
+    activeRoleProp && roleList.includes(activeRoleProp)
+      ? activeRoleProp
+      : roleList[0] || "freelancer";
   const isFreelancer = activeRole === "freelancer";
+  const nextRole = isFreelancer ? "client" : "freelancer";
+  const workLink = isFreelancer ? "/jobs" : "/talent";
   const hasBothRoles =
     roleList.includes("freelancer") && roleList.includes("client");
 
@@ -64,29 +68,6 @@ export function Navbar({ user }) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleSwitchRole = () => {
-    setShowDropdown(false);
-    const newRole = activeRole === "freelancer" ? "client" : "freelancer";
-    const form = document.getElementById("navbar-role-switch-form");
-    const nextRoleInput = document.getElementById("navbar-next-role");
-
-    if (
-      form instanceof HTMLFormElement &&
-      nextRoleInput instanceof HTMLInputElement
-    ) {
-      nextRoleInput.value = newRole;
-      form.requestSubmit();
-    }
-  };
-
-  const handleLogoutClick = () => {
-    setShowDropdown(false);
-    const form = document.getElementById("navbar-logout-form");
-    if (form instanceof HTMLFormElement) {
-      form.requestSubmit();
-    }
-  };
 
   // ----- Guest (logged out) -----
   if (!user) {
@@ -138,15 +119,17 @@ export function Navbar({ user }) {
           <li>
             <Link
               href="/dashboard"
-              className={`navbar-link ${isActive("/dashboard") ? "active" : ""}`}
+              className={`navbar-link ${
+                isActive("/dashboard") ? "active" : ""
+              }`}
             >
               Dashboard
             </Link>
           </li>
           <li>
             <Link
-              href={isFreelancer ? "/jobs" : "/talent"}
-              className={`navbar-link ${isActive(isFreelancer ? "/jobs" : "/talent") ? "active" : ""}`}
+              href={workLink}
+              className={`navbar-link ${isActive(workLink) ? "active" : ""}`}
             >
               {isFreelancer ? "Find Work" : "Find Talent"}
             </Link>
@@ -154,15 +137,6 @@ export function Navbar({ user }) {
         </ul>
 
         <div className="navbar-right">
-          <form id="navbar-role-switch-form" action={switchRoleAction}>
-            <input id="navbar-next-role" type="hidden" name="nextRole" />
-            <input
-              type="hidden"
-              name="currentPath"
-              value={pathname || "/dashboard"}
-            />
-          </form>
-          <form id="navbar-logout-form" action={logoutAction} />
           <div className="profile-menu" ref={dropdownRef}>
             <button
               type="button"
@@ -183,13 +157,10 @@ export function Navbar({ user }) {
                   </div>
                   <div className="dropdown-header-email">{user.email}</div>
                 </div>
-                <button
-                  type="button"
+                <Link
+                  href="/profile"
                   className="dropdown-item"
-                  onClick={() => {
-                    router.push("/profile");
-                    setShowDropdown(false);
-                  }}
+                  onClick={() => setShowDropdown(false)}
                 >
                   <svg
                     className="dropdown-icon"
@@ -205,12 +176,44 @@ export function Navbar({ user }) {
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                   My Profile
-                </button>
+                </Link>
                 {hasBothRoles && (
+                  <form action={switchRoleAction}>
+                    <input
+                      type="hidden"
+                      name="currentPath"
+                      value={pathname || "/dashboard"}
+                    />
+                    <button
+                      type="submit"
+                      name="nextRole"
+                      value={nextRole}
+                      className="dropdown-item"
+                    >
+                      <svg
+                        className="dropdown-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <title>Switch role</title>
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="8.5" cy="7" r="4" />
+                        <line x1="20" y1="8" x2="20" y2="14" />
+                        <line x1="23" y1="11" x2="17" y2="11" />
+                      </svg>
+                      Switch to {isFreelancer ? "Client" : "Freelancer"}
+                    </button>
+                  </form>
+                )}
+                <div className="dropdown-divider" />
+                <form action={logoutAction}>
                   <button
-                    type="button"
-                    className="dropdown-item"
-                    onClick={handleSwitchRole}
+                    type="submit"
+                    className="dropdown-item dropdown-item-logout"
                   >
                     <svg
                       className="dropdown-icon"
@@ -221,37 +224,14 @@ export function Navbar({ user }) {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
-                      <title>Switch role</title>
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                      <circle cx="8.5" cy="7" r="4" />
-                      <line x1="20" y1="8" x2="20" y2="14" />
-                      <line x1="23" y1="11" x2="17" y2="11" />
+                      <title>Log out</title>
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
                     </svg>
-                    Switch to {isFreelancer ? "Client" : "Freelancer"}
+                    Log Out
                   </button>
-                )}
-                <div className="dropdown-divider" />
-                <button
-                  type="button"
-                  className="dropdown-item dropdown-item-logout"
-                  onClick={handleLogoutClick}
-                >
-                  <svg
-                    className="dropdown-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <title>Log out</title>
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <polyline points="16 17 21 12 16 7" />
-                    <line x1="21" y1="12" x2="9" y2="12" />
-                  </svg>
-                  Log Out
-                </button>
+                </form>
               </div>
             )}
           </div>

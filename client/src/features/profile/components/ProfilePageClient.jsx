@@ -11,7 +11,6 @@ import {
   submitMilestoneAction,
 } from "@/lib/actions/jobs";
 import { deleteAccountAction } from "@/lib/actions/users";
-import { Navbar } from "@/shared/components/Navbar";
 
 export function ProfilePageClient({
   initialCompletedJobs,
@@ -77,8 +76,6 @@ export function ProfilePageClient({
 
   return (
     <>
-      <Navbar user={user} />
-
       <div className="dashboard">
         <div className="container section-sm">
           <div className="card" style={{ marginBottom: "var(--space-8)" }}>

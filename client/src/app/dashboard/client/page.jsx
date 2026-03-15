@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { requireDashboardRole } from "@/lib/server/auth";
 
-export default function ClientDashboardIndexPage() {
-  redirect("/dashboard/client/post-job");
+export default async function ClientDashboardIndexPage() {
+  await requireDashboardRole("client");
+  redirect("/dashboard/client/my-jobs");
 }

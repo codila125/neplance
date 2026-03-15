@@ -1,4 +1,6 @@
 import "./globals.css";
+import { getCurrentSessionServer } from "@/lib/server/auth";
+import { Navbar } from "@/shared/components/Navbar";
 
 export const metadata = {
   title: "Neplance",
@@ -8,10 +10,15 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const session = await getCurrentSessionServer();
+
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Navbar activeRole={session?.activeRole} user={session?.user} />
+        {children}
+      </body>
     </html>
   );
 }

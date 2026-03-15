@@ -6,7 +6,6 @@ import { useActionState, useState } from "react";
 import { EditJobFormSection } from "@/features/jobs/components/EditJobFormSection";
 import { EditJobMilestonesSection } from "@/features/jobs/components/EditJobMilestonesSection";
 import { updateJobAction } from "@/lib/actions/jobs";
-import { Navbar } from "@/shared/components/Navbar";
 import { Button } from "@/shared/components/UI";
 
 const createMilestoneId = () =>
@@ -46,9 +45,8 @@ const INITIAL_ACTION_STATE = {
   milestoneErrors: {},
 };
 
-export function EditJobPageClient({ initialJob, initialUser }) {
+export function EditJobPageClient({ initialJob }) {
   const router = useRouter();
-  const user = initialUser;
   const [formState, setFormState] = useState(buildInitialFormState(initialJob));
   const [actionState, formAction, isPending] = useActionState(
     updateJobAction.bind(null, initialJob._id),
@@ -98,85 +96,81 @@ export function EditJobPageClient({ initialJob, initialUser }) {
   const serializedPayload = JSON.stringify(formState);
 
   return (
-    <>
-      <Navbar user={user} />
-
-      <div className="dashboard">
-        <div className="dashboard-content">
-          <div style={{ marginBottom: "var(--space-6)" }}>
-            <Link href="/dashboard" className="btn btn-ghost">
-              Back to Dashboard
-            </Link>
-          </div>
-
-          <h1 style={{ marginBottom: "var(--space-6)" }}>Edit Job</h1>
-
-          <form className="card" action={formAction}>
-            <input type="hidden" name="payload" value={serializedPayload} />
-
-            {actionState?.message && (
-              <div
-                className="card-error"
-                style={{ marginBottom: "var(--space-4)" }}
-              >
-                <p style={{ margin: 0 }}>{actionState.message}</p>
-              </div>
-            )}
-
-            {formErrors.length > 0 && (
-              <div
-                className="card-error"
-                style={{ marginBottom: "var(--space-4)" }}
-              >
-                {formErrors.map((error) => (
-                  <p key={error} style={{ margin: 0 }}>
-                    {error}
-                  </p>
-                ))}
-              </div>
-            )}
-
-            <EditJobFormSection
-              formState={formState}
-              handleFormChange={handleFormChange}
-              isPending={isPending}
-            />
-            <EditJobMilestonesSection
-              addMilestone={addMilestone}
-              formState={formState}
-              handleMilestoneChange={handleMilestoneChange}
-              isPending={isPending}
-              milestoneErrors={milestoneErrors}
-              removeMilestone={removeMilestone}
-            />
-
-            <div
-              style={{
-                marginTop: "var(--space-4)",
-                display: "flex",
-                gap: "var(--space-3)",
-                flexWrap: "wrap",
-              }}
-            >
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={isPending}
-              >
-                {isPending ? "Saving..." : "Save Changes"}
-              </button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.push("/dashboard")}
-                disabled={isPending}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
+    <div className="dashboard">
+      <div className="dashboard-content">
+        <div style={{ marginBottom: "var(--space-6)" }}>
+          <Link href="/dashboard" className="btn btn-ghost">
+            Back to Dashboard
+          </Link>
         </div>
+
+        <h1 style={{ marginBottom: "var(--space-6)" }}>Edit Job</h1>
+
+        <form className="card" action={formAction}>
+          <input type="hidden" name="payload" value={serializedPayload} />
+
+          {actionState?.message && (
+            <div
+              className="card-error"
+              style={{ marginBottom: "var(--space-4)" }}
+            >
+              <p style={{ margin: 0 }}>{actionState.message}</p>
+            </div>
+          )}
+
+          {formErrors.length > 0 && (
+            <div
+              className="card-error"
+              style={{ marginBottom: "var(--space-4)" }}
+            >
+              {formErrors.map((error) => (
+                <p key={error} style={{ margin: 0 }}>
+                  {error}
+                </p>
+              ))}
+            </div>
+          )}
+
+          <EditJobFormSection
+            formState={formState}
+            handleFormChange={handleFormChange}
+            isPending={isPending}
+          />
+          <EditJobMilestonesSection
+            addMilestone={addMilestone}
+            formState={formState}
+            handleMilestoneChange={handleMilestoneChange}
+            isPending={isPending}
+            milestoneErrors={milestoneErrors}
+            removeMilestone={removeMilestone}
+          />
+
+          <div
+            style={{
+              marginTop: "var(--space-4)",
+              display: "flex",
+              gap: "var(--space-3)",
+              flexWrap: "wrap",
+            }}
+          >
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={isPending}
+            >
+              {isPending ? "Saving..." : "Save Changes"}
+            </button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => router.push("/dashboard")}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
       </div>
-    </>
+    </div>
   );
 }

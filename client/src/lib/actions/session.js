@@ -4,17 +4,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ACCESS_TOKEN_COOKIE, ACTIVE_ROLE_COOKIE } from "@/lib/api/config";
 
-const getRoleRedirectPath = (currentPath, nextRole) => {
-  if (currentPath?.startsWith("/jobs") && nextRole === "client") {
-    return "/talent";
-  }
-
-  if (currentPath?.startsWith("/talent") && nextRole === "freelancer") {
-    return "/jobs";
-  }
-
-  return currentPath || "/dashboard";
-};
+const getRoleRedirectPath = (nextRole) =>
+  nextRole === "client" ? "/dashboard/client" : "/dashboard/freelancer";
 
 export async function logoutAction() {
   const cookieStore = await cookies();
@@ -41,10 +32,9 @@ export async function logoutAction() {
 
 export async function switchRoleAction(formData) {
   const nextRole = String(formData.get("nextRole") || "").trim();
-  const currentPath = String(formData.get("currentPath") || "").trim();
 
   if (!nextRole) {
-    redirect(currentPath || "/dashboard");
+    redirect("/dashboard");
   }
 
   const cookieStore = await cookies();
@@ -53,5 +43,5 @@ export async function switchRoleAction(formData) {
     sameSite: "lax",
   });
 
-  redirect(getRoleRedirectPath(currentPath, nextRole));
+  redirect(getRoleRedirectPath(nextRole));
 }

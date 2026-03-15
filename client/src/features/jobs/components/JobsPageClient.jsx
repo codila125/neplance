@@ -9,7 +9,6 @@ import {
   submitMilestoneAction,
 } from "@/lib/actions/jobs";
 import { createProposalMutationAction } from "@/lib/actions/proposals";
-import { Navbar } from "@/shared/components/Navbar";
 import {
   EXPERIENCE_LEVELS,
   JOB_CATEGORIES,
@@ -109,8 +108,6 @@ export function JobsPageClient({
 
   return (
     <>
-      <Navbar user={user} />
-
       <div className="dashboard">
         <section
           style={{

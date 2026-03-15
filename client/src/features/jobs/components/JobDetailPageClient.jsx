@@ -13,7 +13,6 @@ import {
   submitMilestoneAction,
 } from "@/lib/actions/jobs";
 import { createProposalMutationAction } from "@/lib/actions/proposals";
-import { Navbar } from "@/shared/components/Navbar";
 import {
   CANCELLATION_STATUS,
   JOB_STATUS,
@@ -190,79 +189,76 @@ export function JobDetailPageClient({ initialJob, initialUser }) {
   };
 
   return (
-    <>
-      <Navbar user={user} />
-      <div className="dashboard">
-        <div className="dashboard-content">
-          <div style={{ marginBottom: "var(--space-6)" }}>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => router.back()}
-            >
-              Back
-            </button>
-          </div>
-
-          <div className="card">
-            <JobDetailSummarySection
-              budgetDisplay={budgetDisplay}
-              completedCount={completedCount}
-              creatorLabel={creatorLabel}
-              deadlineText={deadlineText}
-              job={job}
-              locationText={locationText}
-              milestones={milestones}
-            />
-
-            <JobMilestonesSection
-              canApproveMilestone={canApproveMilestone}
-              canSubmitMilestone={canSubmitMilestone}
-              handleApproveMilestone={handleApproveMilestone}
-              handleMilestoneEvidenceChange={handleMilestoneEvidenceChange}
-              handleSubmitMilestone={handleSubmitMilestone}
-              isApprovingMilestone={isApprovingMilestone}
-              isSubmittingMilestone={isSubmittingMilestone}
-              milestoneError={milestoneError}
-              milestoneEvidence={milestoneEvidence}
-              milestones={milestones}
-            />
-
-            <JobCancellationSection
-              canCancel={canCancel}
-              cancellation={cancellation}
-              cancellationActionLoading={cancellationActionLoading}
-              cancellationError={cancellationError}
-              cancellationLoading={cancellationLoading}
-              cancellationReason={cancellationReason}
-              hasPendingCancellation={hasPendingCancellation}
-              handleRequestCancellation={handleRequestCancellation}
-              handleRespondCancellation={handleRespondCancellation}
-              isInitiator={isInitiator}
-              setCancellationReason={setCancellationReason}
-            />
-          </div>
-
-          {job.status === JOB_STATUS.OPEN && !isJobOwner && (
-            <JobProposalFormSection
-              amount={amount}
-              attachments={attachments}
-              coverLetter={coverLetter}
-              deliveryDays={deliveryDays}
-              handleSubmitProposal={handleSubmitProposal}
-              isProposalPending={isProposalPending}
-              proposalError={proposalError}
-              revisionsIncluded={revisionsIncluded}
-              router={router}
-              setAmount={setAmount}
-              setAttachments={setAttachments}
-              setCoverLetter={setCoverLetter}
-              setDeliveryDays={setDeliveryDays}
-              setRevisionsIncluded={setRevisionsIncluded}
-            />
-          )}
+    <div className="dashboard">
+      <div className="dashboard-content">
+        <div style={{ marginBottom: "var(--space-6)" }}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => router.back()}
+          >
+            Back
+          </button>
         </div>
+
+        <div className="card">
+          <JobDetailSummarySection
+            budgetDisplay={budgetDisplay}
+            completedCount={completedCount}
+            creatorLabel={creatorLabel}
+            deadlineText={deadlineText}
+            job={job}
+            locationText={locationText}
+            milestones={milestones}
+          />
+
+          <JobMilestonesSection
+            canApproveMilestone={canApproveMilestone}
+            canSubmitMilestone={canSubmitMilestone}
+            handleApproveMilestone={handleApproveMilestone}
+            handleMilestoneEvidenceChange={handleMilestoneEvidenceChange}
+            handleSubmitMilestone={handleSubmitMilestone}
+            isApprovingMilestone={isApprovingMilestone}
+            isSubmittingMilestone={isSubmittingMilestone}
+            milestoneError={milestoneError}
+            milestoneEvidence={milestoneEvidence}
+            milestones={milestones}
+          />
+
+          <JobCancellationSection
+            canCancel={canCancel}
+            cancellation={cancellation}
+            cancellationActionLoading={cancellationActionLoading}
+            cancellationError={cancellationError}
+            cancellationLoading={cancellationLoading}
+            cancellationReason={cancellationReason}
+            hasPendingCancellation={hasPendingCancellation}
+            handleRequestCancellation={handleRequestCancellation}
+            handleRespondCancellation={handleRespondCancellation}
+            isInitiator={isInitiator}
+            setCancellationReason={setCancellationReason}
+          />
+        </div>
+
+        {job.status === JOB_STATUS.OPEN && !isJobOwner && (
+          <JobProposalFormSection
+            amount={amount}
+            attachments={attachments}
+            coverLetter={coverLetter}
+            deliveryDays={deliveryDays}
+            handleSubmitProposal={handleSubmitProposal}
+            isProposalPending={isProposalPending}
+            proposalError={proposalError}
+            revisionsIncluded={revisionsIncluded}
+            router={router}
+            setAmount={setAmount}
+            setAttachments={setAttachments}
+            setCoverLetter={setCoverLetter}
+            setDeliveryDays={setDeliveryDays}
+            setRevisionsIncluded={setRevisionsIncluded}
+          />
+        )}
       </div>
-    </>
+    </div>
   );
 }

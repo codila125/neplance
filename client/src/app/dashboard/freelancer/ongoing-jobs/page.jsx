@@ -1,9 +1,9 @@
 import { FreelancerOngoingJobsSection } from "@/features/dashboard/sections/FreelancerOngoingJobsSection";
-import { requireSession } from "@/lib/server/auth";
+import { requireDashboardRole } from "@/lib/server/auth";
 import { getFreelancerOngoingJobsServer } from "@/lib/server/dashboard";
 
 export default async function FreelancerOngoingJobsPage() {
-  const { user } = await requireSession();
+  const { user } = await requireDashboardRole("freelancer");
   const ongoingJobs = await getFreelancerOngoingJobsServer();
 
   return (

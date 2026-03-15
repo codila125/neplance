@@ -10,7 +10,6 @@ import {
   createProposalMutationAction,
   rejectProposalAction,
 } from "@/lib/actions/proposals";
-import { Navbar } from "@/shared/components/Navbar";
 import { Button } from "@/shared/components/UI";
 import { PROPOSAL_STATUS } from "@/shared/constants/statuses";
 
@@ -142,44 +141,41 @@ export function ProposalDetailPageClient({ initialProposal, initialUser }) {
     isFreelancer && proposal?.status === PROPOSAL_STATUS.REJECTED;
 
   return (
-    <>
-      <Navbar user={user} />
-      <div className="dashboard">
-        <div className="dashboard-content">
-          <div style={{ marginBottom: "var(--space-4)" }}>
-            <Button variant="ghost" onClick={() => router.back()}>
-              Back
-            </Button>
-          </div>
+    <div className="dashboard">
+      <div className="dashboard-content">
+        <div style={{ marginBottom: "var(--space-4)" }}>
+          <Button variant="ghost" onClick={() => router.back()}>
+            Back
+          </Button>
+        </div>
 
-          <div className="card">
-            <ProposalSummarySection proposal={proposal} />
+        <div className="card">
+          <ProposalSummarySection proposal={proposal} />
 
-            {canResubmit && (
-              <ProposalResubmitSection
-                handleResubmit={handleResubmit}
-                handleResubmitChange={handleResubmitChange}
-                isResubmitting={isResubmitting}
-                resubmitData={resubmitData}
-                resubmitError={resubmitError}
-              />
-            )}
-
-            <ProposalDecisionSection
-              acceptError={acceptError}
-              canAccept={canAccept}
-              canReject={canReject}
-              handleAccept={handleAccept}
-              handleReject={handleReject}
-              isAccepting={isAccepting}
-              isRejecting={isRejecting}
-              rejectError={rejectError}
-              rejectReason={rejectReason}
-              setRejectReason={setRejectReason}
+          {canResubmit && (
+            <ProposalResubmitSection
+              handleResubmit={handleResubmit}
+              handleResubmitChange={handleResubmitChange}
+              isResubmitting={isResubmitting}
+              resubmitData={resubmitData}
+              resubmitError={resubmitError}
             />
-          </div>
+          )}
+
+          <ProposalDecisionSection
+            acceptError={acceptError}
+            canAccept={canAccept}
+            canReject={canReject}
+            handleAccept={handleAccept}
+            handleReject={handleReject}
+            isAccepting={isAccepting}
+            isRejecting={isRejecting}
+            rejectError={rejectError}
+            rejectReason={rejectReason}
+            setRejectReason={setRejectReason}
+          />
         </div>
       </div>
-    </>
+    </div>
   );
 }

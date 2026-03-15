@@ -6,14 +6,12 @@ import {
   TestimonialsSection,
 } from "@/features/marketing/components/LandingSections";
 import { redirectIfAuthenticated } from "@/lib/server/auth";
-import { Navbar } from "@/shared/components/Navbar";
 
 export default async function Home() {
   await redirectIfAuthenticated();
 
   return (
     <>
-      <Navbar />
       <main>
         <HeroSection />
         <HowItWorksSection />

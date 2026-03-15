@@ -1,16 +1,15 @@
 import { DashboardSectionNav } from "@/features/dashboard/components/DashboardSectionNav";
-import { Navbar } from "@/shared/components/Navbar";
 
-export function DashboardShell({ activeRole, children, user }) {
+export function DashboardShell({ activeRole, children }) {
   const config =
     activeRole === "client"
       ? {
           title: "Client Dashboard",
           subtitle: "Manage your contracts and proposals",
           items: [
-            { href: "/dashboard/client/post-job", label: "Post Job" },
             { href: "/dashboard/client/my-jobs", label: "My Contracts" },
-            { href: "/dashboard/client/proposals", label: "Proposals" },
+            { href: "/dashboard/client/proposals", label: "Review Proposals" },
+            { href: "/dashboard/client/post-job", label: "Post Job" },
           ],
         }
       : {
@@ -29,25 +28,21 @@ export function DashboardShell({ activeRole, children, user }) {
         };
 
   return (
-    <>
-      <Navbar user={user} />
-
-      <div className="dashboard">
-        <div className="dashboard-content">
-          <div className="dashboard-header">
-            <div className="dashboard-header-row">
-              <div>
-                <h2 className="dashboard-title">{config.title}</h2>
-                <p className="dashboard-subtitle">{config.subtitle}</p>
-              </div>
+    <div className="dashboard">
+      <div className="dashboard-content">
+        <div className="dashboard-header">
+          <div className="dashboard-header-row">
+            <div>
+              <h2 className="dashboard-title">{config.title}</h2>
+              <p className="dashboard-subtitle">{config.subtitle}</p>
             </div>
           </div>
-
-          <DashboardSectionNav items={config.items} />
-
-          {children}
         </div>
+
+        <DashboardSectionNav items={config.items} />
+
+        {children}
       </div>
-    </>
+    </div>
   );
 }
