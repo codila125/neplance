@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import { apiCall } from "@/services/api";
+// admin pages should not include the main site navbar
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
@@ -17,18 +17,20 @@ export default function AdminUsersPage() {
       if (search) q.push(`search=${encodeURIComponent(search)}`);
       if (role) q.push(`role=${encodeURIComponent(role)}`);
       const query = q.length ? `?${q.join("&")}` : "";
-      try {
-        const res = await apiCall(`/api/users${query}`);
-        setUsers(res.data || []);
-      } catch (e) {
-        // Fallback to relative fetch if API base isn't configured
-        try {
-          const r = await fetch(`/api/users${query}`);
-          const json = await r.json();
-          setUsers(json.data || []);
-        } catch (e2) {
-          throw e;
-        }
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+      // Use unauthenticated fetch so admin UI works without login
+      const res = await fetch(`${API_BASE}/api/users${query}`, {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        // Try relative path if API_BASE not set
+        const r2 = await fetch(`/api/users${query}`);
+        const json2 = await r2.json();
+        setUsers(json2.data || []);
+      } else {
+        const json = await res.json();
+        setUsers(json.data || []);
       }
     } catch (err) {
       console.error(err);

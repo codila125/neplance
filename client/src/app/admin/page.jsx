@@ -9,8 +9,7 @@ export default function AdminPage() {
       <main
         className="section"
         style={{ backgroundColor: "var(--color-bg-page)" }}
-      >
-        <div className="container">
+      >        <div className="container">
           <div className="card" style={{ padding: "var(--space-8)" }}>
             <h1
               style={{

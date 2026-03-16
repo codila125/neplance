@@ -6,7 +6,6 @@ import React from "react";
 export default function AdminProblemsPage() {
   return (
     <>
-      <Navbar />
       <main
         className="section"
         style={{ backgroundColor: "var(--color-bg-page)" }}
