@@ -209,6 +209,104 @@ const findJobs = catchAsync(async (req, res) => {
   });
 });
 
+// Admin: find jobs without public/status restriction (for admin UI)
+const adminFindJobs = catchAsync(async (req, res) => {
+  const {
+    category,
+    jobType,
+    experienceLevel,
+    budgetType,
+    minBudget,
+    maxBudget,
+    city,
+    district,
+    province,
+    isRemote,
+    tags,
+    skills,
+    search,
+    isUrgent,
+    isFeatured,
+    sort = "-createdAt",
+    page = 1,
+    limit = 50,
+  } = req.query;
+
+  const query = {};
+
+  if (category) query.category = category;
+  if (jobType) query.jobType = jobType;
+  if (experienceLevel) query.experienceLevel = experienceLevel;
+  if (budgetType) query.budgetType = budgetType;
+  if (isUrgent === "true") query.isUrgent = true;
+  if (isFeatured === "true") query.isFeatured = true;
+
+  if (minBudget || maxBudget) {
+    query["budget.min"] = {};
+    if (minBudget) query["budget.min"].$gte = Number(minBudget);
+    if (maxBudget) query["budget.max"] = { $lte: Number(maxBudget) };
+  }
+
+  if (city) query["location.city"] = new RegExp(city, "i");
+  if (district) query["location.district"] = new RegExp(district, "i");
+  if (province) query["location.province"] = province;
+  if (isRemote === "true") query["location.isRemote"] = true;
+
+  if (tags) {
+    const tagArray = tags.split(",").map((t) => t.trim());
+    query.tags = { $in: tagArray };
+  }
+
+  if (skills) {
+    const skillArray = skills.split(",").map((s) => s.trim());
+    query.requiredSkills = { $in: skillArray };
+  }
+
+  if (search) {
+    query.$or = [
+      { title: new RegExp(search, "i") },
+      { description: new RegExp(search, "i") },
+      { tags: new RegExp(search, "i") },
+    ];
+  }
+
+  const skip = (Number(page) - 1) * Number(limit);
+
+  const [data, total] = await Promise.all([
+    Job.find(query)
+      .populate("creatorAddress", "name email")
+      .sort(sort)
+      .skip(skip)
+      .limit(Number(limit)),
+    Job.countDocuments(query),
+  ]);
+
+  const jobIds = data.map((job) => job._id);
+  const proposalCounts = jobIds.length
+    ? await Proposal.aggregate([
+        { $match: { job: { $in: jobIds } } },
+        { $group: { _id: "$job", count: { $sum: 1 } } },
+      ])
+    : [];
+  const proposalCountMap = proposalCounts.reduce((acc, item) => {
+    acc[item._id.toString()] = item.count;
+    return acc;
+  }, {});
+  const responseData = data.map((job) => ({
+    ...job.toObject(),
+    proposalCount: proposalCountMap[job._id.toString()] || 0,
+  }));
+
+  res.status(200).json({
+    status: "success",
+    results: data.length,
+    total,
+    page: Number(page),
+    pages: Math.ceil(total / Number(limit)),
+    data: responseData,
+  });
+});
+
 const findMyJobs = catchAsync(async (req, res) => {
   const { status, sort = "-createdAt", page = 1, limit = 20 } = req.query;
 
@@ -451,4 +549,5 @@ module.exports = {
   getJobCategories,
   requestCancellation,
   respondCancellation,
+  adminFindJobs,
 };

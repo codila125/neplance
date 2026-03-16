@@ -56,9 +56,13 @@ export const AuthProvider = ({ children }) => {
   const refreshUser = useCallback(async () => {
     setLoadingUser(true);
     try {
-      const data = await apiCall("/api/auth/me");
-      if (data?.data?.user) {
-        applyUser(data.data.user);
+      // Use a direct fetch here to avoid `apiCall`'s automatic redirect
+      // behavior when tokens are expired. This keeps public pages (like
+      // /admin) accessible while still attempting to hydrate the user.
+      const resp = await fetch("/api/auth/me", { credentials: "include" });
+      if (resp.ok) {
+        const json = await resp.json();
+        applyUser(json?.data?.user || null);
       } else {
         applyUser(null);
       }

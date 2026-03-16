@@ -27,6 +27,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 const indexRouter = require("./src/routes/indexRoute");
+const adminRouter = require("./src/routes/adminRoutes");
 const jobRouter = require("./src/routes/jobRoutes");
 const authRouter = require("./src/routes/authRoute");
 const proposalRouter = require("./src/routes/proposalRoutes");
@@ -34,6 +35,7 @@ const userRouter = require("./src/routes/userRoutes");
 const errorController = require("./src/controllers/errorController");
 
 app.use("/api", indexRouter);
+app.use("/api/admin", adminRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/jobs", jobRouter);
 app.use("/api/proposals", proposalRouter);
