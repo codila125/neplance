@@ -4,6 +4,7 @@ const commonFields = [
   "avatar",
   "bio",
   "location",
+  "verificationDocuments",
 ];
 
 const freelancerOnlyFields = [

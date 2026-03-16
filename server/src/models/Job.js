@@ -96,14 +96,18 @@ const jobSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
-  tags: [{
-    type: String,
-    trim: true,
-  }],
-  requiredSkills: [{
-    type: String,
-    trim: true,
-  }],
+  tags: [
+    {
+      type: String,
+      trim: true,
+    },
+  ],
+  requiredSkills: [
+    {
+      type: String,
+      trim: true,
+    },
+  ],
   experienceLevel: {
     type: String,
     enum: ["entry", "intermediate", "expert"],

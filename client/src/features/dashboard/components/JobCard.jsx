@@ -32,10 +32,12 @@ export const JobCard = ({
     description,
     milestones,
     status,
+    deadline,
     creatorAddress,
     jobType,
     category,
     tags,
+    attachments,
     budget,
     budgetType,
     experienceLevel,
@@ -53,6 +55,15 @@ export const JobCard = ({
     : totalValue !== null
       ? `NPR ${totalValue.toLocaleString()}`
       : "Negotiable";
+  const attachmentCount = Array.isArray(attachments) ? attachments.length : 0;
+  const milestoneCount = Array.isArray(milestones) ? milestones.length : 0;
+  const deadlineText = deadline
+    ? new Date(deadline).toLocaleDateString("en-NP", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : null;
   const isDraft = status === JOB_STATUS.DRAFT;
   const isOpen = status === JOB_STATUS.OPEN;
   const canEdit = isDraft || isOpen;
@@ -135,6 +146,21 @@ export const JobCard = ({
 
   return (
     <article className="card">
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "var(--space-3)",
+          marginBottom: "var(--space-4)",
+          fontSize: "var(--text-sm)",
+          color: "var(--color-text-light)",
+        }}
+      >
+        {deadlineText && <span>Due: {deadlineText}</span>}
+        {milestoneCount > 0 && <span>Milestones: {milestoneCount}</span>}
+        {attachmentCount > 0 && <span>Attachments: {attachmentCount}</span>}
+      </div>
+
       <div
         style={{
           display: "flex",
@@ -417,14 +443,18 @@ export const JobCard = ({
           >
             {budgetDisplay}
           </div>
-          {proposalCount > 0 && (
+          {(proposalCount > 0 || attachmentCount > 0) && (
             <div
               style={{
                 fontSize: "var(--text-xs)",
                 color: "var(--color-text-light)",
+                display: "flex",
+                gap: "var(--space-2)",
+                flexWrap: "wrap",
               }}
             >
-              {proposalCount} proposals
+              {proposalCount > 0 && <span>{proposalCount} proposals</span>}
+              {attachmentCount > 0 && <span>{attachmentCount} files</span>}
             </div>
           )}
         </div>
@@ -480,10 +510,7 @@ export const JobCard = ({
   );
 };
 
-export const ProposalCard = ({
-  proposal,
-  onWithdraw,
-}) => {
+export const ProposalCard = ({ proposal, onWithdraw }) => {
   const {
     job,
     amount,

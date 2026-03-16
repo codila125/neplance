@@ -1,13 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button, Input } from "@/shared/components/UI";
 import { JOB_STATUS, MILESTONE_STATUS } from "@/shared/constants/statuses";
-import {
-  getFieldError,
-  proposalSchema,
-  validateForm,
-} from "@/shared/lib/validation";
-import { Button, Input } from "@/shared/ui/UI";
 import {
   formatBudget,
   formatLocation,
@@ -16,6 +11,11 @@ import {
   getMilestoneTotal,
   hasMilestones,
 } from "@/shared/utils/job";
+import {
+  getFieldError,
+  proposalSchema,
+  validateForm,
+} from "@/shared/validation";
 
 const formatDate = (date) => {
   if (!date) return null;
@@ -333,6 +333,32 @@ export const JobModal = ({
                   >
                     {tag}
                   </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {job.attachments?.length > 0 && (
+            <div style={{ marginTop: "0.75rem" }}>
+              <strong style={{ fontSize: "0.875rem" }}>Attachments:</strong>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem",
+                  marginTop: "0.5rem",
+                }}
+              >
+                {job.attachments.map((attachment) => (
+                  <a
+                    key={attachment}
+                    href={attachment}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary"
+                  >
+                    Open attachment {index + 1}
+                  </a>
                 ))}
               </div>
             </div>

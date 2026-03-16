@@ -1,8 +1,7 @@
-import { Geist } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/shared/context/AuthContext";
-
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
+import { getCurrentSessionServer } from "@/lib/server/auth";
+import { getNotificationSummaryServer } from "@/lib/server/notifications";
+import { Navbar } from "@/shared/components/Navbar";
 
 export const metadata = {
   title: "Neplance",
@@ -12,11 +11,21 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const session = await getCurrentSessionServer();
+  const notificationSummary = session?.user
+    ? await getNotificationSummaryServer()
+    : { unreadCount: 0 };
+
   return (
-    <html lang="en" className={geist.variable}>
-      <body className={geist.className}>
-        <AuthProvider>{children}</AuthProvider>
+    <html lang="en">
+      <body>
+        <Navbar
+          activeRole={session?.activeRole}
+          unreadCount={notificationSummary.unreadCount}
+          user={session?.user}
+        />
+        {children}
       </body>
     </html>
   );
