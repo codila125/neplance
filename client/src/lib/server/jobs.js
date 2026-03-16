@@ -16,3 +16,10 @@ export async function getJobByIdServer(jobId) {
   const data = await apiServerCall(`/api/jobs/${jobId}`);
   return data?.data || null;
 }
+
+export async function listAllJobsServer(searchParams = "") {
+  const data = await apiServerCall(
+    `/api/admin/jobs${searchParams ? `?${searchParams}` : ""}`,
+  );
+  return data?.data || [];
+}
