@@ -28,6 +28,15 @@ const buildInitialFormState = (job) => ({
   locationCity: job.location?.city || "",
   locationDistrict: job.location?.district || "",
   locationProvince: job.location?.province || "",
+  attachments: Array.isArray(job.attachments)
+    ? job.attachments.map((attachment, index) => ({
+        id: createMilestoneId(),
+        name: `Attachment ${index + 1}`,
+        url: attachment,
+        publicId: "",
+        resourceType: "raw",
+      }))
+    : [],
   milestones: (job.milestones || []).map((milestone) => ({
     id: createMilestoneId(),
     title: milestone.title || "",
@@ -93,6 +102,31 @@ export function EditJobPageClient({ initialJob }) {
     }));
   };
 
+  const handleUploadedAttachment = (attachment) => {
+    setFormState((previous) => ({
+      ...previous,
+      attachments: [
+        ...previous.attachments,
+        {
+          id: createMilestoneId(),
+          name: attachment.name || "",
+          url: attachment.url,
+          publicId: attachment.publicId || "",
+          resourceType: attachment.resourceType || "raw",
+        },
+      ],
+    }));
+  };
+
+  const removeAttachment = (index) => {
+    setFormState((previous) => ({
+      ...previous,
+      attachments: previous.attachments.filter(
+        (_, attachmentIndex) => attachmentIndex !== index,
+      ),
+    }));
+  };
+
   const serializedPayload = JSON.stringify(formState);
 
   return (
@@ -134,7 +168,9 @@ export function EditJobPageClient({ initialJob }) {
           <EditJobFormSection
             formState={formState}
             handleFormChange={handleFormChange}
+            handleUploadedAttachment={handleUploadedAttachment}
             isPending={isPending}
+            removeAttachment={removeAttachment}
           />
           <EditJobMilestonesSection
             addMilestone={addMilestone}

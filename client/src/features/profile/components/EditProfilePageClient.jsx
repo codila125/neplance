@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { EditProfileBasicSection } from "@/features/profile/components/EditProfileBasicSection";
 import { EditProfileFreelancerSection } from "@/features/profile/components/EditProfileFreelancerSection";
 import { updateProfileAction } from "@/lib/actions/profile";
+import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 
 const toCsv = (value = []) => (Array.isArray(value) ? value.join(", ") : "");
 
@@ -41,6 +42,15 @@ const makeInitialForm = (user) => ({
           : "",
       }))
     : [],
+  verificationDocuments: Array.isArray(user?.verificationDocuments)
+    ? user.verificationDocuments.map((item) => ({
+        id: createPortfolioItemId(),
+        name: item?.name || "",
+        url: item?.url || "",
+        publicId: item?.publicId || "",
+        resourceType: item?.resourceType || "raw",
+      }))
+    : [],
 });
 
 const INITIAL_ACTION_STATE = {
@@ -54,7 +64,7 @@ export function EditProfilePageClient({ initialUser }) {
   const [formData, setFormData] = useState(makeInitialForm(initialUser));
   const [actionState, formAction, isPending] = useActionState(
     updateProfileAction,
-    INITIAL_ACTION_STATE,
+    INITIAL_ACTION_STATE
   );
 
   const roleLabel = activeRole || initialUser?.role?.[0] || "freelancer";
@@ -96,8 +106,33 @@ export function EditProfilePageClient({ initialUser }) {
     setFormData((previous) => ({
       ...previous,
       portfolio: previous.portfolio.filter(
-        (_, itemIndex) => itemIndex !== index,
+        (_, itemIndex) => itemIndex !== index
       ),
+    }));
+  };
+
+  const removeVerificationDocument = (index) => {
+    setFormData((previous) => ({
+      ...previous,
+      verificationDocuments: previous.verificationDocuments.filter(
+        (_, itemIndex) => itemIndex !== index
+      ),
+    }));
+  };
+
+  const handleUploadedVerificationDocument = (document) => {
+    setFormData((previous) => ({
+      ...previous,
+      verificationDocuments: [
+        ...previous.verificationDocuments,
+        {
+          id: createPortfolioItemId(),
+          name: document.name || "",
+          url: document.url,
+          publicId: document.publicId || "",
+          resourceType: document.resourceType || "raw",
+        },
+      ],
     }));
   };
 
@@ -131,6 +166,13 @@ export function EditProfilePageClient({ initialUser }) {
               actionErrors={actionErrors}
               formData={formData}
               handleChange={handleChange}
+              removeVerificationDocument={removeVerificationDocument}
+            />
+            <CloudinaryFileUploader
+              buttonLabel="Upload Verification Document"
+              disabled={isPending}
+              folder="verification-documents"
+              onUploaded={handleUploadedVerificationDocument}
             />
 
             {isFreelancerProfile && (

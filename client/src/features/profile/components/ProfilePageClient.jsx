@@ -73,6 +73,9 @@ export function ProfilePageClient({
   const averageRating = 0.0;
   const roleLabel = activeRole || user?.role?.[0] || "freelancer";
   const isFreelancerProfile = roleLabel === "freelancer";
+  const verificationDocuments = Array.isArray(user?.verificationDocuments)
+    ? user.verificationDocuments
+    : [];
 
   return (
     <>
@@ -303,6 +306,56 @@ export function ProfilePageClient({
 
           {isFreelancerProfile && (
             <>
+              <div className="card" style={{ marginBottom: "var(--space-8)" }}>
+                <h2 style={{ marginBottom: "var(--space-4)" }}>
+                  Verification Documents
+                </h2>
+                {verificationDocuments.length > 0 ? (
+                  <div style={{ display: "grid", gap: "var(--space-4)" }}>
+                    {verificationDocuments.map((document, index) => (
+                      <article
+                        key={`${document.url}-${index}`}
+                        className="card-sm"
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "var(--space-4)",
+                            alignItems: "start",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div>
+                            <h3 style={{ marginBottom: "var(--space-2)" }}>
+                              {document.name || `Document ${index + 1}`}
+                            </h3>
+                            <p
+                              className="text-light"
+                              style={{ marginBottom: 0 }}
+                            >
+                              {document.resourceType || "raw"}
+                            </p>
+                          </div>
+                          <a
+                            href={document.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-secondary btn-sm"
+                          >
+                            Open File
+                          </a>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-light">
+                    No verification documents uploaded yet.
+                  </p>
+                )}
+              </div>
+
               <div className="card" style={{ marginBottom: "var(--space-8)" }}>
                 <h2 style={{ marginBottom: "var(--space-4)" }}>
                   Skills and Languages

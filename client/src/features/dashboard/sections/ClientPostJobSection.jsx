@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { createJobAction } from "@/lib/actions/jobs";
+import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 import { Input } from "@/shared/components/UI";
 import {
   JOB_CATEGORIES,
@@ -28,6 +29,7 @@ export function ClientPostJobSection() {
     locationCity: "",
     locationDistrict: "",
     locationProvince: "",
+    attachments: [],
     milestones: [
       { id: Date.now(), title: "", description: "", value: "", dueDate: "" },
     ],
@@ -72,6 +74,31 @@ export function ClientPostJobSection() {
     setFormState((prev) => ({
       ...prev,
       milestones: prev.milestones.filter((_, idx) => idx !== index),
+    }));
+  };
+
+  const handleUploadedAttachment = (attachment) => {
+    setFormState((prev) => ({
+      ...prev,
+      attachments: [
+        ...prev.attachments,
+        {
+          id: Date.now() + Math.random(),
+          name: attachment.name || "",
+          publicId: attachment.publicId || "",
+          resourceType: attachment.resourceType || "raw",
+          url: attachment.url,
+        },
+      ],
+    }));
+  };
+
+  const removeAttachment = (index) => {
+    setFormState((prev) => ({
+      ...prev,
+      attachments: prev.attachments.filter(
+        (_, itemIndex) => itemIndex !== index,
+      ),
     }));
   };
 
@@ -125,6 +152,7 @@ export function ClientPostJobSection() {
       isUrgent: formState.isUrgent,
       location,
       milestones,
+      attachments: formState.attachments.map((attachment) => attachment.url),
       status,
       isPublic: true,
     };
@@ -474,6 +502,70 @@ export function ClientPostJobSection() {
           </div>
         </div>
       )}
+
+      <div style={{ marginTop: "var(--space-4)" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "var(--space-3)",
+          }}
+        >
+          <strong>Job Attachments</strong>
+        </div>
+        <CloudinaryFileUploader
+          buttonLabel="Upload Job Attachment"
+          disabled={isPending}
+          folder="job-attachments"
+          onUploaded={handleUploadedAttachment}
+        />
+        {formState.attachments.length > 0 ? (
+          <div style={{ display: "grid", gap: "var(--space-3)" }}>
+            {formState.attachments.map((attachment, index) => (
+              <div key={attachment.id} className="card-sm">
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "var(--space-3)",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div>
+                    <strong>
+                      {attachment.name || `Attachment ${index + 1}`}
+                    </strong>
+                    <p className="text-light" style={{ margin: 0 }}>
+                      {attachment.resourceType || "raw"}
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                    <a
+                      href={attachment.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-ghost btn-sm"
+                    >
+                      Open
+                    </a>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => removeAttachment(index)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-light">No job attachments uploaded yet.</p>
+        )}
+      </div>
 
       <div style={{ marginTop: "var(--space-4)" }}>
         <div

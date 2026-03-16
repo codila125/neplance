@@ -338,6 +338,32 @@ export const JobModal = ({
             </div>
           )}
 
+          {job.attachments?.length > 0 && (
+            <div style={{ marginTop: "0.75rem" }}>
+              <strong style={{ fontSize: "0.875rem" }}>Attachments:</strong>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem",
+                  marginTop: "0.5rem",
+                }}
+              >
+                {job.attachments.map((attachment) => (
+                  <a
+                    key={attachment}
+                    href={attachment}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary"
+                  >
+                    Open attachment {index + 1}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           {milestones.length > 0 ? (
             <div
               className="proposal-modal-job-description"

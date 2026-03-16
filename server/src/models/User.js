@@ -2,6 +2,35 @@ const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcryptjs");
 
+const verificationDocumentSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+    },
+    url: {
+      type: String,
+      required: true,
+      validate: [validator.isURL, "Please provide a valid document URL"],
+    },
+    publicId: {
+      type: String,
+      trim: true,
+    },
+    resourceType: {
+      type: String,
+      trim: true,
+      default: "raw",
+    },
+    uploadedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -73,6 +102,7 @@ const userSchema = new mongoose.Schema({
       completedAt: Date,
     },
   ],
+  verificationDocuments: [verificationDocumentSchema],
   password: {
     type: String,
     required: [true, "Please provide a password"],

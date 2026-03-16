@@ -10,6 +10,7 @@ const profileFields = [
   "avatar",
   "bio",
   "location",
+  "verificationDocuments",
 ];
 
 const pickProfileFields = (payload = {}) => {

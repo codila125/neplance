@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ProposalDecisionSection } from "@/features/proposals/components/ProposalDecisionSection";
 import { ProposalResubmitSection } from "@/features/proposals/components/ProposalResubmitSection";
 import { ProposalSummarySection } from "@/features/proposals/components/ProposalSummarySection";
+import { createConversationFromProposalAction } from "@/lib/actions/chat";
 import {
   acceptProposalAction,
   createProposalMutationAction,
@@ -13,13 +15,19 @@ import {
 import { Button } from "@/shared/components/UI";
 import { PROPOSAL_STATUS } from "@/shared/constants/statuses";
 
-export function ProposalDetailPageClient({ initialProposal, initialUser }) {
+export function ProposalDetailPageClient({
+  initialConversationId,
+  initialProposal,
+  initialUser,
+}) {
   const router = useRouter();
   const user = initialUser;
   const [proposal, setProposal] = useState(initialProposal);
+  const [conversationId, setConversationId] = useState(initialConversationId);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
   const [acceptError, setAcceptError] = useState("");
+  const [chatError, setChatError] = useState("");
   const [resubmitData, setResubmitData] = useState({
     amount: initialProposal.amount?.toString() || "",
     coverLetter: initialProposal.coverLetter || "",
@@ -33,6 +41,7 @@ export function ProposalDetailPageClient({ initialProposal, initialUser }) {
   const [isRejecting, startRejectTransition] = useTransition();
   const [isAccepting, startAcceptTransition] = useTransition();
   const [isResubmitting, startResubmitTransition] = useTransition();
+  const [isStartingChat, startChatTransition] = useTransition();
 
   const handleReject = async () => {
     setRejectError("");
@@ -117,6 +126,23 @@ export function ProposalDetailPageClient({ initialProposal, initialUser }) {
     });
   };
 
+  const handleStartChat = async () => {
+    setChatError("");
+    startChatTransition(async () => {
+      try {
+        const result = await createConversationFromProposalAction(proposal._id);
+        const nextConversationId = result.data?._id;
+
+        if (nextConversationId) {
+          setConversationId(nextConversationId);
+          router.push(`/messages/${nextConversationId}`);
+        }
+      } catch (error) {
+        setChatError(error.message || "Failed to start conversation");
+      }
+    });
+  };
+
   const currentUserId = user?.id || user?._id;
   const freelancerId =
     proposal?.freelancer?._id || proposal?.freelancer || proposal?.freelancerId;
@@ -139,14 +165,38 @@ export function ProposalDetailPageClient({ initialProposal, initialUser }) {
   const canAccept = isClient && proposal?.status === PROPOSAL_STATUS.PENDING;
   const canResubmit =
     isFreelancer && proposal?.status === PROPOSAL_STATUS.REJECTED;
+  const canStartChat = isClient && !conversationId;
+  const canOpenChat = Boolean(conversationId) && (isClient || isFreelancer);
 
   return (
     <div className="dashboard">
       <div className="dashboard-content">
         <div style={{ marginBottom: "var(--space-4)" }}>
-          <Button variant="ghost" onClick={() => router.back()}>
-            Back
-          </Button>
+          <div className="flex gap-3 flex-wrap">
+            <Button variant="ghost" onClick={() => router.back()}>
+              Back
+            </Button>
+            {canOpenChat ? (
+              <Link
+                href={`/messages/${conversationId}`}
+                className="btn btn-secondary"
+              >
+                Open Chat
+              </Link>
+            ) : null}
+            {canStartChat ? (
+              <Button
+                variant="secondary"
+                disabled={isStartingChat}
+                onClick={handleStartChat}
+              >
+                {isStartingChat ? "Starting Chat..." : "Start Chat"}
+              </Button>
+            ) : null}
+          </div>
+          {chatError ? (
+            <p className="text-error text-sm mt-2 mb-0">{chatError}</p>
+          ) : null}
         </div>
 
         <div className="card">

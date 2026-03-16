@@ -126,6 +126,17 @@ export const profileUpdateSchema = z.object({
     )
     .optional()
     .default([]),
+  verificationDocuments: z
+    .array(
+      z.object({
+        name: z.string().max(200, "Document name is too long").optional(),
+        url: z.string().url("Document URL must be valid"),
+        publicId: z.string().optional(),
+        resourceType: z.string().optional(),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 export const proposalSchema = z.object({
@@ -193,6 +204,7 @@ export const jobCreateSchema = z.object({
     .optional(),
   isPublic: z.boolean().optional().default(true),
   milestones: z.array(milestoneSchema).optional().default([]),
+  attachments: z.array(z.string().url("Invalid URL")).optional().default([]),
 });
 
 export const validateForm = (schema, data) => {

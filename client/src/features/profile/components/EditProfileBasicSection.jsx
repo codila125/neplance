@@ -2,6 +2,7 @@ export function EditProfileBasicSection({
   actionErrors,
   formData,
   handleChange,
+  removeVerificationDocument,
 }) {
   return (
     <>
@@ -12,7 +13,9 @@ export function EditProfileBasicSection({
           </label>
           <input
             id="profile-name"
-            className={`form-input ${actionErrors.name ? "form-input-error" : ""}`}
+            className={`form-input ${
+              actionErrors.name ? "form-input-error" : ""
+            }`}
             value={formData.name}
             onChange={handleChange("name")}
             required
@@ -24,7 +27,9 @@ export function EditProfileBasicSection({
           </label>
           <input
             id="profile-phone"
-            className={`form-input ${actionErrors.phone ? "form-input-error" : ""}`}
+            className={`form-input ${
+              actionErrors.phone ? "form-input-error" : ""
+            }`}
             value={formData.phone}
             onChange={handleChange("phone")}
           />
@@ -37,7 +42,9 @@ export function EditProfileBasicSection({
         </label>
         <input
           id="profile-avatar"
-          className={`form-input ${actionErrors.avatar ? "form-input-error" : ""}`}
+          className={`form-input ${
+            actionErrors.avatar ? "form-input-error" : ""
+          }`}
           value={formData.avatar}
           onChange={handleChange("avatar")}
         />
@@ -130,6 +137,71 @@ export function EditProfileBasicSection({
           />
         </div>
       </div>
+
+      <h3
+        style={{
+          marginBottom: "var(--space-4)",
+          marginTop: "var(--space-6)",
+        }}
+      >
+        Verification Documents
+      </h3>
+
+      {formData.verificationDocuments.length === 0 && (
+        <p className="text-light" style={{ marginBottom: "var(--space-6)" }}>
+          No verification documents added yet.
+        </p>
+      )}
+
+      {formData.verificationDocuments.map((document, index) => (
+        <div
+          key={document.id}
+          className="card-sm"
+          style={{ marginBottom: "var(--space-4)" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "var(--space-3)",
+            }}
+          >
+            <strong>Document {index + 1}</strong>
+            <div style={{ display: "flex", gap: "var(--space-2)" }}>
+              <a
+                href={document.url}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-ghost btn-sm"
+              >
+                Open
+              </a>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => removeVerificationDocument(index)}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div
+              style={{
+                fontWeight: "var(--font-weight-medium)",
+                marginBottom: "var(--space-1)",
+              }}
+            >
+              {document.name || `Document ${index + 1}`}
+            </div>
+            <p className="text-light" style={{ margin: 0 }}>
+              {document.resourceType || "raw"}
+            </p>
+          </div>
+        </div>
+      ))}
     </>
   );
 }

@@ -29,6 +29,17 @@ const parsePayload = (formData) => {
   }
 };
 
+const sanitizeAttachments = (attachments = []) =>
+  (Array.isArray(attachments) ? attachments : [])
+    .map((attachment) => {
+      if (typeof attachment === "string") {
+        return attachment.trim();
+      }
+
+      return attachment?.url?.trim() || "";
+    })
+    .filter(Boolean);
+
 const mapValidationErrors = (validationErrors) => {
   const errors = [];
   const milestoneErrors = {};
@@ -65,6 +76,10 @@ export async function createJobAction(_previousState, formData) {
   }
 
   if (intent === "draft") {
+    const draftPayload = {
+      ...payload,
+      attachments: sanitizeAttachments(payload.attachments),
+    };
     const title = payload.title?.trim() || "";
 
     if (!title) {
@@ -84,7 +99,7 @@ export async function createJobAction(_previousState, formData) {
     try {
       await apiServerRequest("/api/jobs", {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify(draftPayload),
       });
     } catch (error) {
       return {
@@ -97,10 +112,10 @@ export async function createJobAction(_previousState, formData) {
     redirect("/dashboard");
   }
 
-  const { errors: validationErrors, data } = validateForm(
-    jobCreateSchema,
-    payload,
-  );
+  const { errors: validationErrors, data } = validateForm(jobCreateSchema, {
+    ...payload,
+    attachments: sanitizeAttachments(payload.attachments),
+  });
 
   if (validationErrors) {
     return {
@@ -203,6 +218,7 @@ export async function updateJobAction(jobId, _previousState, formData) {
     isUrgent: Boolean(payload.isUrgent),
     location,
     milestones,
+    attachments: sanitizeAttachments(payload.attachments),
   };
 
   const { errors: validationErrors, data } = validateForm(

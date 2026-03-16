@@ -19,6 +19,7 @@ const {
   requestCancellation: requestCancellationService,
   respondCancellation: respondCancellationService,
 } = require("../services/jobService");
+const { createNotification } = require("../services/notificationService");
 
 const createJob = catchAsync(async (req, res) => {
   const {
@@ -381,6 +382,19 @@ const submitMilestone = catchAsync(async (req, res, next) => {
   const milestoneIndex = Number(index);
   await submitMilestoneService(job, milestoneIndex, evidence);
 
+  const milestone = job.milestones[milestoneIndex];
+  await createNotification({
+    recipient: job.creatorAddress,
+    actor: req.user.id,
+    type: "milestone.submitted",
+    title: "Milestone submitted",
+    message: `${req.user.name || "Your freelancer"} submitted milestone "${milestone?.title || `#${milestoneIndex + 1}`}" for "${job.title}".`,
+    link: `/jobs/${job._id}`,
+    metadata: {
+      job: job._id,
+    },
+  });
+
   res.status(200).json({
     status: "success",
     message: "Milestone submitted for approval.",
@@ -401,6 +415,21 @@ const approveMilestone = catchAsync(async (req, res, next) => {
     req.user.id
   );
 
+  const milestone = updatedJob.milestones[milestoneIndex];
+  await createNotification({
+    recipient: updatedJob.hiredFreelancer,
+    actor: req.user.id,
+    type: "milestone.approved",
+    title: allCompleted ? "Contract completed" : "Milestone approved",
+    message: allCompleted
+      ? `Your final milestone for "${updatedJob.title}" was approved.`
+      : `Your milestone "${milestone?.title || `#${milestoneIndex + 1}`}" for "${updatedJob.title}" was approved.`,
+    link: `/jobs/${updatedJob._id}`,
+    metadata: {
+      job: updatedJob._id,
+    },
+  });
+
   res.status(200).json({
     status: "success",
     message: allCompleted
@@ -417,6 +446,20 @@ const requestCancellation = catchAsync(async (req, res, next) => {
   const job = await getJobOrThrow(jobId);
   const userId = req.user.id.toString();
   const updatedJob = await requestCancellationService(job, userId, reason);
+  const recipientId =
+    String(job.creatorAddress) === userId ? job.hiredFreelancer : job.creatorAddress;
+
+  await createNotification({
+    recipient: recipientId,
+    actor: req.user.id,
+    type: "cancellation.requested",
+    title: "Cancellation requested",
+    message: `${req.user.name || "A user"} requested cancellation for "${job.title}".`,
+    link: `/jobs/${job._id}`,
+    metadata: {
+      job: job._id,
+    },
+  });
 
   res.status(200).json({
     status: "success",
@@ -437,6 +480,20 @@ const respondCancellation = catchAsync(async (req, res, next) => {
     userId,
     action
   );
+
+  await createNotification({
+    recipient: updatedJob.cancellation?.initiatedBy,
+    actor: req.user.id,
+    type: accepted ? "cancellation.accepted" : "cancellation.rejected",
+    title: accepted ? "Cancellation accepted" : "Cancellation rejected",
+    message: accepted
+      ? `Your cancellation request for "${updatedJob.title}" was accepted.`
+      : `Your cancellation request for "${updatedJob.title}" was rejected.`,
+    link: `/jobs/${updatedJob._id}`,
+    metadata: {
+      job: updatedJob._id,
+    },
+  });
 
   res.status(200).json({
     status: "success",

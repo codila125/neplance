@@ -17,6 +17,16 @@ const parseCsv = (value = "") =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const sanitizeVerificationDocuments = (documents = []) =>
+  (Array.isArray(documents) ? documents : [])
+    .map((document) => ({
+      name: document?.name?.trim() || undefined,
+      url: document?.url?.trim() || "",
+      publicId: document?.publicId?.trim() || undefined,
+      resourceType: document?.resourceType?.trim() || undefined,
+    }))
+    .filter((document) => document.url);
+
 const parsePayload = (formData) => {
   const rawPayload = String(formData.get("payload") || "");
 
@@ -90,6 +100,10 @@ export async function updateProfileAction(_previousState, formData) {
       : [];
   }
 
+  submitData.verificationDocuments = sanitizeVerificationDocuments(
+    payload.verificationDocuments,
+  );
+
   const { errors, data } = validateForm(profileUpdateSchema, submitData);
 
   if (errors) {
@@ -116,6 +130,7 @@ export async function updateProfileAction(_previousState, formData) {
     avatar: data.avatar,
     bio: data.bio,
     location: locationPayload,
+    verificationDocuments: data.verificationDocuments,
   };
 
   if (session.activeRole === "freelancer") {

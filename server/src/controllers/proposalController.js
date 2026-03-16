@@ -10,6 +10,7 @@ const {
   rejectProposal: rejectProposalService,
   withdrawProposal: withdrawProposalService,
 } = require("../services/proposalService");
+const { createNotification } = require("../services/notificationService");
 
 const getMyProposals = catchAsync(async (req, res) => {
   const data = await Proposal.find({ freelancer: req.user.id }).populate({
@@ -69,6 +70,19 @@ const createProposal = catchAsync(async (req, res) => {
     attachments,
   });
 
+  await createNotification({
+    recipient: job.creatorAddress,
+    actor: req.user.id,
+    type: "proposal.submitted",
+    title: "New proposal received",
+    message: `${req.user.name || "A freelancer"} submitted a proposal for "${job.title}".`,
+    link: `/proposals/${data._id}`,
+    metadata: {
+      job: job._id,
+      proposal: data._id,
+    },
+  });
+
 
   res.status(201).json({
     status: "success",
@@ -114,6 +128,19 @@ const acceptProposal = catchAsync(async (req, res, next) => {
   const { proposal: acceptedProposal, job: updatedJob } =
     await acceptProposalService(proposal, job);
 
+  await createNotification({
+    recipient: acceptedProposal.freelancer,
+    actor: req.user.id,
+    type: "proposal.accepted",
+    title: "Proposal accepted",
+    message: `Your proposal for "${job.title}" was accepted.`,
+    link: `/proposals/${acceptedProposal._id}`,
+    metadata: {
+      job: job._id,
+      proposal: acceptedProposal._id,
+    },
+  });
+
   // 5) Response
   res.status(200).json({
     status: "success",
@@ -137,6 +164,19 @@ const rejectProposal = catchAsync(async (req, res, next) => {
 
   ensureCreator(job, req.user.id, "You can't reject proposals for this job");
   const updatedProposal = await rejectProposalService(proposal, job, reason);
+
+  await createNotification({
+    recipient: updatedProposal.freelancer,
+    actor: req.user.id,
+    type: "proposal.rejected",
+    title: "Proposal rejected",
+    message: `Your proposal for "${job.title}" was rejected.`,
+    link: `/proposals/${updatedProposal._id}`,
+    metadata: {
+      job: job._id,
+      proposal: updatedProposal._id,
+    },
+  });
 
   res.status(200).json({
     status: "success",

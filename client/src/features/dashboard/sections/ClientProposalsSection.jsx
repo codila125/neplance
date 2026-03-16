@@ -11,7 +11,7 @@ export function ClientProposalsSection({
   initialProposalsByContract,
 }) {
   const [proposalsByContract, setProposalsByContract] = useState(
-    initialProposalsByContract,
+    initialProposalsByContract
   );
 
   const handleAcceptProposal = async (proposalId) => {
@@ -24,7 +24,7 @@ export function ClientProposalsSection({
         setProposalsByContract((prev) => ({
           ...prev,
           [jobId]: (prev[jobId] || []).map((proposal) =>
-            proposal._id === proposalId ? updatedProposal : proposal,
+            proposal._id === proposalId ? updatedProposal : proposal
           ),
         }));
       }
@@ -39,9 +39,9 @@ export function ClientProposalsSection({
         (proposalsByContract[contract._id] || []).map((proposal) => ({
           ...proposal,
           _contract: contract,
-        })),
+        }))
       ),
-    [initialContracts, proposalsByContract],
+    [initialContracts, proposalsByContract]
   );
 
   if (pendingProposals.length === 0) {
