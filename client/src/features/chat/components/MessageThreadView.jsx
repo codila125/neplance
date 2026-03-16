@@ -1,8 +1,21 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { sendMessageAction } from "@/lib/actions/chat";
+import { API_BASE_URL } from "@/lib/api/config";
+
+const CHAT_POLL_INTERVAL_MS = 4000;
+
+const mergeMessages = (serverMessages, currentMessages) => {
+  const pendingMessages = currentMessages.filter((message) => message.pending);
+
+  if (pendingMessages.length === 0) {
+    return serverMessages;
+  }
+
+  return [...serverMessages, ...pendingMessages];
+};
 
 const formatMessageTime = (value) =>
   new Intl.DateTimeFormat("en-US", {
@@ -13,6 +26,7 @@ const formatMessageTime = (value) =>
 export function MessageThreadView({ conversation, currentUserId, messages }) {
   const router = useRouter();
   const formRef = useRef(null);
+  const threadBodyRef = useRef(null);
   const [threadMessages, setThreadMessages] = useState(messages);
   const [composerError, setComposerError] = useState("");
   const [isSending, startSendTransition] = useTransition();
@@ -25,6 +39,67 @@ export function MessageThreadView({ conversation, currentUserId, messages }) {
   const currentParticipant = isClient
     ? conversation.client
     : conversation.freelancer;
+
+  useEffect(() => {
+    if (!threadBodyRef.current) {
+      return;
+    }
+
+    threadBodyRef.current.scrollTop = threadBodyRef.current.scrollHeight;
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncMessages = async () => {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/chat/${conversation._id}/messages`,
+          {
+            credentials: "include",
+            cache: "no-store",
+          },
+        );
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = await response.json();
+        const nextMessages = Array.isArray(payload?.data) ? payload.data : [];
+
+        if (!isMounted) {
+          return;
+        }
+
+        setThreadMessages((currentMessages) =>
+          mergeMessages(nextMessages, currentMessages),
+        );
+      } catch {
+        // Keep the current thread state if background sync fails.
+      }
+    };
+
+    syncMessages();
+
+    const intervalId = window.setInterval(syncMessages, CHAT_POLL_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncMessages();
+      }
+    };
+
+    window.addEventListener("focus", syncMessages);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", syncMessages);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [conversation._id]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -97,7 +172,7 @@ export function MessageThreadView({ conversation, currentUserId, messages }) {
         </div>
       </div>
 
-      <div className="messages-thread-body">
+      <div ref={threadBodyRef} className="messages-thread-body">
         {threadMessages.length === 0 ? (
           <div className="messages-empty-thread">
             No messages yet. Start the conversation here.
@@ -136,7 +211,7 @@ export function MessageThreadView({ conversation, currentUserId, messages }) {
           className="form-input"
           placeholder="Write your message..."
           required
-          rows={4}
+          rows={3}
         />
         {composerError ? (
           <p className="text-error text-sm mb-0">{composerError}</p>
