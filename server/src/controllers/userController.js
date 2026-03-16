@@ -149,6 +149,34 @@ const getFreelancers = catchAsync(async (req, res, next) => {
   });
 });
 
+const getUsers = catchAsync(async (req, res, next) => {
+  const { page = 1, limit = 50, search, role } = req.query;
+
+  const query = {};
+  if (role) query.role = role;
+  if (search) query.$or = [
+    { name: new RegExp(search, "i") },
+    { email: new RegExp(search, "i") },
+  ];
+
+  const skip = (Number(page) - 1) * Number(limit);
+  const selectFields = "name email avatar role bio location";
+
+  const [users, total] = await Promise.all([
+    User.find(query).select(selectFields).skip(skip).limit(Number(limit)),
+    User.countDocuments(query),
+  ]);
+
+  res.status(200).json({
+    status: "success",
+    results: users.length,
+    total,
+    page: Number(page),
+    pages: Math.ceil(total / Number(limit)),
+    data: users,
+  });
+});
+
 const getFreelancerById = catchAsync(async (req, res, next) => {
   const freelancer = await User.findOne({ _id: req.params.id, role: "freelancer" });
 
@@ -171,5 +199,6 @@ module.exports = {
   deactivateMyAccount,
   checkDeleteEligibility,
   getFreelancers,
+  getUsers,
   getFreelancerById,
 };
