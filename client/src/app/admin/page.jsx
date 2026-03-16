@@ -1,18 +1,29 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import React from "react"
-import { Navbar } from "@/shared/navigation/Navbar"
+import Link from "next/link";
+import React from "react";
 
 export default function AdminPage() {
   return (
     <>
-      <Navbar />
-      <main className="section" style={{ backgroundColor: "var(--color-bg-page)" }}>
+      <main
+        className="section"
+        style={{ backgroundColor: "var(--color-bg-page)" }}
+      >
         <div className="container">
           <div className="card" style={{ padding: "var(--space-8)" }}>
-            <h1 style={{ marginBottom: "var(--space-4)", fontSize: "var(--text-2xl)" }}>Hello Admin!</h1>
-            <p className="text-muted" style={{ marginBottom: "var(--space-6)" }}>
+            <h1
+              style={{
+                marginBottom: "var(--space-4)",
+                fontSize: "var(--text-2xl)",
+              }}
+            >
+              Hello Admin!
+            </h1>
+            <p
+              className="text-muted"
+              style={{ marginBottom: "var(--space-6)" }}
+            >
               Select an area to manage.
             </p>
 
@@ -25,7 +36,10 @@ export default function AdminPage() {
                 Jobs
               </Link>
 
-              <Link href="/admin/pending-verification" className="btn btn-primary btn-lg">
+              <Link
+                href="/admin/pending-verification"
+                className="btn btn-primary btn-lg"
+              >
                 Users Pending Verification
               </Link>
 
@@ -41,5 +55,5 @@ export default function AdminPage() {
         </div>
       </main>
     </>
-  )
+  );
 }
