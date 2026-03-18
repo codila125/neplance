@@ -18,3 +18,10 @@ export async function getMyProfileServer() {
 export async function checkDeleteEligibilityServer() {
   return apiServerCall("/api/users/me/check-delete-eligibility");
 }
+
+export async function listUsersServer(searchParams = "") {
+  const data = await apiServerCall(
+    `/api/users${searchParams ? `?${searchParams}` : ""}`,
+  );
+  return data?.data || [];
+}
