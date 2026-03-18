@@ -10,7 +10,6 @@ const {
 const { PROPOSAL_STATUS } = require("../constants/statuses");
 const {
   createProposal: createProposalService,
-  acceptProposal: acceptProposalService,
   rejectProposal: rejectProposalService,
   withdrawProposal: withdrawProposalService,
 } = require("../services/proposalService");
@@ -115,46 +114,6 @@ const getProposalForJob = catchAsync(async (req, res) => {
   res.status(200).json({
     status: "success",
     data,
-  });
-});
-
-// PATCH /api/proposals/:id/accept
-const acceptProposal = catchAsync(async (req, res, next) => {
-  const proposalId = req.params.id;
-
-  // 1) Find proposal
-  const proposal = await Proposal.findById(proposalId).populate("job");
-  if (!proposal) {
-    return next(new AppError("Proposal not found", 404));
-  }
-
-  const job = proposal.job;
-  if (!job) throw new AppError("Job not found", 404);
-
-  // Only allow job owner (creator) to accept proposals
-  ensureCreator(job, req.user.id, "You can't accept proposals for this job");
-  const { proposal: acceptedProposal, job: updatedJob } =
-    await acceptProposalService(proposal, job);
-
-  await createNotification({
-    recipient: acceptedProposal.freelancer,
-    actor: req.user.id,
-    type: "proposal.accepted",
-    title: "Proposal accepted",
-    message: `Your proposal for "${job.title}" was accepted.`,
-    link: `/proposals/${acceptedProposal._id}`,
-    metadata: {
-      job: job._id,
-      proposal: acceptedProposal._id,
-    },
-  });
-
-  // 5) Response
-  res.status(200).json({
-    status: "success",
-    message: "Proposal accepted. Create a contract to begin work.",
-    acceptedProposal,
-    job: updatedJob,
   });
 });
 
@@ -264,7 +223,6 @@ const withdrawProposal = catchAsync(async (req, res, next) => {
 module.exports = {
   createProposal,
   getProposalForJob,
-  acceptProposal,
   rejectProposal,
   getMyProposals,
   getProposalById,

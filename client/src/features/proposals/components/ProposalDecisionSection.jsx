@@ -1,3 +1,5 @@
+import { Button } from "@/shared/components/UI";
+
 export function ProposalDecisionSection({
   canReject,
   handleReject,

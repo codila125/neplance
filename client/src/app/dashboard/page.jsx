@@ -6,7 +6,7 @@ export default async function DashboardPage() {
 
   redirect(
     activeRole === "client"
-      ? "/dashboard/client/my-jobs"
-      : "/dashboard/freelancer/active-proposals"
+      ? "/dashboard/client/my-contracts"
+      : "/dashboard/freelancer/my-contracts",
   );
 }

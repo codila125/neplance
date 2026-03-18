@@ -149,9 +149,20 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
               {formatStatus(currentContract.contractType)}
             </div>
             <div>
-              <strong>Total amount:</strong> {currentContract.currency || "NPR"}{" "}
+              <strong>Total contract value:</strong>{" "}
+              {currentContract.currency || "NPR"}{" "}
               {Number(currentContract.totalAmount || 0).toLocaleString()}
             </div>
+            {currentContract.job?.budget ? (
+              <div>
+                <strong>Original job budget:</strong>{" "}
+                {currentContract.job.budget.currency || "NPR"}{" "}
+                {Number(currentContract.job.budget.min || 0).toLocaleString()}
+                {currentContract.job.budget.max
+                  ? ` - ${currentContract.job.budget.currency || "NPR"} ${Number(currentContract.job.budget.max).toLocaleString()}`
+                  : ""}
+              </div>
+            ) : null}
             <div>
               <strong>Client signed:</strong>{" "}
               {currentContract.clientSignature?.signedAt ? "Yes" : "No"}

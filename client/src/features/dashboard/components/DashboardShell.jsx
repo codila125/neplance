@@ -7,7 +7,8 @@ export function DashboardShell({ activeRole, children }) {
           title: "Client Dashboard",
           subtitle: "Manage your contracts and proposals",
           items: [
-            { href: "/dashboard/client/my-jobs", label: "My Contracts" },
+            { href: "/dashboard/client/my-contracts", label: "My Contracts" },
+            { href: "/dashboard/client/my-jobs", label: "My Jobs" },
             { href: "/dashboard/client/proposals", label: "Review Proposals" },
             { href: "/dashboard/client/post-job", label: "Post Job" },
           ],
@@ -16,6 +17,10 @@ export function DashboardShell({ activeRole, children }) {
           title: "Freelancer Dashboard",
           subtitle: "Manage your proposals and active contracts",
           items: [
+            {
+              href: "/dashboard/freelancer/my-contracts",
+              label: "My Contracts",
+            },
             {
               href: "/dashboard/freelancer/active-proposals",
               label: "My Proposals",

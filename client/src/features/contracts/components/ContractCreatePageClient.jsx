@@ -15,7 +15,7 @@ const createInitialMilestone = () => ({
 export function ContractCreatePageClient({ proposal }) {
   const [formState, setFormState] = useState({
     title: proposal.job?.title || "",
-    description: proposal.coverLetter || proposal.job?.description || "",
+    description: proposal.job?.description || "",
     terms: proposal.job?.terms || "",
     contractType: CONTRACT_TYPE.FULL_PROJECT,
     totalAmount: proposal.amount?.toString() || "",
@@ -69,6 +69,10 @@ export function ContractCreatePageClient({ proposal }) {
         ? formState.milestones
         : [],
   };
+  const milestoneTotal = formState.milestones.reduce(
+    (total, milestone) => total + (Number(milestone.value) || 0),
+    0,
+  );
 
   return (
     <form action={formAction} className="card">
@@ -77,9 +81,30 @@ export function ContractCreatePageClient({ proposal }) {
       <div className="mb-6">
         <h1 className="mb-2">Create Contract</h1>
         <p className="text-muted mb-0">
-          This creates the agreement after a proposal has been accepted. Work
-          starts only after the freelancer signs it.
+          This accepts the proposal and creates the working agreement. Work
+          starts only after the freelancer signs the contract.
         </p>
+      </div>
+
+      <div className="card-sm mb-6">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <strong>Proposal offer</strong>
+            <p className="text-muted mb-0">
+              NPR {Number(proposal.amount || 0).toLocaleString()} in{" "}
+              {proposal.deliveryDays || "N/A"} day(s)
+            </p>
+          </div>
+          <div>
+            <strong>Job budget</strong>
+            <p className="text-muted mb-0">
+              NPR {Number(proposal.job?.budget?.min || 0).toLocaleString()}
+              {proposal.job?.budget?.max
+                ? ` - NPR ${Number(proposal.job.budget.max).toLocaleString()}`
+                : ""}
+            </p>
+          </div>
+        </div>
       </div>
 
       {actionState?.message ? (
@@ -101,7 +126,7 @@ export function ContractCreatePageClient({ proposal }) {
 
       <div className="form-group">
         <label className="form-label" htmlFor="contract-description">
-          Scope Summary
+          Project Scope
         </label>
         <textarea
           id="contract-description"
@@ -278,6 +303,9 @@ export function ContractCreatePageClient({ proposal }) {
               </div>
             ))}
           </div>
+          <p className="text-muted mb-0 mt-3">
+            Total contract value: NPR {milestoneTotal.toLocaleString()}
+          </p>
         </div>
       )}
 

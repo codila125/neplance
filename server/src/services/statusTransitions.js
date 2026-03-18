@@ -95,15 +95,6 @@ const assertJobCanRespondCancellation = (job, action, userId) => {
   }
 };
 
-const assertProposalCanAccept = (job) => {
-  if (job.status !== JOB_STATUS.OPEN) {
-    throw new AppError(
-      "Contract is not open for hiring. Please publish your job first.",
-      400
-    );
-  }
-};
-
 const assertProposalCanCreate = (job) => {
   if (job.status !== JOB_STATUS.OPEN) {
     throw new AppError("Proposals can only be submitted for open jobs", 400);
@@ -149,7 +140,6 @@ module.exports = {
   assertJobCanRequestCancellation,
   assertJobCanRespondCancellation,
   assertProposalCanCreate,
-  assertProposalCanAccept,
   assertProposalCanReject,
   assertProposalCanWithdraw,
 };

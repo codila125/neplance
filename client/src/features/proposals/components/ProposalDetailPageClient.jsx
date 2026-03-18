@@ -48,7 +48,7 @@ export function ProposalDetailPageClient({
       try {
         const result = await rejectProposalAction(
           proposal._id,
-          rejectReason.trim() || undefined,
+          rejectReason.trim() || undefined
         );
         setProposal(result.data);
         setRejectReason("");
@@ -86,7 +86,7 @@ export function ProposalDetailPageClient({
           .filter(Boolean)
       : [];
     const invalidUrl = attachmentsArray.find(
-      (item) => !/^https?:\/\//i.test(item),
+      (item) => !/^https?:\/\//i.test(item)
     );
     if (invalidUrl) {
       setResubmitError("Attachments must be valid URLs");
@@ -139,7 +139,7 @@ export function ProposalDetailPageClient({
   const isCreatorParty = jobRoles.some(
     (party) =>
       party.role === "CREATOR" &&
-      String(party.address) === String(currentUserId),
+      String(party.address) === String(currentUserId)
   );
   const isClient =
     currentUserId &&
@@ -154,7 +154,7 @@ export function ProposalDetailPageClient({
   const canCreateContract =
     isClient &&
     [PROPOSAL_STATUS.PENDING, PROPOSAL_STATUS.ACCEPTED].includes(
-      proposal?.status,
+      proposal?.status
     ) &&
     !contractId;
   const canViewContract = Boolean(contractId);

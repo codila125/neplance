@@ -1,9 +1,6 @@
-const Job = require("../models/Job");
-const Proposal = require("../models/Proposal");
 const AppError = require("../utils/appError");
-const { JOB_STATUS, PROPOSAL_STATUS } = require("../constants/statuses");
+const { PROPOSAL_STATUS } = require("../constants/statuses");
 const {
-  assertProposalCanAccept,
   assertProposalCanReject,
   assertProposalCanWithdraw,
   assertProposalCanCreate,
@@ -11,14 +8,6 @@ const {
 
 const createProposal = async (job) => {
   assertProposalCanCreate(job);
-};
-
-const acceptProposal = async (proposal, job) => {
-  assertProposalCanAccept(job);
-  throw new AppError(
-    "Create a contract from the proposal to accept it and start the agreement",
-    400
-  );
 };
 
 const rejectProposal = async (proposal, job, reason) => {
@@ -42,7 +31,6 @@ const withdrawProposal = async (proposal) => {
 
 module.exports = {
   createProposal,
-  acceptProposal,
   rejectProposal,
   withdrawProposal,
 };

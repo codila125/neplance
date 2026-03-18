@@ -163,7 +163,20 @@ export const milestoneSchema = z.object({
   value: z
     .number({ message: "Value must be a number" })
     .positive("Value must be greater than 0"),
-  dueDate: z.number().optional(),
+  dueDate: z
+    .preprocess((value) => {
+      if (value === "" || value === null || value === undefined) {
+        return undefined;
+      }
+
+      if (typeof value === "string") {
+        const timestamp = Date.parse(value);
+        return Number.isNaN(timestamp) ? value : timestamp;
+      }
+
+      return value;
+    }, z.number().optional())
+    .optional(),
 });
 
 export const jobCreateSchema = z.object({
