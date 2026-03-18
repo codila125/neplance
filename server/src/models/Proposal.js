@@ -71,7 +71,7 @@ proposalSchema.index(
   {
     unique: true,
     partialFilterExpression: {
-      status: { $in: [PROPOSAL_STATUS.PENDING, PROPOSAL_STATUS.ACCEPTED] },
+      status: { $in: [PROPOSAL_STATUS.PENDING] },
     },
   }
 );

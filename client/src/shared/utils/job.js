@@ -24,12 +24,9 @@ export const getCreatorLabel = (creatorAddress) =>
   creatorAddress ||
   "Unknown Creator";
 
-export const formatBudget = (budget, budgetType) => {
+export const formatBudget = (budget) => {
   if (!budget?.min) return "Negotiable";
   const currency = budget.currency || "NPR";
-  if (budgetType === "hourly") {
-    return `${currency} ${budget.min.toLocaleString()}-${budget.max?.toLocaleString() || "N/A"}/hr`;
-  }
   if (budget.max) {
     return `${currency} ${budget.min.toLocaleString()}-${budget.max.toLocaleString()}`;
   }

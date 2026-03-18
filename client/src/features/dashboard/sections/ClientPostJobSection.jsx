@@ -21,7 +21,6 @@ export function ClientPostJobSection() {
     tags: "",
     requiredSkills: "",
     experienceLevel: "",
-    budgetType: "fixed",
     budgetMin: "",
     budgetMax: "",
     deadline: "",
@@ -30,51 +29,15 @@ export function ClientPostJobSection() {
     locationDistrict: "",
     locationProvince: "",
     attachments: [],
-    milestones: [
-      { id: Date.now(), title: "", description: "", value: "", dueDate: "" },
-    ],
   });
   const [actionState, formAction, isPending] = useActionState(createJobAction, {
     message: "",
     errors: [],
-    milestoneErrors: {},
   });
   const formErrors = actionState?.errors || [];
-  const milestoneErrors = actionState?.milestoneErrors || {};
-
-  const formatDateValue = (value) => {
-    if (!value) return null;
-    const timestamp = Date.parse(value);
-    return Number.isNaN(timestamp) ? null : timestamp;
-  };
 
   const handleFormChange = (field, value) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleMilestoneChange = (index, field, value) => {
-    setFormState((prev) => {
-      const updated = [...prev.milestones];
-      updated[index] = { ...updated[index], [field]: value };
-      return { ...prev, milestones: updated };
-    });
-  };
-
-  const addMilestone = () => {
-    setFormState((prev) => ({
-      ...prev,
-      milestones: [
-        ...prev.milestones,
-        { id: Date.now(), title: "", description: "", value: "", dueDate: "" },
-      ],
-    }));
-  };
-
-  const removeMilestone = (index) => {
-    setFormState((prev) => ({
-      ...prev,
-      milestones: prev.milestones.filter((_, idx) => idx !== index),
-    }));
   };
 
   const handleUploadedAttachment = (attachment) => {
@@ -102,7 +65,7 @@ export function ClientPostJobSection() {
     }));
   };
 
-  const buildJobPayload = (status, { includeMilestones = true } = {}) => {
+  const buildJobPayload = (status) => {
     const tags = formState.tags
       .split(",")
       .map((t) => t.trim())
@@ -122,17 +85,6 @@ export function ClientPostJobSection() {
           }
         : undefined;
 
-    const milestones = includeMilestones
-      ? formState.milestones
-          .filter((m) => m.title.trim())
-          .map((m) => ({
-            title: m.title.trim(),
-            description: m.description.trim(),
-            value: Number(m.value) || 0,
-            dueDate: formatDateValue(m.dueDate),
-          }))
-      : [];
-
     return {
       title: formState.title.trim(),
       description: formState.description.trim(),
@@ -142,7 +94,6 @@ export function ClientPostJobSection() {
       tags,
       requiredSkills,
       experienceLevel: formState.experienceLevel || undefined,
-      budgetType: formState.budgetType,
       budget: {
         min: Number(formState.budgetMin) || 0,
         max: formState.budgetMax ? Number(formState.budgetMax) : undefined,
@@ -151,7 +102,6 @@ export function ClientPostJobSection() {
       deadline: formState.deadline || undefined,
       isUrgent: formState.isUrgent,
       location,
-      milestones,
       attachments: formState.attachments.map((attachment) => attachment.url),
       status,
       isPublic: true,
@@ -166,9 +116,6 @@ export function ClientPostJobSection() {
         value={JSON.stringify(
           buildJobPayload(
             submitIntent === "draft" ? JOB_STATUS.DRAFT : JOB_STATUS.OPEN,
-            {
-              includeMilestones: submitIntent !== "draft",
-            },
           ),
         )}
       />
@@ -197,7 +144,7 @@ export function ClientPostJobSection() {
       >
         <div style={{ flex: "1", minWidth: "200px" }}>
           <Input
-            label="Contract Title"
+            label="Job Title"
             value={formState.title}
             onChange={(e) => handleFormChange("title", e.target.value)}
             placeholder="e.g. Landing page redesign"
@@ -358,33 +305,6 @@ export function ClientPostJobSection() {
           alignItems: "flex-end",
         }}
       >
-        <div style={{ flex: "1", minWidth: "120px" }}>
-          <label
-            htmlFor="budgetType"
-            style={{
-              display: "block",
-              marginBottom: "var(--space-1)",
-              fontWeight: "var(--font-weight-medium)",
-            }}
-          >
-            Budget Type
-          </label>
-          <select
-            id="budgetType"
-            value={formState.budgetType}
-            onChange={(e) => handleFormChange("budgetType", e.target.value)}
-            disabled={isPending}
-            style={{
-              width: "100%",
-              padding: "var(--space-2)",
-              borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
-            }}
-          >
-            <option value="fixed">Fixed</option>
-            <option value="hourly">Hourly</option>
-          </select>
-        </div>
         <div style={{ flex: "1", minWidth: "150px" }}>
           <Input
             label="Budget Min (NPR)"
@@ -566,90 +486,6 @@ export function ClientPostJobSection() {
           <p className="text-light">No job attachments uploaded yet.</p>
         )}
       </div>
-
-      <div style={{ marginTop: "var(--space-4)" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "var(--space-3)",
-          }}
-        >
-          <strong>Milestones</strong>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={addMilestone}
-          >
-            + Add milestone
-          </button>
-        </div>
-
-        {formState.milestones.map((milestone, index) => (
-          <div key={milestone.id} className="card-sm">
-            {milestoneErrors[index] && (
-              <div
-                className="card-error"
-                style={{ marginBottom: "var(--space-3)" }}
-              >
-                {milestoneErrors[index].map((error) => (
-                  <p key={error} style={{ margin: 0 }}>
-                    {error}
-                  </p>
-                ))}
-              </div>
-            )}
-            <Input
-              label="Title"
-              value={milestone.title}
-              onChange={(e) =>
-                handleMilestoneChange(index, "title", e.target.value)
-              }
-              disabled={isPending}
-            />
-            <Input
-              label="Description"
-              value={milestone.description}
-              onChange={(e) =>
-                handleMilestoneChange(index, "description", e.target.value)
-              }
-              disabled={isPending}
-            />
-            <div style={{ display: "flex", gap: "var(--space-4)" }}>
-              <Input
-                label="Value (NPR)"
-                type="number"
-                value={milestone.value}
-                onChange={(e) =>
-                  handleMilestoneChange(index, "value", e.target.value)
-                }
-                disabled={isPending}
-              />
-              <Input
-                label="Due Date"
-                type="date"
-                value={milestone.dueDate}
-                onChange={(e) =>
-                  handleMilestoneChange(index, "dueDate", e.target.value)
-                }
-                disabled={isPending}
-              />
-            </div>
-            {formState.milestones.length > 1 && (
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => removeMilestone(index)}
-                style={{ marginTop: "var(--space-2)" }}
-              >
-                Remove milestone
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-
       <div
         style={{
           marginTop: "var(--space-4)",

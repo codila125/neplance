@@ -188,35 +188,6 @@ export function EditJobFormSection({
           alignItems: "flex-end",
         }}
       >
-        <div style={{ flex: "1", minWidth: "120px" }}>
-          <label
-            htmlFor="budgetType"
-            style={{
-              display: "block",
-              marginBottom: "var(--space-1)",
-              fontWeight: "var(--font-weight-medium)",
-            }}
-          >
-            Budget Type
-          </label>
-          <select
-            id="budgetType"
-            value={formState.budgetType}
-            onChange={(event) =>
-              handleFormChange("budgetType", event.target.value)
-            }
-            disabled={isPending}
-            style={{
-              width: "100%",
-              padding: "var(--space-2)",
-              borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
-            }}
-          >
-            <option value="fixed">Fixed</option>
-            <option value="hourly">Hourly</option>
-          </select>
-        </div>
         <div style={{ flex: "1", minWidth: "150px" }}>
           <Input
             label="Budget Min (NPR)"

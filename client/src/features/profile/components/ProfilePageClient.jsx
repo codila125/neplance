@@ -2,14 +2,10 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { EmptyState } from "@/features/dashboard/components/EmptyState";
 import { JobCard } from "@/features/dashboard/components/JobCard";
 import { JobModal } from "@/features/dashboard/components/JobModal";
-import {
-  approveMilestoneAction,
-  submitMilestoneAction,
-} from "@/lib/actions/jobs";
 import { deleteAccountAction } from "@/lib/actions/users";
 
 export function ProfilePageClient({
@@ -26,27 +22,9 @@ export function ProfilePageClient({
   const [deactivateError, setDeactivateError] = useState("");
   const [deleteEligibility] = useState(initialDeleteEligibility);
   const [completedJobs] = useState(initialCompletedJobs);
-  const [isSubmittingMilestone, startMilestoneSubmitTransition] =
-    useTransition();
-  const [isApprovingMilestone, startMilestoneApproveTransition] =
-    useTransition();
 
   const handleViewDetails = (job) => setSelectedJob(job);
   const handleCloseModal = () => setSelectedJob(null);
-
-  const handleSubmitMilestone = async (jobId, index, evidence) => {
-    startMilestoneSubmitTransition(async () => {
-      const result = await submitMilestoneAction(jobId, index, evidence);
-      setSelectedJob(result.data);
-    });
-  };
-
-  const handleApproveMilestone = async (jobId, index) => {
-    startMilestoneApproveTransition(async () => {
-      const result = await approveMilestoneAction(jobId, index);
-      setSelectedJob(result.data);
-    });
-  };
 
   const profileLocation = useMemo(() => {
     if (!user?.location) return "N/A";
@@ -627,9 +605,6 @@ export function ProfilePageClient({
           job={selectedJob}
           mode="view"
           onClose={handleCloseModal}
-          onSubmitMilestone={handleSubmitMilestone}
-          onApproveMilestone={handleApproveMilestone}
-          loading={isSubmittingMilestone || isApprovingMilestone}
           currentUser={user}
         />
       )}

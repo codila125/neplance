@@ -1,15 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Button, Input } from "@/shared/components/UI";
-import { JOB_STATUS, MILESTONE_STATUS } from "@/shared/constants/statuses";
 import {
   formatBudget,
   formatLocation,
   formatStatus,
   getCreatorLabel,
-  getMilestoneTotal,
-  hasMilestones,
 } from "@/shared/utils/job";
 import {
   getFieldError,
@@ -30,11 +28,8 @@ export const JobModal = ({
   job,
   mode = "view",
   onSubmit,
-  onSubmitMilestone,
-  onApproveMilestone,
   onClose,
   loading = false,
-  userRole,
   currentUser,
 }) => {
   const currentUserId = currentUser?.id || currentUser?._id;
@@ -50,7 +45,6 @@ export const JobModal = ({
   const [attachments, setAttachments] = useState("");
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
-  const [evidenceInputs, setEvidenceInputs] = useState({});
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -103,38 +97,10 @@ export const JobModal = ({
   };
 
   const isProposalMode = mode === "proposal";
-  const milestones = Array.isArray(job.milestones) ? job.milestones : [];
-  const totalValue = getMilestoneTotal(milestones);
-  const completedCount = milestones.filter(
-    (milestone) => milestone?.status === MILESTONE_STATUS.COMPLETED,
-  ).length;
-  const canSubmitMilestone =
-    userRole === "freelancer" && job.status === JOB_STATUS.IN_PROGRESS;
-  const canApproveMilestone = userRole === "client" && isJobOwner;
   const creatorLabel = getCreatorLabel(job.creatorAddress);
-  const budgetDisplay = job.budget
-    ? formatBudget(job.budget, job.budgetType)
-    : hasMilestones(milestones)
-      ? `NPR ${totalValue.toLocaleString()}`
-      : "Negotiable";
+  const budgetDisplay = job.budget ? formatBudget(job.budget) : "Negotiable";
   const locationText = formatLocation(job.location);
   const deadlineText = formatDate(job.deadline);
-
-  const handleEvidenceChange = (index, value) => {
-    setEvidenceInputs((prev) => ({
-      ...prev,
-      [index]: value,
-    }));
-  };
-
-  const handleSubmitMilestoneClick = async (jobId, index) => {
-    const evidence = evidenceInputs[index];
-    await onSubmitMilestone?.(jobId, index, evidence);
-    setEvidenceInputs((prev) => ({
-      ...prev,
-      [index]: "",
-    }));
-  };
 
   return (
     <div className="proposal-modal-overlay">
@@ -268,17 +234,6 @@ export const JobModal = ({
                 📅 Due: {deadlineText}
               </span>
             )}
-            {hasMilestones(milestones) && (
-              <span
-                className="profile-role-badge"
-                style={{ background: "transparent", padding: 0 }}
-              >
-                Milestones:{" "}
-                <span style={{ color: "var(--color-primary)" }}>
-                  {completedCount}/{milestones.length}
-                </span>
-              </span>
-            )}
           </div>
 
           {job.description && (
@@ -349,7 +304,7 @@ export const JobModal = ({
                   marginTop: "0.5rem",
                 }}
               >
-                {job.attachments.map((attachment) => (
+                {job.attachments.map((attachment, index) => (
                   <a
                     key={attachment}
                     href={attachment}
@@ -363,86 +318,24 @@ export const JobModal = ({
               </div>
             </div>
           )}
-
-          {milestones.length > 0 ? (
+          {job.activeContract ? (
             <div
               className="proposal-modal-job-description"
               style={{ marginTop: "1rem" }}
             >
-              <strong>Milestones</strong>
-              <ul style={{ marginTop: "0.5rem", paddingLeft: "1.25rem" }}>
-                {milestones.map((milestone, index) => (
-                  <li key={`${milestone?.title || "milestone"}-${index}`}>
-                    {milestone?.title || "Untitled"} -{" "}
-                    {milestone?.value
-                      ? `NPR ${Number(milestone.value).toLocaleString()}`
-                      : "N/A"}{" "}
-                    ({formatStatus(milestone?.status)})
-                    {milestone?.evidence && (
-                      <span style={{ marginLeft: "0.5rem" }}>
-                        Evidence: {milestone.evidence}
-                      </span>
-                    )}
-                    {(() => {
-                      const previousCompleted =
-                        index === 0 ||
-                        milestones[index - 1]?.status ===
-                          MILESTONE_STATUS.COMPLETED;
-                      if (
-                        !canSubmitMilestone ||
-                        milestone?.status !== "ACTIVE"
-                      ) {
-                        return null;
-                      }
-
-                      return (
-                        <span className="milestone-action-row">
-                          <Input
-                            type="text"
-                            label="Evidence"
-                            placeholder="Paste link or notes"
-                            value={evidenceInputs[index] || ""}
-                            onChange={(e) =>
-                              handleEvidenceChange(index, e.target.value)
-                            }
-                            disabled={loading || !previousCompleted}
-                          />
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() =>
-                              handleSubmitMilestoneClick(job._id, index)
-                            }
-                            className="milestone-action"
-                            disabled={loading || !previousCompleted}
-                          >
-                            Submit
-                          </Button>
-                        </span>
-                      );
-                    })()}
-                    {canApproveMilestone &&
-                      milestone?.status === "SUBMITTED" &&
-                      onApproveMilestone && (
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => onApproveMilestone(job._id, index)}
-                          className="milestone-action"
-                          style={{ marginLeft: "0.5rem" }}
-                        >
-                          Approve
-                        </Button>
-                      )}
-                  </li>
-                ))}
-              </ul>
+              <strong>Contract</strong>
+              <p className="text-light" style={{ marginTop: "0.5rem" }}>
+                Active work is managed inside the contract, including
+                milestones, delivery, and cancellation.
+              </p>
+              <Link
+                href={`/contracts/${job.activeContract?._id || job.activeContract}`}
+                className="btn btn-secondary btn-sm"
+              >
+                View Contract
+              </Link>
             </div>
-          ) : (
-            <p className="proposal-modal-job-description">
-              No milestones defined yet.
-            </p>
-          )}
+          ) : null}
         </div>
 
         {isProposalMode && !isJobOwner ? (

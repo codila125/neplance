@@ -1,12 +1,6 @@
-import { Button } from "@/shared/components/UI";
-
 export function ProposalDecisionSection({
-  acceptError,
-  canAccept,
   canReject,
-  handleAccept,
   handleReject,
-  isAccepting,
   isRejecting,
   rejectError,
   rejectReason,
@@ -14,40 +8,6 @@ export function ProposalDecisionSection({
 }) {
   return (
     <>
-      {canAccept && (
-        <div style={{ marginTop: "var(--space-6)" }}>
-          <h3
-            style={{
-              fontSize: "var(--text-base)",
-              fontWeight: "var(--font-weight-semibold)",
-              marginBottom: "var(--space-2)",
-            }}
-          >
-            Accept Proposal
-          </h3>
-          <div
-            style={{
-              padding: "var(--space-4)",
-              borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-bg-secondary)",
-            }}
-          >
-            {acceptError && (
-              <p
-                className="card-error"
-                style={{ marginBottom: "var(--space-3)" }}
-              >
-                {acceptError}
-              </p>
-            )}
-            <Button type="button" onClick={handleAccept} disabled={isAccepting}>
-              {isAccepting ? "Accepting..." : "Accept"}
-            </Button>
-          </div>
-        </div>
-      )}
-
       {canReject && (
         <div style={{ marginTop: "var(--space-6)" }}>
           <h3

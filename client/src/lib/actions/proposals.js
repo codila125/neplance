@@ -132,25 +132,6 @@ export async function resubmitProposalAction(_previousState, formData) {
   }
 }
 
-export async function acceptProposalAction(proposalId) {
-  await requireSession();
-
-  await apiServerRequest(`/api/proposals/${proposalId}/accept`, {
-    method: "PATCH",
-  });
-
-  const proposal = await getProposalByIdServer(proposalId);
-  const jobId = proposal?.job?._id || proposal?.job;
-
-  revalidatePath("/dashboard");
-  if (jobId) {
-    revalidatePath(`/jobs/${jobId}`);
-  }
-  revalidatePath(`/proposals/${proposalId}`);
-
-  return successResult(proposal);
-}
-
 export async function rejectProposalAction(proposalId, reason) {
   await requireSession();
 

@@ -7,7 +7,11 @@ const {
 } = require("../constants/statuses");
 
 const assertJobCanUpdate = (job) => {
-  if (![JOB_STATUS.DRAFT, JOB_STATUS.OPEN].includes(job.status)) {
+  if (
+    ![JOB_STATUS.DRAFT, JOB_STATUS.OPEN, JOB_STATUS.CONTRACT_PENDING].includes(
+      job.status
+    )
+  ) {
     throw new AppError("Can only update draft or open jobs", 400);
   }
 };
@@ -25,7 +29,11 @@ const assertJobCanPublish = (job) => {
 };
 
 const assertJobCanDelete = (job) => {
-  if (![JOB_STATUS.DRAFT, JOB_STATUS.OPEN].includes(job.status)) {
+  if (
+    ![JOB_STATUS.DRAFT, JOB_STATUS.OPEN, JOB_STATUS.CONTRACT_PENDING].includes(
+      job.status
+    )
+  ) {
     throw new AppError("Can only delete draft or open jobs", 400);
   }
 };
@@ -103,7 +111,13 @@ const assertProposalCanCreate = (job) => {
 };
 
 const assertProposalCanReject = (job, proposal) => {
-  if (![JOB_STATUS.OPEN, JOB_STATUS.IN_PROGRESS].includes(job.status)) {
+  if (
+    ![
+      JOB_STATUS.OPEN,
+      JOB_STATUS.CONTRACT_PENDING,
+      JOB_STATUS.IN_PROGRESS,
+    ].includes(job.status)
+  ) {
     throw new AppError("Job is not open for rejection", 400);
   }
   if (proposal.status === PROPOSAL_STATUS.ACCEPTED) {

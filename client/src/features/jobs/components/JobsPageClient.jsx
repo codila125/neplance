@@ -4,10 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { JobCard } from "@/features/dashboard/components/JobCard";
 import { JobModal } from "@/features/dashboard/components/JobModal";
-import {
-  approveMilestoneAction,
-  submitMilestoneAction,
-} from "@/lib/actions/jobs";
 import { createProposalMutationAction } from "@/lib/actions/proposals";
 import {
   EXPERIENCE_LEVELS,
@@ -29,10 +25,6 @@ export function JobsPageClient({
     search: initialSearchParams.search || "",
   });
   const [isSubmittingProposal, startProposalTransition] = useTransition();
-  const [isSubmittingMilestone, startMilestoneSubmitTransition] =
-    useTransition();
-  const [isApprovingMilestone, startMilestoneApproveTransition] =
-    useTransition();
   const router = useRouter();
 
   const handleOpenProposalModal = (job) => {
@@ -55,20 +47,6 @@ export function JobsPageClient({
     startProposalTransition(async () => {
       await createProposalMutationAction(proposalData);
       setSelectedJob(null);
-    });
-  };
-
-  const handleSubmitMilestone = async (jobId, index, evidence) => {
-    startMilestoneSubmitTransition(async () => {
-      const result = await submitMilestoneAction(jobId, index, evidence);
-      setSelectedJob(result.data);
-    });
-  };
-
-  const handleApproveMilestone = async (jobId, index) => {
-    startMilestoneApproveTransition(async () => {
-      const result = await approveMilestoneAction(jobId, index);
-      setSelectedJob(result.data);
     });
   };
 
@@ -281,14 +259,8 @@ export function JobsPageClient({
           job={selectedJob}
           mode={modalMode}
           onSubmit={handleSubmitProposal}
-          onSubmitMilestone={handleSubmitMilestone}
-          onApproveMilestone={handleApproveMilestone}
           onClose={handleCloseModal}
-          loading={
-            isSubmittingProposal ||
-            isSubmittingMilestone ||
-            isApprovingMilestone
-          }
+          loading={isSubmittingProposal}
           userRole={user?.role?.[0]}
           currentUser={user}
         />

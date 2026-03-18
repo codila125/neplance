@@ -12,7 +12,6 @@ import { jobCreateSchema, validateForm } from "@/shared/validation";
 const INITIAL_JOB_ACTION_STATE = {
   message: "",
   errors: [],
-  milestoneErrors: {},
 };
 
 const parsePayload = (formData) => {
@@ -42,25 +41,11 @@ const sanitizeAttachments = (attachments = []) =>
 
 const mapValidationErrors = (validationErrors) => {
   const errors = [];
-  const milestoneErrors = {};
-
-  Object.entries(validationErrors).forEach(([key, value]) => {
-    if (key.startsWith("milestones.")) {
-      const match = key.match(/milestones\.(\d+)\.(.+)/);
-      if (match) {
-        const index = Number.parseInt(match[1], 10);
-        if (!milestoneErrors[index]) {
-          milestoneErrors[index] = [];
-        }
-        milestoneErrors[index].push(value);
-        return;
-      }
-    }
-
+  Object.entries(validationErrors).forEach(([_key, value]) => {
     errors.push(value);
   });
 
-  return { errors, milestoneErrors };
+  return { errors };
 };
 
 export async function createJobAction(_previousState, formData) {
@@ -188,17 +173,6 @@ export async function updateJobAction(jobId, _previousState, formData) {
           province: payload.locationProvince?.trim() || undefined,
         }
       : undefined;
-  const milestones = (payload.milestones || [])
-    .filter((milestone) => milestone.title?.trim())
-    .map((milestone) => ({
-      title: milestone.title.trim(),
-      description: milestone.description?.trim() || "",
-      value: Number(milestone.value) || 0,
-      dueDate: milestone.dueDate
-        ? new Date(milestone.dueDate).getTime()
-        : undefined,
-    }));
-
   const submitData = {
     title: payload.title?.trim() || "",
     description: payload.description?.trim() || "",
@@ -208,7 +182,6 @@ export async function updateJobAction(jobId, _previousState, formData) {
     tags,
     requiredSkills,
     experienceLevel: payload.experienceLevel || undefined,
-    budgetType: payload.budgetType || "fixed",
     budget: {
       min: Number(payload.budgetMin) || 0,
       max: payload.budgetMax ? Number(payload.budgetMax) : undefined,
@@ -217,7 +190,6 @@ export async function updateJobAction(jobId, _previousState, formData) {
     deadline: payload.deadline || undefined,
     isUrgent: Boolean(payload.isUrgent),
     location,
-    milestones,
     attachments: sanitizeAttachments(payload.attachments),
   };
 
@@ -251,56 +223,6 @@ export async function updateJobAction(jobId, _previousState, formData) {
   revalidatePath(`/jobs/${jobId}/edit`);
   redirect("/dashboard");
 }
-
-export async function submitMilestoneAction(jobId, index, evidence) {
-  await requireSession();
-
-  await apiServerRequest(`/api/jobs/${jobId}/milestones/${index}/submit`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      evidence: typeof evidence === "string" ? evidence.trim() : undefined,
-    }),
-  });
-
-  const job = await getJobByIdServer(jobId);
-
-  revalidatePath("/dashboard");
-  revalidatePath(`/jobs/${jobId}`);
-
-  return successResult(job);
-}
-
-export async function approveMilestoneAction(jobId, index) {
-  await requireSession();
-
-  await apiServerRequest(`/api/jobs/${jobId}/milestones/${index}/approve`, {
-    method: "PATCH",
-  });
-
-  const job = await getJobByIdServer(jobId);
-
-  revalidatePath("/dashboard");
-  revalidatePath(`/jobs/${jobId}`);
-
-  return successResult(job);
-}
-
-export async function requestJobCancellationAction(jobId, reason) {
-  await requireSession();
-
-  await apiServerRequest(`/api/jobs/${jobId}/cancel`, {
-    method: "PATCH",
-    body: JSON.stringify({ reason: reason?.trim() || undefined }),
-  });
-
-  const job = await getJobByIdServer(jobId);
-
-  revalidatePath("/dashboard");
-  revalidatePath(`/jobs/${jobId}`);
-
-  return successResult(job);
-}
-
 export async function publishJobAction(jobId) {
   await requireSession();
 
@@ -327,20 +249,4 @@ export async function deleteJobAction(jobId) {
   revalidatePath(`/jobs/${jobId}`);
 
   return successResult();
-}
-
-export async function respondJobCancellationAction(jobId, action) {
-  await requireSession();
-
-  await apiServerRequest(`/api/jobs/${jobId}/cancel/respond`, {
-    method: "PATCH",
-    body: JSON.stringify({ action }),
-  });
-
-  const job = await getJobByIdServer(jobId);
-
-  revalidatePath("/dashboard");
-  revalidatePath(`/jobs/${jobId}`);
-
-  return successResult(job);
 }

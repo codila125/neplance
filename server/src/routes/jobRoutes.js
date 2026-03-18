@@ -10,11 +10,7 @@ const {
   updateJob,
   publishJob,
   deleteJob,
-  submitMilestone,
-  approveMilestone,
   getJobCategories,
-  requestCancellation,
-  respondCancellation,
 } = require("../controllers/jobController");
 const { protect, restrictTo } = require("../middlewares/authMiddleware");
 
@@ -35,16 +31,5 @@ router
   .delete(restrictTo("client"), deleteJob);
 
 router.patch("/:id/publish", restrictTo("client"), publishJob);
-
-router
-  .route("/:id/milestones/:index/submit")
-  .patch(restrictTo("freelancer"), submitMilestone);
-
-router
-  .route("/:id/milestones/:index/approve")
-  .patch(restrictTo("client"), approveMilestone);
-
-router.patch("/:id/cancel", requestCancellation);
-router.patch("/:id/cancel/respond", respondCancellation);
 
 module.exports = router;

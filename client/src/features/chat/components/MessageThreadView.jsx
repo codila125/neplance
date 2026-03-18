@@ -23,7 +23,12 @@ const formatMessageTime = (value) =>
     timeStyle: "short",
   }).format(new Date(value));
 
-export function MessageThreadView({ conversation, currentUserId, messages }) {
+export function MessageThreadView({
+  contractId,
+  conversation,
+  currentUserId,
+  messages,
+}) {
   const router = useRouter();
   const formRef = useRef(null);
   const threadBodyRef = useRef(null);
@@ -168,7 +173,30 @@ export function MessageThreadView({ conversation, currentUserId, messages }) {
             {conversation.proposal?.deliveryDays ? (
               <span>Delivery: {conversation.proposal.deliveryDays} days</span>
             ) : null}
+            {contractId ? <span>Contract created</span> : null}
           </div>
+        </div>
+        <div className="flex gap-3 flex-wrap">
+          {contractId ? (
+            <a
+              href={`/contracts/${contractId}`}
+              className="btn btn-ghost btn-sm"
+            >
+              View Contract
+            </a>
+          ) : isClient &&
+            ["pending", "accepted"].includes(
+              conversation.proposal?.status || "",
+            ) ? (
+            <a
+              href={`/contracts/create?proposalId=${
+                conversation.proposal?._id || conversation.proposal
+              }`}
+              className="btn btn-secondary btn-sm"
+            >
+              Create Contract
+            </a>
+          ) : null}
         </div>
       </div>
 

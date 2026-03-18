@@ -8,7 +8,6 @@ import { ProposalResubmitSection } from "@/features/proposals/components/Proposa
 import { ProposalSummarySection } from "@/features/proposals/components/ProposalSummarySection";
 import { createConversationFromProposalAction } from "@/lib/actions/chat";
 import {
-  acceptProposalAction,
   createProposalMutationAction,
   rejectProposalAction,
 } from "@/lib/actions/proposals";
@@ -17,6 +16,7 @@ import { PROPOSAL_STATUS } from "@/shared/constants/statuses";
 
 export function ProposalDetailPageClient({
   initialConversationId,
+  initialContractId,
   initialProposal,
   initialUser,
 }) {
@@ -24,9 +24,9 @@ export function ProposalDetailPageClient({
   const user = initialUser;
   const [proposal, setProposal] = useState(initialProposal);
   const [conversationId, setConversationId] = useState(initialConversationId);
+  const [contractId] = useState(initialContractId);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
-  const [acceptError, setAcceptError] = useState("");
   const [chatError, setChatError] = useState("");
   const [resubmitData, setResubmitData] = useState({
     amount: initialProposal.amount?.toString() || "",
@@ -39,7 +39,6 @@ export function ProposalDetailPageClient({
   });
   const [resubmitError, setResubmitError] = useState("");
   const [isRejecting, startRejectTransition] = useTransition();
-  const [isAccepting, startAcceptTransition] = useTransition();
   const [isResubmitting, startResubmitTransition] = useTransition();
   const [isStartingChat, startChatTransition] = useTransition();
 
@@ -55,20 +54,6 @@ export function ProposalDetailPageClient({
         setRejectReason("");
       } catch (error) {
         setRejectError(error.message || "Failed to reject proposal");
-      }
-    });
-  };
-
-  const handleAccept = async () => {
-    setAcceptError("");
-    startAcceptTransition(async () => {
-      try {
-        const result = await acceptProposalAction(proposal._id);
-        setProposal(
-          result.data || { ...proposal, status: PROPOSAL_STATUS.ACCEPTED },
-        );
-      } catch (error) {
-        setAcceptError(error.message || "Failed to accept proposal");
       }
     });
   };
@@ -162,11 +147,17 @@ export function ProposalDetailPageClient({
   const isFreelancer =
     currentUserId && String(freelancerId) === String(currentUserId);
   const canReject = isClient && proposal?.status === PROPOSAL_STATUS.PENDING;
-  const canAccept = isClient && proposal?.status === PROPOSAL_STATUS.PENDING;
   const canResubmit =
     isFreelancer && proposal?.status === PROPOSAL_STATUS.REJECTED;
   const canStartChat = isClient && !conversationId;
   const canOpenChat = Boolean(conversationId) && (isClient || isFreelancer);
+  const canCreateContract =
+    isClient &&
+    [PROPOSAL_STATUS.PENDING, PROPOSAL_STATUS.ACCEPTED].includes(
+      proposal?.status,
+    ) &&
+    !contractId;
+  const canViewContract = Boolean(contractId);
 
   return (
     <div className="dashboard">
@@ -182,6 +173,22 @@ export function ProposalDetailPageClient({
                 className="btn btn-secondary"
               >
                 Open Chat
+              </Link>
+            ) : null}
+            {canViewContract ? (
+              <Link
+                href={`/contracts/${contractId}`}
+                className="btn btn-secondary"
+              >
+                View Contract
+              </Link>
+            ) : null}
+            {canCreateContract ? (
+              <Link
+                href={`/contracts/create?proposalId=${proposal._id}`}
+                className="btn btn-secondary"
+              >
+                Create Contract
               </Link>
             ) : null}
             {canStartChat ? (
@@ -213,12 +220,8 @@ export function ProposalDetailPageClient({
           )}
 
           <ProposalDecisionSection
-            acceptError={acceptError}
-            canAccept={canAccept}
             canReject={canReject}
-            handleAccept={handleAccept}
             handleReject={handleReject}
-            isAccepting={isAccepting}
             isRejecting={isRejecting}
             rejectError={rejectError}
             rejectReason={rejectReason}

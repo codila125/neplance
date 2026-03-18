@@ -1,19 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import {
-  CANCELLATION_STATUS,
-  JOB_STATUS,
-  PROPOSAL_STATUS,
-} from "@/shared/constants/statuses";
+import { JOB_STATUS, PROPOSAL_STATUS } from "@/shared/constants/statuses";
 import {
   formatBudget,
   formatLocation,
   formatStatus,
   getCreatorLabel,
-  getMilestoneTotal,
-  hasMilestones,
 } from "@/shared/utils/job";
 
 export const JobCard = ({
@@ -23,14 +16,10 @@ export const JobCard = ({
   onPostJob,
   onDeleteJob,
   onEditJob,
-  currentUser,
-  onRequestCancellation,
-  onRespondCancellation,
 }) => {
   const {
     title,
     description,
-    milestones,
     status,
     deadline,
     creatorAddress,
@@ -39,24 +28,15 @@ export const JobCard = ({
     tags,
     attachments,
     budget,
-    budgetType,
     experienceLevel,
     location,
     isUrgent,
     proposalCount,
   } = job;
-  const totalValue = hasMilestones(milestones)
-    ? getMilestoneTotal(milestones)
-    : null;
   const creatorLabel = getCreatorLabel(creatorAddress);
   const locationText = formatLocation(location, { includeAddress: false });
-  const budgetDisplay = budget
-    ? formatBudget(budget, budgetType)
-    : totalValue !== null
-      ? `NPR ${totalValue.toLocaleString()}`
-      : "Negotiable";
+  const budgetDisplay = budget ? formatBudget(budget) : "Negotiable";
   const attachmentCount = Array.isArray(attachments) ? attachments.length : 0;
-  const milestoneCount = Array.isArray(milestones) ? milestones.length : 0;
   const deadlineText = deadline
     ? new Date(deadline).toLocaleDateString("en-NP", {
         year: "numeric",
@@ -67,67 +47,6 @@ export const JobCard = ({
   const isDraft = status === JOB_STATUS.DRAFT;
   const isOpen = status === JOB_STATUS.OPEN;
   const canEdit = isDraft || isOpen;
-  const currentUserId = currentUser?.id || currentUser?._id;
-  const isCreator =
-    currentUser &&
-    (creatorAddress?._id === currentUserId ||
-      creatorAddress === currentUserId ||
-      creatorAddress?.id === currentUserId);
-  const isContractor = (job.parties || []).some(
-    (party) =>
-      party.role === "CONTRACTOR" &&
-      String(party.address) === String(currentUserId),
-  );
-  const canCancel =
-    status === JOB_STATUS.IN_PROGRESS && (isCreator || isContractor);
-  const cancellation = job.cancellation || { status: CANCELLATION_STATUS.NONE };
-  const initiatedBy = cancellation.initiatedBy?._id || cancellation.initiatedBy;
-  const isInitiator = initiatedBy
-    ? String(initiatedBy) === String(currentUserId)
-    : cancellation.initiatedRole
-      ? (cancellation.initiatedRole === "CREATOR" && isCreator) ||
-        (cancellation.initiatedRole === "CONTRACTOR" && isContractor)
-      : false;
-  const hasPendingCancellation =
-    cancellation.status === CANCELLATION_STATUS.PENDING;
-  const canRespondCancellation =
-    hasPendingCancellation &&
-    !isInitiator &&
-    canCancel &&
-    currentUser &&
-    onRespondCancellation;
-
-  const [cancellationReason, setCancellationReason] = useState("");
-  const [cancellationError, setCancellationError] = useState("");
-  const [requestLoading, setRequestLoading] = useState(false);
-  const [responseLoading, setResponseLoading] = useState(false);
-
-  const handleRequestCancellation = async () => {
-    if (!onRequestCancellation) return;
-    setCancellationError("");
-    setRequestLoading(true);
-    try {
-      await onRequestCancellation(job, cancellationReason);
-      setCancellationReason("");
-    } catch (err) {
-      setCancellationError(err.message || "Failed to request cancellation");
-    } finally {
-      setRequestLoading(false);
-    }
-  };
-
-  const handleRespondCancellation = async (action) => {
-    if (!onRespondCancellation) return;
-    setCancellationError("");
-    setResponseLoading(true);
-    try {
-      await onRespondCancellation(job, action);
-    } catch (err) {
-      setCancellationError(err.message || "Failed to respond to cancellation");
-    } finally {
-      setResponseLoading(false);
-    }
-  };
 
   const getStatusBadgeClass = (status) => {
     const statusLower = status?.toLowerCase();
@@ -157,7 +76,6 @@ export const JobCard = ({
         }}
       >
         {deadlineText && <span>Due: {deadlineText}</span>}
-        {milestoneCount > 0 && <span>Milestones: {milestoneCount}</span>}
         {attachmentCount > 0 && <span>Attachments: {attachmentCount}</span>}
       </div>
 
@@ -233,121 +151,6 @@ export const JobCard = ({
               ? `${description.slice(0, 150)}...`
               : description}
           </p>
-        )}
-
-        {(canCancel || cancellation.status !== CANCELLATION_STATUS.NONE) && (
-          <div
-            style={{
-              marginTop: "var(--space-4)",
-              padding: "var(--space-3)",
-              borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-bg-secondary)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                gap: "var(--space-2)",
-                alignItems: "center",
-                marginBottom: "var(--space-2)",
-                flexWrap: "wrap",
-              }}
-            >
-              <span className="badge badge-warning">
-                {formatStatus(cancellation.status || CANCELLATION_STATUS.NONE)}
-              </span>
-              {cancellation.initiatedRole && (
-                <span style={{ fontSize: "var(--text-xs)" }}>
-                  Initiated by: {cancellation.initiatedRole.toLowerCase()}
-                </span>
-              )}
-            </div>
-
-            {cancellation.reason && (
-              <p className="text-light">Reason: {cancellation.reason}</p>
-            )}
-
-            {hasPendingCancellation ? (
-              isInitiator ? (
-                <p className="text-light">
-                  Waiting for the other party to respond.
-                </p>
-              ) : (
-                canRespondCancellation && (
-                  <div style={{ display: "flex", gap: "var(--space-2)" }}>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      onClick={() => handleRespondCancellation("accept")}
-                      disabled={responseLoading}
-                    >
-                      {responseLoading ? "Processing..." : "Accept"}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => handleRespondCancellation("reject")}
-                      disabled={responseLoading}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                )
-              )
-            ) : (
-              canCancel &&
-              onRequestCancellation && (
-                <div>
-                  <label
-                    htmlFor={`cancellation-${job._id}`}
-                    style={{
-                      display: "block",
-                      marginBottom: "var(--space-1)",
-                      fontSize: "var(--text-xs)",
-                    }}
-                  >
-                    Cancellation Reason
-                  </label>
-                  <textarea
-                    id={`cancellation-${job._id}`}
-                    value={cancellationReason}
-                    onChange={(e) => setCancellationReason(e.target.value)}
-                    placeholder="Share why you are cancelling (optional)"
-                    rows={3}
-                    style={{
-                      width: "100%",
-                      padding: "var(--space-2)",
-                      borderRadius: "var(--radius)",
-                      border: "1px solid var(--color-border)",
-                      fontFamily: "inherit",
-                      fontSize: "var(--text-xs)",
-                      resize: "vertical",
-                    }}
-                    disabled={requestLoading}
-                  />
-                  <div style={{ marginTop: "var(--space-2)" }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={handleRequestCancellation}
-                      disabled={requestLoading}
-                    >
-                      {requestLoading
-                        ? "Requesting..."
-                        : "Request Cancellation"}
-                    </button>
-                  </div>
-                </div>
-              )
-            )}
-
-            {cancellationError && (
-              <p className="card-error" style={{ marginTop: "var(--space-2)" }}>
-                {cancellationError}
-              </p>
-            )}
-          </div>
         )}
       </div>
 
@@ -464,6 +267,17 @@ export const JobCard = ({
             View Details
           </Link>
 
+          {job.activeContract ? (
+            <Link
+              href={`/contracts/${
+                job.activeContract?._id || job.activeContract
+              }`}
+              className="btn btn-ghost btn-sm"
+            >
+              View Contract
+            </Link>
+          ) : null}
+
           {isDraft && onPostJob && (
             <button
               type="button"
@@ -523,14 +337,7 @@ export const ProposalCard = ({ proposal, onWithdraw }) => {
   } = proposal;
   const jobTitle = job?.title || "Unknown Contract";
   const creatorLabel = getCreatorLabel(job?.creatorAddress);
-  const totalValue = hasMilestones(job?.milestones)
-    ? getMilestoneTotal(job?.milestones)
-    : null;
-  const budgetDisplay = job?.budget
-    ? formatBudget(job.budget, job.budgetType)
-    : totalValue !== null
-      ? `NPR ${totalValue.toLocaleString()}`
-      : "N/A";
+  const budgetDisplay = job?.budget ? formatBudget(job.budget) : "N/A";
 
   const getProposalStatusBadgeClass = (status) => {
     const statusLower = status?.toLowerCase();

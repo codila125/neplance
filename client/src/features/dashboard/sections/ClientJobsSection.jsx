@@ -4,12 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { EmptyState } from "@/features/dashboard/components/EmptyState";
 import { JobCard } from "@/features/dashboard/components/JobCard";
-import {
-  deleteJobAction,
-  publishJobAction,
-  requestJobCancellationAction,
-  respondJobCancellationAction,
-} from "@/lib/actions/jobs";
+import { deleteJobAction, publishJobAction } from "@/lib/actions/jobs";
 import { JOB_STATUS } from "@/shared/constants/statuses";
 
 export function ClientJobsSection({ initialContracts, initialUser }) {
@@ -60,26 +55,6 @@ export function ClientJobsSection({ initialContracts, initialUser }) {
     router.push(`/jobs/${job._id}/edit`);
   };
 
-  const handleRequestCancellation = async (job, reason) => {
-    const result = await requestJobCancellationAction(job._id, reason);
-    setContracts((prev) =>
-      prev.map((contract) =>
-        contract._id === result.data._id ? result.data : contract,
-      ),
-    );
-    router.refresh();
-  };
-
-  const handleRespondCancellation = async (job, action) => {
-    const result = await respondJobCancellationAction(job._id, action);
-    setContracts((prev) =>
-      prev.map((contract) =>
-        contract._id === result.data._id ? result.data : contract,
-      ),
-    );
-    router.refresh();
-  };
-
   return (
     <div className="cards-list">
       {contracts.length > 0 ? (
@@ -92,8 +67,6 @@ export function ClientJobsSection({ initialContracts, initialUser }) {
             onDeleteJob={handleDeleteJob}
             onEditJob={handleEditJob}
             currentUser={initialUser}
-            onRequestCancellation={handleRequestCancellation}
-            onRespondCancellation={handleRespondCancellation}
           />
         ))
       ) : (

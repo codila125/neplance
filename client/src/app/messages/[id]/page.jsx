@@ -6,6 +6,7 @@ import {
   getConversationMessagesServer,
   markConversationReadServer,
 } from "@/lib/server/chat";
+import { getContractByProposalServer } from "@/lib/server/contracts";
 
 export default async function MessageThreadPage({ params }) {
   const { user } = await requireSession();
@@ -17,11 +18,17 @@ export default async function MessageThreadPage({ params }) {
   }
 
   await markConversationReadServer(id);
-  const messages = await getConversationMessagesServer(id);
+  const [messages, contract] = await Promise.all([
+    getConversationMessagesServer(id),
+    getContractByProposalServer(
+      conversation.proposal?._id || conversation.proposal,
+    ),
+  ]);
 
   return (
     <MessageThreadView
       conversation={conversation}
+      contractId={contract?._id || null}
       currentUserId={user.id || user._id}
       messages={messages}
     />

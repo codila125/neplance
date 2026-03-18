@@ -2,7 +2,11 @@ const Job = require("../models/Job");
 const Proposal = require("../models/Proposal");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
-const { getJobOrThrow, ensureCreator, isPartyUser } = require("../utils/jobAccess");
+const {
+  getJobOrThrow,
+  ensureCreator,
+  isPartyUser,
+} = require("../utils/jobAccess");
 const { PROPOSAL_STATUS } = require("../constants/statuses");
 const {
   createProposal: createProposalService,
@@ -56,7 +60,10 @@ const createProposal = catchAsync(async (req, res) => {
   });
 
   if (existingProposal) {
-    throw new AppError("You have already submitted a proposal for this job", 400);
+    throw new AppError(
+      "You have already submitted a proposal for this job",
+      400
+    );
   }
 
   const data = await Proposal.create({
@@ -75,14 +82,15 @@ const createProposal = catchAsync(async (req, res) => {
     actor: req.user.id,
     type: "proposal.submitted",
     title: "New proposal received",
-    message: `${req.user.name || "A freelancer"} submitted a proposal for "${job.title}".`,
+    message: `${req.user.name || "A freelancer"} submitted a proposal for "${
+      job.title
+    }".`,
     link: `/proposals/${data._id}`,
     metadata: {
       job: job._id,
       proposal: data._id,
     },
   });
-
 
   res.status(201).json({
     status: "success",
@@ -144,7 +152,7 @@ const acceptProposal = catchAsync(async (req, res, next) => {
   // 5) Response
   res.status(200).json({
     status: "success",
-    message: "Proposal accepted and contract activated",
+    message: "Proposal accepted. Create a contract to begin work.",
     acceptedProposal,
     job: updatedJob,
   });
@@ -200,7 +208,10 @@ const getProposalById = catchAsync(async (req, res, next) => {
   if (isFreelancer) {
     const populatedProposal = await Proposal.findById(proposalId)
       .populate("freelancer", "name email")
-      .populate({ path: "job", populate: { path: "creatorAddress", select: "name email" } });
+      .populate({
+        path: "job",
+        populate: { path: "creatorAddress", select: "name email" },
+      });
     return res.status(200).json({ status: "success", data: populatedProposal });
   }
 
@@ -214,12 +225,17 @@ const getProposalById = catchAsync(async (req, res, next) => {
     isPartyUser(job, userId, "CREATOR");
 
   if (!isJobOwner) {
-    return next(new AppError("You are not authorized to view this proposal", 403));
+    return next(
+      new AppError("You are not authorized to view this proposal", 403)
+    );
   }
 
   const populatedProposal = await Proposal.findById(proposalId)
     .populate("freelancer", "name email")
-    .populate({ path: "job", populate: { path: "creatorAddress", select: "name email" } });
+    .populate({
+      path: "job",
+      populate: { path: "creatorAddress", select: "name email" },
+    });
   res.status(200).json({ status: "success", data: populatedProposal });
 });
 

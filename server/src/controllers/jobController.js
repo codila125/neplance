@@ -5,21 +5,14 @@ const catchAsync = require("../utils/catchAsync");
 const {
   getJobOrThrow,
   ensureCreator,
-  ensureContractor,
 } = require("../utils/jobAccess");
 const { JOB_STATUS } = require("../constants/statuses");
 const {
   validateJobUpdate,
   normalizeJobCreateDefaults,
-  assertJobHasMilestones,
   publishJob: publishJobService,
   deleteJob: deleteJobService,
-  submitMilestone: submitMilestoneService,
-  approveMilestone: approveMilestoneService,
-  requestCancellation: requestCancellationService,
-  respondCancellation: respondCancellationService,
 } = require("../services/jobService");
-const { createNotification } = require("../services/notificationService");
 
 const createJob = catchAsync(async (req, res) => {
   const {
@@ -34,12 +27,10 @@ const createJob = catchAsync(async (req, res) => {
     terms,
     status,
     jobType,
-    budgetType,
     isPublic,
     isUrgent,
     tags,
     requiredSkills,
-    milestones,
     attachments,
     parties,
   } = req.body;
@@ -47,20 +38,14 @@ const createJob = catchAsync(async (req, res) => {
   const creatorAddress = req.user.id.toString();
   const normalizedDefaults = normalizeJobCreateDefaults({
     jobType,
-    budgetType,
     isPublic,
     isUrgent,
     tags,
     requiredSkills,
-    milestones,
     attachments,
     parties,
     status,
   });
-
-  if (normalizedDefaults.status !== JOB_STATUS.DRAFT) {
-    assertJobHasMilestones(normalizedDefaults.milestones);
-  }
 
   const normalizedParties = [
     { address: creatorAddress, role: "CREATOR" },
@@ -93,13 +78,11 @@ const createJob = catchAsync(async (req, res) => {
     tags: normalizedDefaults.tags,
     requiredSkills: normalizedDefaults.requiredSkills,
     experienceLevel,
-    budgetType: normalizedDefaults.budgetType,
     budget,
     deadline,
     isUrgent: normalizedDefaults.isUrgent,
     location,
     isPublic: normalizedDefaults.isPublic,
-    milestones: normalizedDefaults.milestones,
     parties: normalizedParties,
     terms,
     attachments: normalizedDefaults.attachments,
@@ -118,7 +101,6 @@ const findJobs = catchAsync(async (req, res) => {
     category,
     jobType,
     experienceLevel,
-    budgetType,
     minBudget,
     maxBudget,
     city,
@@ -140,7 +122,6 @@ const findJobs = catchAsync(async (req, res) => {
   if (category) query.category = category;
   if (jobType) query.jobType = jobType;
   if (experienceLevel) query.experienceLevel = experienceLevel;
-  if (budgetType) query.budgetType = budgetType;
   if (isUrgent === "true") query.isUrgent = true;
   if (isFeatured === "true") query.isFeatured = true;
 
@@ -216,7 +197,6 @@ const adminFindJobs = catchAsync(async (req, res) => {
     category,
     jobType,
     experienceLevel,
-    budgetType,
     minBudget,
     maxBudget,
     city,
@@ -238,7 +218,6 @@ const adminFindJobs = catchAsync(async (req, res) => {
   if (category) query.category = category;
   if (jobType) query.jobType = jobType;
   if (experienceLevel) query.experienceLevel = experienceLevel;
-  if (budgetType) query.budgetType = budgetType;
   if (isUrgent === "true") query.isUrgent = true;
   if (isFeatured === "true") query.isFeatured = true;
 
@@ -404,13 +383,11 @@ const updateJob = catchAsync(async (req, res) => {
     "tags",
     "requiredSkills",
     "experienceLevel",
-    "budgetType",
     "budget",
     "deadline",
     "isUrgent",
     "location",
     "isPublic",
-    "milestones",
     "terms",
     "attachments",
   ];
@@ -423,10 +400,6 @@ const updateJob = catchAsync(async (req, res) => {
   });
 
   updates.updatedAt = new Date();
-
-  if (updates.milestones) {
-    assertJobHasMilestones(updates.milestones);
-  }
 
   const updatedJob = await Job.findByIdAndUpdate(jobId, updates, {
     new: true,
@@ -466,142 +439,6 @@ const deleteJob = catchAsync(async (req, res) => {
   });
 });
 
-const submitMilestone = catchAsync(async (req, res, next) => {
-  const { id: jobId, index } = req.params;
-  const { evidence } = req.body;
-
-  const job = await getJobOrThrow(jobId);
-  ensureContractor(
-    job,
-    req.user.id,
-    "Only the contractor can submit milestones"
-  );
-
-  const milestoneIndex = Number(index);
-  await submitMilestoneService(job, milestoneIndex, evidence);
-
-  const milestone = job.milestones[milestoneIndex];
-  await createNotification({
-    recipient: job.creatorAddress,
-    actor: req.user.id,
-    type: "milestone.submitted",
-    title: "Milestone submitted",
-    message: `${req.user.name || "Your freelancer"} submitted milestone "${milestone?.title || `#${milestoneIndex + 1}`}" for "${job.title}".`,
-    link: `/jobs/${job._id}`,
-    metadata: {
-      job: job._id,
-    },
-  });
-
-  res.status(200).json({
-    status: "success",
-    message: "Milestone submitted for approval.",
-    job,
-  });
-});
-
-const approveMilestone = catchAsync(async (req, res, next) => {
-  const { id: jobId, index } = req.params;
-
-  const job = await getJobOrThrow(jobId);
-  ensureCreator(job, req.user.id, "Only the creator can approve milestones");
-
-  const milestoneIndex = Number(index);
-  const { job: updatedJob, allCompleted } = await approveMilestoneService(
-    job,
-    milestoneIndex,
-    req.user.id
-  );
-
-  const milestone = updatedJob.milestones[milestoneIndex];
-  await createNotification({
-    recipient: updatedJob.hiredFreelancer,
-    actor: req.user.id,
-    type: "milestone.approved",
-    title: allCompleted ? "Contract completed" : "Milestone approved",
-    message: allCompleted
-      ? `Your final milestone for "${updatedJob.title}" was approved.`
-      : `Your milestone "${milestone?.title || `#${milestoneIndex + 1}`}" for "${updatedJob.title}" was approved.`,
-    link: `/jobs/${updatedJob._id}`,
-    metadata: {
-      job: updatedJob._id,
-    },
-  });
-
-  res.status(200).json({
-    status: "success",
-    message: allCompleted
-      ? "Milestone approved and contract completed."
-      : "Milestone approved.",
-    job: updatedJob,
-  });
-});
-
-const requestCancellation = catchAsync(async (req, res, next) => {
-  const jobId = req.params.id;
-  const { reason } = req.body;
-
-  const job = await getJobOrThrow(jobId);
-  const userId = req.user.id.toString();
-  const updatedJob = await requestCancellationService(job, userId, reason);
-  const recipientId =
-    String(job.creatorAddress) === userId ? job.hiredFreelancer : job.creatorAddress;
-
-  await createNotification({
-    recipient: recipientId,
-    actor: req.user.id,
-    type: "cancellation.requested",
-    title: "Cancellation requested",
-    message: `${req.user.name || "A user"} requested cancellation for "${job.title}".`,
-    link: `/jobs/${job._id}`,
-    metadata: {
-      job: job._id,
-    },
-  });
-
-  res.status(200).json({
-    status: "success",
-    message: "Cancellation requested",
-    data: updatedJob,
-  });
-});
-
-const respondCancellation = catchAsync(async (req, res, next) => {
-  const jobId = req.params.id;
-  const { action } = req.body;
-
-  const job = await getJobOrThrow(jobId);
-
-  const userId = req.user.id.toString();
-  const { job: updatedJob, accepted } = await respondCancellationService(
-    job,
-    userId,
-    action
-  );
-
-  await createNotification({
-    recipient: updatedJob.cancellation?.initiatedBy,
-    actor: req.user.id,
-    type: accepted ? "cancellation.accepted" : "cancellation.rejected",
-    title: accepted ? "Cancellation accepted" : "Cancellation rejected",
-    message: accepted
-      ? `Your cancellation request for "${updatedJob.title}" was accepted.`
-      : `Your cancellation request for "${updatedJob.title}" was rejected.`,
-    link: `/jobs/${updatedJob._id}`,
-    metadata: {
-      job: updatedJob._id,
-    },
-  });
-
-  res.status(200).json({
-    status: "success",
-    message: accepted
-      ? "Cancellation accepted and job cancelled"
-      : "Cancellation rejected",
-    data: updatedJob,
-  });
-});
-
 const getJobCategories = catchAsync(async (req, res) => {
   const categories = await Job.distinct("category");
   res.status(200).json({
@@ -618,10 +455,6 @@ module.exports = {
   updateJob,
   publishJob,
   deleteJob,
-  submitMilestone,
-  approveMilestone,
   getJobCategories,
-  requestCancellation,
-  respondCancellation,
   adminFindJobs,
 };

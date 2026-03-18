@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { EditJobFormSection } from "@/features/jobs/components/EditJobFormSection";
-import { EditJobMilestonesSection } from "@/features/jobs/components/EditJobMilestonesSection";
 import { updateJobAction } from "@/lib/actions/jobs";
 import { Button } from "@/shared/components/UI";
 
@@ -20,7 +19,6 @@ const buildInitialFormState = (job) => ({
   tags: (job.tags || []).join(", "),
   requiredSkills: (job.requiredSkills || []).join(", "),
   experienceLevel: job.experienceLevel || "",
-  budgetType: job.budgetType || "fixed",
   budgetMin: job.budget?.min?.toString() || "",
   budgetMax: job.budget?.max?.toString() || "",
   deadline: job.deadline ? job.deadline.split("T")[0] : "",
@@ -37,21 +35,11 @@ const buildInitialFormState = (job) => ({
         resourceType: "raw",
       }))
     : [],
-  milestones: (job.milestones || []).map((milestone) => ({
-    id: createMilestoneId(),
-    title: milestone.title || "",
-    description: milestone.description || "",
-    value: milestone.value?.toString() || "",
-    dueDate: milestone.dueDate
-      ? new Date(milestone.dueDate).toISOString().split("T")[0]
-      : "",
-  })),
 });
 
 const INITIAL_ACTION_STATE = {
   message: "",
   errors: [],
-  milestoneErrors: {},
 };
 
 export function EditJobPageClient({ initialJob }) {
@@ -63,43 +51,9 @@ export function EditJobPageClient({ initialJob }) {
   );
 
   const formErrors = actionState?.errors || [];
-  const milestoneErrors = actionState?.milestoneErrors || {};
 
   const handleFormChange = (field, value) => {
     setFormState((previous) => ({ ...previous, [field]: value }));
-  };
-
-  const handleMilestoneChange = (index, field, value) => {
-    setFormState((previous) => {
-      const nextMilestones = [...previous.milestones];
-      nextMilestones[index] = { ...nextMilestones[index], [field]: value };
-      return { ...previous, milestones: nextMilestones };
-    });
-  };
-
-  const addMilestone = () => {
-    setFormState((previous) => ({
-      ...previous,
-      milestones: [
-        ...previous.milestones,
-        {
-          id: createMilestoneId(),
-          title: "",
-          description: "",
-          value: "",
-          dueDate: "",
-        },
-      ],
-    }));
-  };
-
-  const removeMilestone = (index) => {
-    setFormState((previous) => ({
-      ...previous,
-      milestones: previous.milestones.filter(
-        (_, milestoneIndex) => milestoneIndex !== index,
-      ),
-    }));
   };
 
   const handleUploadedAttachment = (attachment) => {
@@ -171,14 +125,6 @@ export function EditJobPageClient({ initialJob }) {
             handleUploadedAttachment={handleUploadedAttachment}
             isPending={isPending}
             removeAttachment={removeAttachment}
-          />
-          <EditJobMilestonesSection
-            addMilestone={addMilestone}
-            formState={formState}
-            handleMilestoneChange={handleMilestoneChange}
-            isPending={isPending}
-            milestoneErrors={milestoneErrors}
-            removeMilestone={removeMilestone}
           />
 
           <div

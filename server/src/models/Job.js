@@ -1,32 +1,5 @@
 const mongoose = require("mongoose");
-const {
-  JOB_STATUS,
-  CANCELLATION_STATUS,
-  MILESTONE_STATUS,
-} = require("../constants/statuses");
-
-const milestoneSchema = new mongoose.Schema(
-  {
-    id: mongoose.Schema.Types.Buffer,
-    title: String,
-    description: String,
-    value: Number,
-    dueDate: Date,
-    status: {
-      type: String,
-      enum: Object.values(MILESTONE_STATUS),
-      default: MILESTONE_STATUS.ACTIVE,
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    completedAt: Date,
-    evidence: String,
-    approvedBy: [String],
-  },
-  { _id: false }
-);
+const { JOB_STATUS } = require("../constants/statuses");
 
 const partySchema = new mongoose.Schema(
   {
@@ -112,11 +85,6 @@ const jobSchema = new mongoose.Schema({
     type: String,
     enum: ["entry", "intermediate", "expert"],
   },
-  budgetType: {
-    type: String,
-    enum: ["fixed", "hourly"],
-    default: "fixed",
-  },
   budget: budgetSchema,
   deadline: Date,
   isUrgent: {
@@ -149,29 +117,6 @@ const jobSchema = new mongoose.Schema({
     enum: Object.values(JOB_STATUS),
     default: JOB_STATUS.DRAFT,
   },
-  cancellation: {
-    status: {
-      type: String,
-      enum: Object.values(CANCELLATION_STATUS),
-      default: CANCELLATION_STATUS.NONE,
-    },
-    initiatedBy: {
-      type: mongoose.Schema.ObjectId,
-      ref: "User",
-    },
-    initiatedRole: {
-      type: String,
-      enum: ["CREATOR", "CONTRACTOR"],
-    },
-    reason: String,
-    requestedAt: Date,
-    respondedBy: {
-      type: mongoose.Schema.ObjectId,
-      ref: "User",
-    },
-    respondedAt: Date,
-  },
-  milestones: [milestoneSchema],
   parties: [partySchema],
   terms: String,
   creatorAddress: {
@@ -180,6 +125,14 @@ const jobSchema = new mongoose.Schema({
     required: true,
   },
   attachments: [String],
+  selectedProposal: {
+    type: mongoose.Schema.ObjectId,
+    ref: "Proposal",
+  },
+  activeContract: {
+    type: mongoose.Schema.ObjectId,
+    ref: "Contract",
+  },
   hiredFreelancer: {
     type: mongoose.Schema.ObjectId,
     ref: "User",

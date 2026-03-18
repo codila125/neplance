@@ -2,12 +2,10 @@ import { formatStatus } from "@/shared/utils/job";
 
 export function JobDetailSummarySection({
   budgetDisplay,
-  completedCount,
   creatorLabel,
   deadlineText,
   job,
   locationText,
-  milestones,
 }) {
   return (
     <>
@@ -132,19 +130,6 @@ export function JobDetailSummarySection({
             }}
           >
             Due: {deadlineText}
-          </span>
-        )}
-        {milestones.length > 0 && (
-          <span style={{ fontSize: "0.875rem" }}>
-            Milestones:{" "}
-            <span
-              style={{
-                color: "var(--color-primary)",
-                fontWeight: "var(--font-weight-medium)",
-              }}
-            >
-              {completedCount}/{milestones.length}
-            </span>
           </span>
         )}
       </div>

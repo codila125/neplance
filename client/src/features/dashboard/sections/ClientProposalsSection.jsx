@@ -1,47 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { EmptyState } from "@/features/dashboard/components/EmptyState";
-import { acceptProposalAction } from "@/lib/actions/proposals";
 import { PROPOSAL_STATUS } from "@/shared/constants/statuses";
 
 export function ClientProposalsSection({
   initialContracts,
   initialProposalsByContract,
 }) {
-  const [proposalsByContract, setProposalsByContract] = useState(
-    initialProposalsByContract
-  );
-
-  const handleAcceptProposal = async (proposalId) => {
-    try {
-      const result = await acceptProposalAction(proposalId);
-      const updatedProposal = result.data;
-      const jobId = updatedProposal?.job?._id || updatedProposal?.job;
-
-      if (jobId) {
-        setProposalsByContract((prev) => ({
-          ...prev,
-          [jobId]: (prev[jobId] || []).map((proposal) =>
-            proposal._id === proposalId ? updatedProposal : proposal
-          ),
-        }));
-      }
-    } catch (_error) {
-      alert("Failed to accept proposal");
-    }
-  };
-
   const pendingProposals = useMemo(
     () =>
       initialContracts.flatMap((contract) =>
-        (proposalsByContract[contract._id] || []).map((proposal) => ({
+        (initialProposalsByContract[contract._id] || []).map((proposal) => ({
           ...proposal,
           _contract: contract,
-        }))
+        })),
       ),
-    [initialContracts, proposalsByContract]
+    [initialContracts, initialProposalsByContract],
   );
 
   if (pendingProposals.length === 0) {
@@ -124,13 +100,15 @@ export function ClientProposalsSection({
                   View Details
                 </Link>
                 {proposal.status === PROPOSAL_STATUS.PENDING && (
-                  <button
-                    type="button"
+                  <Link
+                    href={`/contracts/create?proposalId=${proposal._id}`}
                     className="btn btn-primary btn-sm"
-                    onClick={() => handleAcceptProposal(proposal._id)}
                   >
-                    Accept Proposal
-                  </button>
+                    Create Contract
+                  </Link>
+                )}
+                {proposal.status === PROPOSAL_STATUS.ACCEPTED && (
+                  <span className="badge badge-success">Contract Selected</span>
                 )}
               </div>
             </div>

@@ -157,7 +157,7 @@ export const proposalSchema = z.object({
   attachments: z.array(z.string().url("Invalid URL")).optional().default([]),
 });
 
-const milestoneSchema = z.object({
+export const milestoneSchema = z.object({
   title: z.string().min(1, "Milestone title is required"),
   description: z.string().optional(),
   value: z
@@ -182,7 +182,6 @@ export const jobCreateSchema = z.object({
   tags: z.array(z.string()).optional().default([]),
   requiredSkills: z.array(z.string()).optional().default([]),
   experienceLevel: z.enum(["entry", "intermediate", "expert"]).optional(),
-  budgetType: z.enum(["fixed", "hourly"]).default("fixed"),
   budget: z
     .object({
       min: z.number().min(0, "Minimum budget cannot be negative"),
@@ -203,9 +202,42 @@ export const jobCreateSchema = z.object({
     })
     .optional(),
   isPublic: z.boolean().optional().default(true),
-  milestones: z.array(milestoneSchema).optional().default([]),
   attachments: z.array(z.string().url("Invalid URL")).optional().default([]),
 });
+
+export const contractCreateSchema = z
+  .object({
+    proposalId: z.string().min(1, "Proposal is required"),
+    title: z.string().min(1, "Contract title is required").max(200),
+    description: z.string().max(5000).optional(),
+    terms: z.string().max(5000).optional(),
+    contractType: z.enum(["full_project", "milestone_based"]),
+    totalAmount: z.number().min(0).optional(),
+    milestones: z.array(milestoneSchema).optional().default([]),
+  })
+  .superRefine((data, context) => {
+    if (
+      data.contractType === "milestone_based" &&
+      data.milestones.length === 0
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Add at least one milestone for milestone-based contracts",
+        path: ["milestones"],
+      });
+    }
+
+    if (
+      data.contractType === "full_project" &&
+      (!data.totalAmount || data.totalAmount <= 0)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter a total amount for full-project contracts",
+        path: ["totalAmount"],
+      });
+    }
+  });
 
 export const validateForm = (schema, data) => {
   const result = schema.safeParse(data);
