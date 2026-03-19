@@ -12,7 +12,7 @@ const createInitialMilestone = () => ({
   dueDate: "",
 });
 
-export function ContractCreatePageClient({ proposal }) {
+export function ContractCreatePageClient({ proposal, walletData }) {
   const [formState, setFormState] = useState({
     title: proposal.job?.title || "",
     description: proposal.job?.description || "",
@@ -73,6 +73,16 @@ export function ContractCreatePageClient({ proposal }) {
     (total, milestone) => total + (Number(milestone.value) || 0),
     0,
   );
+  const wallet = walletData?.wallet || {
+    balance: 0,
+    heldBalance: 0,
+    currency: "NPR",
+  };
+  const expectedFundingAmount =
+    formState.contractType === CONTRACT_TYPE.MILESTONE_BASED
+      ? milestoneTotal
+      : Number(formState.totalAmount) || 0;
+  const hasEnoughFunds = wallet.balance >= expectedFundingAmount;
 
   return (
     <form action={formAction} className="card">
@@ -104,11 +114,67 @@ export function ContractCreatePageClient({ proposal }) {
                 : ""}
             </p>
           </div>
+          <div>
+            <strong>Wallet balance</strong>
+            <p className="text-muted mb-0">
+              {wallet.currency || "NPR"}{" "}
+              {Number(wallet.balance || 0).toLocaleString()}
+              {wallet.heldBalance
+                ? ` available, ${Number(wallet.heldBalance).toLocaleString()} held`
+                : ""}
+            </p>
+          </div>
         </div>
+        {proposal.freelancer ? (
+          <div
+            style={{
+              display: "flex",
+              gap: "var(--space-2)",
+              flexWrap: "wrap",
+              marginTop: "var(--space-3)",
+            }}
+          >
+            <span className="badge">
+              Freelancer:{" "}
+              {proposal.freelancer.name || proposal.freelancer.email}
+            </span>
+            {proposal.freelancer.verificationStatus === "verified" ? (
+              <span className="badge badge-success">Verified</span>
+            ) : null}
+            {Number(proposal.freelancer.reviewSummary?.totalReviews || 0) >
+            0 ? (
+              <span className="badge">
+                {proposal.freelancer.reviewSummary.averageRating}/5 ·{" "}
+                {proposal.freelancer.reviewSummary.totalReviews} reviews
+              </span>
+            ) : null}
+            {proposal.attachments?.length > 0 ? (
+              <span className="badge">
+                {proposal.attachments.length} proposal attachment
+                {proposal.attachments.length === 1 ? "" : "s"}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {actionState?.message ? (
         <div className="card-error mb-4">{actionState.message}</div>
+      ) : null}
+      {expectedFundingAmount > 0 ? (
+        <div className={`card-sm mb-6 ${hasEnoughFunds ? "" : "card-error"}`}>
+          <strong>Funding required to create this contract</strong>
+          <p className="text-muted mb-0">
+            {wallet.currency || "NPR"}{" "}
+            {Number(expectedFundingAmount || 0).toLocaleString()} will be
+            reserved from the client wallet when the contract is created.
+          </p>
+          {!hasEnoughFunds ? (
+            <p className="mb-0" style={{ marginTop: "var(--space-2)" }}>
+              Your available balance is too low for this contract.
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="form-group">
@@ -310,7 +376,11 @@ export function ContractCreatePageClient({ proposal }) {
       )}
 
       <div className="flex justify-end">
-        <button type="submit" className="btn btn-primary" disabled={isPending}>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={isPending || !hasEnoughFunds}
+        >
           {isPending ? "Creating Contract..." : "Create Contract"}
         </button>
       </div>

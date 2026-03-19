@@ -3,8 +3,22 @@ const express = require("express");
 const router = express.Router();
 
 const { adminFindJobs } = require("../controllers/jobController");
+const {
+  listVerificationQueue,
+  reviewUserVerification,
+} = require("../controllers/userController");
+const {
+  listDisputesQueue,
+  reviewDispute,
+} = require("../controllers/disputeController");
+const { protect, restrictTo } = require("../middlewares/authMiddleware");
 
-// Public admin endpoints for development/testing (no auth)
+router.use(protect, restrictTo("admin"));
+
 router.get("/jobs", adminFindJobs);
+router.get("/verification", listVerificationQueue);
+router.patch("/verification/:id", reviewUserVerification);
+router.get("/disputes", listDisputesQueue);
+router.patch("/disputes/:id", reviewDispute);
 
 module.exports = router;

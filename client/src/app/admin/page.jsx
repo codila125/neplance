@@ -1,55 +1,92 @@
 import Link from "next/link";
+import { listVerificationQueueServer } from "@/lib/server/admin";
+import { listAllJobsServer } from "@/lib/server/jobs";
+import { listUsersServer } from "@/lib/server/users";
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const [pendingVerification, users, jobs] = await Promise.all([
+    listVerificationQueueServer("pending"),
+    listUsersServer(),
+    listAllJobsServer(),
+  ]);
+
+  const cards = [
+    {
+      href: "/admin/pending-verification",
+      label: "Verification Queue",
+      value: pendingVerification.length,
+    },
+    {
+      href: "/admin/users",
+      label: "Users",
+      value: users.length,
+    },
+    {
+      href: "/admin/jobs",
+      label: "Jobs",
+      value: jobs.length,
+    },
+    {
+      href: "/admin/disputes",
+      label: "Disputes",
+      value: "Soon",
+    },
+    {
+      href: "/admin/problems",
+      label: "Problems",
+      value: "Soon",
+    },
+  ];
+
   return (
-    <>
-      <main
-        className="section"
-        style={{ backgroundColor: "var(--color-bg-page)" }}
-      >        <div className="container">
-          <div className="card" style={{ padding: "var(--space-8)" }}>
-            <h1
+    <div className="card" style={{ padding: "var(--space-8)" }}>
+      <h1
+        style={{
+          marginBottom: "var(--space-4)",
+          fontSize: "var(--text-2xl)",
+        }}
+      >
+        Admin Overview
+      </h1>
+      <p className="text-muted" style={{ marginBottom: "var(--space-6)" }}>
+        Manage verification, marketplace activity, and operational issues.
+      </p>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "var(--space-4)",
+        }}
+      >
+        {cards.map((card) => (
+          <Link
+            key={card.href}
+            href={card.href}
+            className="card-sm"
+            style={{
+              textDecoration: "none",
+              color: "inherit",
+              display: "block",
+            }}
+          >
+            <div
+              className="text-light"
+              style={{ marginBottom: "var(--space-2)" }}
+            >
+              {card.label}
+            </div>
+            <div
               style={{
-                marginBottom: "var(--space-4)",
-                fontSize: "var(--text-2xl)",
+                fontSize: "var(--text-3xl)",
+                fontWeight: "var(--font-weight-semibold)",
               }}
             >
-              Hello Admin!
-            </h1>
-            <p
-              className="text-muted"
-              style={{ marginBottom: "var(--space-6)" }}
-            >
-              Select an area to manage.
-            </p>
-
-            <div className="grid grid-cols-3" style={{ gap: "var(--space-4)" }}>
-              <Link href="/admin/users" className="btn btn-primary btn-lg">
-                Users
-              </Link>
-
-              <Link href="/admin/jobs" className="btn btn-primary btn-lg">
-                Jobs
-              </Link>
-
-              <Link
-                href="/admin/pending-verification"
-                className="btn btn-primary btn-lg"
-              >
-                Users Pending Verification
-              </Link>
-
-              <Link href="/admin/disputes" className="btn btn-primary btn-lg">
-                Disputes Raised
-              </Link>
-
-              <Link href="/admin/problems" className="btn btn-primary btn-lg">
-                Problems Reported
-              </Link>
+              {card.value}
             </div>
-          </div>
-        </div>
-      </main>
-    </>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }

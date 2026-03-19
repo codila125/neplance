@@ -64,7 +64,7 @@ export function EditProfilePageClient({ initialUser }) {
   const [formData, setFormData] = useState(makeInitialForm(initialUser));
   const [actionState, formAction, isPending] = useActionState(
     updateProfileAction,
-    INITIAL_ACTION_STATE
+    INITIAL_ACTION_STATE,
   );
 
   const roleLabel = activeRole || initialUser?.role?.[0] || "freelancer";
@@ -106,7 +106,7 @@ export function EditProfilePageClient({ initialUser }) {
     setFormData((previous) => ({
       ...previous,
       portfolio: previous.portfolio.filter(
-        (_, itemIndex) => itemIndex !== index
+        (_, itemIndex) => itemIndex !== index,
       ),
     }));
   };
@@ -115,7 +115,7 @@ export function EditProfilePageClient({ initialUser }) {
     setFormData((previous) => ({
       ...previous,
       verificationDocuments: previous.verificationDocuments.filter(
-        (_, itemIndex) => itemIndex !== index
+        (_, itemIndex) => itemIndex !== index,
       ),
     }));
   };
@@ -133,6 +133,20 @@ export function EditProfilePageClient({ initialUser }) {
           resourceType: document.resourceType || "raw",
         },
       ],
+    }));
+  };
+
+  const handleUploadedAvatar = (upload) => {
+    setFormData((previous) => ({
+      ...previous,
+      avatar: upload.url,
+    }));
+  };
+
+  const removeAvatar = () => {
+    setFormData((previous) => ({
+      ...previous,
+      avatar: "",
     }));
   };
 
@@ -166,7 +180,21 @@ export function EditProfilePageClient({ initialUser }) {
               actionErrors={actionErrors}
               formData={formData}
               handleChange={handleChange}
+              handleUploadedAvatar={
+                <CloudinaryFileUploader
+                  accept=".png,.jpg,.jpeg,.webp"
+                  buttonLabel={
+                    formData.avatar
+                      ? "Replace Profile Photo"
+                      : "Upload Profile Photo"
+                  }
+                  disabled={isPending}
+                  folder="profile-photos"
+                  onUploaded={handleUploadedAvatar}
+                />
+              }
               removeVerificationDocument={removeVerificationDocument}
+              removeAvatar={removeAvatar}
             />
             <CloudinaryFileUploader
               buttonLabel="Upload Verification Document"

@@ -17,6 +17,12 @@ export function FreelancerProfilePageClient({ initialFreelancer }) {
     ].filter(Boolean);
     return values.length ? values.join(", ") : "N/A";
   })();
+  const reviewSummary = freelancer?.reviewSummary || {
+    averageRating: "0.0",
+    totalReviews: 0,
+    recentReviews: [],
+  };
+  const verificationStatus = freelancer?.verificationStatus || "not_submitted";
 
   if (!freelancer) {
     return (
@@ -203,9 +209,90 @@ export function FreelancerProfilePageClient({ initialFreelancer }) {
                   </div>
                   <div>{profileLocation}</div>
                 </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: "var(--text-sm)",
+                      color: "var(--color-text-light)",
+                      marginBottom: "var(--space-1)",
+                    }}
+                  >
+                    Verification
+                  </div>
+                  <span className="badge badge-primary">
+                    {verificationStatus}
+                  </span>
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: "var(--text-sm)",
+                      color: "var(--color-text-light)",
+                      marginBottom: "var(--space-1)",
+                    }}
+                  >
+                    Rating
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "var(--text-xl)",
+                      fontWeight: "var(--font-weight-semibold)",
+                    }}
+                  >
+                    {Number(reviewSummary.averageRating || 0) > 0
+                      ? `${reviewSummary.averageRating} /5`
+                      : "N/A"}
+                  </div>
+                  <div
+                    className="text-light"
+                    style={{ fontSize: "var(--text-sm)" }}
+                  >
+                    {reviewSummary.totalReviews || 0} review(s)
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="card" style={{ marginBottom: "var(--space-8)" }}>
+          <h2 style={{ marginBottom: "var(--space-4)" }}>Recent Reviews</h2>
+          {reviewSummary.recentReviews?.length > 0 ? (
+            <div style={{ display: "grid", gap: "var(--space-4)" }}>
+              {reviewSummary.recentReviews.map((review) => (
+                <article key={review._id} className="card-sm">
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "var(--space-3)",
+                      flexWrap: "wrap",
+                      marginBottom: "var(--space-2)",
+                    }}
+                  >
+                    <div>
+                      <strong>{review.reviewer?.name || "Reviewer"}</strong>
+                      <div
+                        className="text-light"
+                        style={{ fontSize: "var(--text-sm)" }}
+                      >
+                        {review.job?.title || "Contract review"}
+                      </div>
+                    </div>
+                    <span className="badge badge-primary">
+                      {review.rating}/5
+                    </span>
+                  </div>
+                  <p className="text-light" style={{ marginBottom: 0 }}>
+                    {review.comment || "No written feedback provided."}
+                  </p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="text-light">No reviews yet.</p>
+          )}
         </div>
 
         {freelancer.skills?.length > 0 && (

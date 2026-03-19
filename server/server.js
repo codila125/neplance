@@ -36,6 +36,7 @@ const uploadRouter = require("./src/routes/uploadRoutes");
 const notificationRouter = require("./src/routes/notificationRoutes");
 const chatRouter = require("./src/routes/chatRoutes");
 const contractRouter = require("./src/routes/contractRoutes");
+const walletRouter = require("./src/routes/walletRoutes");
 const errorController = require("./src/controllers/errorController");
 
 app.use("/api", indexRouter);
@@ -48,6 +49,7 @@ app.use("/api/uploads", uploadRouter);
 app.use("/api/notifications", notificationRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/contracts", contractRouter);
+app.use("/api/wallet", walletRouter);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", db: mongoose.connection.readyState });

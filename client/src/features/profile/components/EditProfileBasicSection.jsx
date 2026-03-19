@@ -2,7 +2,9 @@ export function EditProfileBasicSection({
   actionErrors,
   formData,
   handleChange,
+  handleUploadedAvatar,
   removeVerificationDocument,
+  removeAvatar,
 }) {
   return (
     <>
@@ -37,17 +39,69 @@ export function EditProfileBasicSection({
       </div>
 
       <div className="form-group">
-        <label className="form-label" htmlFor="profile-avatar">
-          Avatar URL
-        </label>
-        <input
-          id="profile-avatar"
-          className={`form-input ${
-            actionErrors.avatar ? "form-input-error" : ""
-          }`}
-          value={formData.avatar}
-          onChange={handleChange("avatar")}
-        />
+        <div className="form-label">Profile Photo</div>
+        {formData.avatar ? (
+          <div
+            className="card-sm"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "var(--space-3)",
+              marginBottom: "var(--space-3)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-3)",
+              }}
+            >
+              <img
+                src={formData.avatar}
+                alt={formData.name || "Profile photo"}
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "999px",
+                  objectFit: "cover",
+                  border: "1px solid var(--color-border)",
+                }}
+              />
+              <div>
+                <div style={{ fontWeight: "var(--font-weight-medium)" }}>
+                  Profile image uploaded
+                </div>
+                <a
+                  href={formData.avatar}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-link"
+                >
+                  Open image
+                </a>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={removeAvatar}
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <p className="text-light" style={{ marginBottom: "var(--space-3)" }}>
+            No profile photo uploaded yet.
+          </p>
+        )}
+        {actionErrors.avatar ? (
+          <p className="text-error text-sm" style={{ marginTop: 0 }}>
+            {actionErrors.avatar}
+          </p>
+        ) : null}
+        {handleUploadedAvatar}
       </div>
 
       <div className="form-group">

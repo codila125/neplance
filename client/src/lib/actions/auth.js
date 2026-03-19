@@ -5,6 +5,12 @@ import { redirect } from "next/navigation";
 import { API_BASE_URL } from "@/lib/api/config";
 import { loginSchema, signupSchema, validateForm } from "@/shared/validation";
 
+const INITIAL_AUTH_ACTION_STATE = {
+  message: "",
+  errors: {},
+  values: {},
+};
+
 const parseCookieValue = (value) => {
   const numberValue = Number(value);
   return Number.isNaN(numberValue) ? value : numberValue;
@@ -151,7 +157,14 @@ const submitAuthRequest = async (endpoint, payload) => {
   return data;
 };
 
-export async function loginAction(formData) {
+const getPostAuthRedirectPath = (user) => {
+  const roles = Array.isArray(user?.role)
+    ? user.role
+    : [user?.role].filter(Boolean);
+  return roles.includes("admin") ? "/admin" : "/dashboard";
+};
+
+export async function loginAction(_previousState, formData) {
   const payload = {
     email: String(formData.get("email") || ""),
     password: String(formData.get("password") || ""),
@@ -160,30 +173,66 @@ export async function loginAction(formData) {
   const { errors, data } = validateForm(loginSchema, payload);
 
   if (errors) {
-    const message = Object.values(errors)[0] || "Please check your inputs.";
-    redirect(`/login?error=${encodeURIComponent(message)}`);
+    return {
+      message: "Please fix the highlighted fields.",
+      errors,
+      values: {
+        email: payload.email,
+      },
+    };
   }
 
   try {
-    await submitAuthRequest("/api/auth/login", data);
-    redirect("/dashboard");
+    const response = await submitAuthRequest("/api/auth/login", data);
+    redirect(getPostAuthRedirectPath(response?.data?.user));
   } catch (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    return {
+      ...INITIAL_AUTH_ACTION_STATE,
+      message: error.message || "Failed to log in.",
+      values: {
+        email: payload.email,
+      },
+    };
   }
 }
 
-export async function signupAction(formData) {
+export async function signupAction(_previousState, formData) {
   const { errors, payload } = buildSignupPayload(formData);
+  const values = {
+    name: String(formData.get("name") || ""),
+    email: String(formData.get("email") || ""),
+    phone: String(formData.get("phone") || ""),
+    bio: String(formData.get("bio") || ""),
+    city: String(formData.get("city") || ""),
+    district: String(formData.get("district") || ""),
+    province: String(formData.get("province") || ""),
+    skills: String(formData.get("skills") || ""),
+    languages: String(formData.get("languages") || ""),
+    hourlyRate: String(formData.get("hourlyRate") || "0"),
+    experienceLevel: String(formData.get("experienceLevel") || "entry"),
+    jobTypePreference: String(formData.get("jobTypePreference") || "digital"),
+    availabilityStatus: String(
+      formData.get("availabilityStatus") || "available",
+    ),
+    roles: formData.getAll("roles").map(String),
+  };
 
   if (errors) {
-    const message = Object.values(errors)[0] || "Please check your inputs.";
-    redirect(`/signup?error=${encodeURIComponent(message)}`);
+    return {
+      message: "Please fix the highlighted fields.",
+      errors,
+      values,
+    };
   }
 
   try {
-    await submitAuthRequest("/api/auth/register", payload);
-    redirect("/dashboard");
+    const response = await submitAuthRequest("/api/auth/register", payload);
+    redirect(getPostAuthRedirectPath(response?.data?.user));
   } catch (error) {
-    redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+    return {
+      ...INITIAL_AUTH_ACTION_STATE,
+      message: error.message || "Failed to sign up.",
+      values,
+    };
   }
 }

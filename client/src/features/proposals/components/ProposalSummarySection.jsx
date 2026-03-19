@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PROPOSAL_STATUS } from "@/shared/constants/statuses";
 import { formatStatus } from "@/shared/utils/job";
 
@@ -102,7 +103,7 @@ export function ProposalSummarySection({ proposal }) {
         </div>
       </div>
 
-      {proposal.freelancer && (
+      {proposal.freelancer ? (
         <div
           style={{
             marginBottom: "var(--space-6)",
@@ -127,28 +128,65 @@ export function ProposalSummarySection({ proposal }) {
               alignItems: "center",
             }}
           >
-            <div
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                backgroundColor: "var(--color-primary-lightest)",
-                color: "var(--color-primary)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: "var(--font-weight-semibold)",
-              }}
-            >
-              {(proposal.freelancer.name || proposal.freelancer.email || "U")
-                .charAt(0)
-                .toUpperCase()}
-            </div>
+            {proposal.freelancer.avatar ? (
+              <img
+                src={proposal.freelancer.avatar}
+                alt={proposal.freelancer.name || "Freelancer"}
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  border: "1px solid var(--color-border)",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  backgroundColor: "var(--color-primary-lightest)",
+                  color: "var(--color-primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: "var(--font-weight-semibold)",
+                }}
+              >
+                {(proposal.freelancer.name || proposal.freelancer.email || "U")
+                  .charAt(0)
+                  .toUpperCase()}
+              </div>
+            )}
             <div>
               <div style={{ fontWeight: "var(--font-weight-medium)" }}>
                 {proposal.freelancer.name || "Unknown"}
               </div>
-              {proposal.freelancer.email && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "var(--space-2)",
+                  flexWrap: "wrap",
+                  marginTop: "var(--space-1)",
+                }}
+              >
+                {proposal.freelancer.verificationStatus === "verified" ? (
+                  <span className="badge badge-success">Verified</span>
+                ) : null}
+                {Number(proposal.freelancer.reviewSummary?.totalReviews || 0) >
+                0 ? (
+                  <span className="badge">
+                    {proposal.freelancer.reviewSummary.averageRating}/5 ·{" "}
+                    {proposal.freelancer.reviewSummary.totalReviews} review
+                    {Number(proposal.freelancer.reviewSummary.totalReviews) ===
+                    1
+                      ? ""
+                      : "s"}
+                  </span>
+                ) : null}
+              </div>
+              {proposal.freelancer.email ? (
                 <div
                   style={{
                     fontSize: "var(--text-sm)",
@@ -157,13 +195,22 @@ export function ProposalSummarySection({ proposal }) {
                 >
                   {proposal.freelancer.email}
                 </div>
-              )}
+              ) : null}
+              {proposal.freelancer._id ? (
+                <Link
+                  href={`/freelancers/${proposal.freelancer._id}`}
+                  className="btn btn-ghost btn-sm"
+                  style={{ marginTop: "var(--space-2)" }}
+                >
+                  View Freelancer
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {proposal.coverLetter && (
+      {proposal.coverLetter ? (
         <div style={{ marginBottom: "var(--space-6)" }}>
           <div
             style={{
@@ -186,9 +233,9 @@ export function ProposalSummarySection({ proposal }) {
             {proposal.coverLetter}
           </p>
         </div>
-      )}
+      ) : null}
 
-      {proposal.rejectionReason && (
+      {proposal.rejectionReason ? (
         <div style={{ marginBottom: "var(--space-6)" }}>
           <div
             style={{
@@ -211,9 +258,9 @@ export function ProposalSummarySection({ proposal }) {
             {proposal.rejectionReason}
           </p>
         </div>
-      )}
+      ) : null}
 
-      {proposal.attachments?.length > 0 && (
+      {proposal.attachments?.length > 0 ? (
         <div>
           <div
             style={{
@@ -233,7 +280,7 @@ export function ProposalSummarySection({ proposal }) {
           >
             {proposal.attachments.map((attachment, index) => (
               <a
-                key={attachment || index}
+                key={attachment || `attachment-${index + 1}`}
                 href={attachment}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -247,8 +294,13 @@ export function ProposalSummarySection({ proposal }) {
               </a>
             ))}
           </div>
+          <p className="text-light" style={{ marginTop: "var(--space-2)" }}>
+            {proposal.attachments.length} attachment
+            {proposal.attachments.length === 1 ? "" : "s"} included with this
+            proposal.
+          </p>
         </div>
-      )}
+      ) : null}
     </>
   );
 }

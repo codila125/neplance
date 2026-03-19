@@ -11,7 +11,7 @@ import { jobCreateSchema, validateForm } from "@/shared/validation";
 
 const INITIAL_JOB_ACTION_STATE = {
   message: "",
-  errors: [],
+  errors: {},
 };
 
 const parsePayload = (formData) => {
@@ -40,12 +40,7 @@ const sanitizeAttachments = (attachments = []) =>
     .filter(Boolean);
 
 const mapValidationErrors = (validationErrors) => {
-  const errors = [];
-  Object.entries(validationErrors).forEach(([_key, value]) => {
-    errors.push(value);
-  });
-
-  return { errors };
+  return { errors: validationErrors };
 };
 
 export async function createJobAction(_previousState, formData) {
@@ -70,14 +65,18 @@ export async function createJobAction(_previousState, formData) {
     if (!title) {
       return {
         ...INITIAL_JOB_ACTION_STATE,
-        errors: ["Job title is required to save as draft."],
+        errors: {
+          title: "Job title is required to save as draft.",
+        },
       };
     }
 
     if (title.length < 5) {
       return {
         ...INITIAL_JOB_ACTION_STATE,
-        errors: ["Job title must be at least 5 characters."],
+        errors: {
+          title: "Job title must be at least 5 characters.",
+        },
       };
     }
 
@@ -249,4 +248,17 @@ export async function deleteJobAction(jobId) {
   revalidatePath(`/jobs/${jobId}`);
 
   return successResult();
+}
+
+export async function toggleSavedJobAction(jobId) {
+  await requireSession();
+
+  const response = await apiServerRequest(`/api/users/me/saved-jobs/${jobId}`, {
+    method: "PATCH",
+  });
+
+  revalidatePath("/jobs");
+  revalidatePath("/profile");
+
+  return successResult(response?.data || response);
 }

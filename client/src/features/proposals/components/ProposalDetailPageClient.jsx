@@ -34,8 +34,8 @@ export function ProposalDetailPageClient({
     deliveryDays: initialProposal.deliveryDays?.toString() || "",
     revisionsIncluded: initialProposal.revisionsIncluded?.toString() || "0",
     attachments: Array.isArray(initialProposal.attachments)
-      ? initialProposal.attachments.join(", ")
-      : "",
+      ? initialProposal.attachments
+      : [],
   });
   const [resubmitError, setResubmitError] = useState("");
   const [isRejecting, startRejectTransition] = useTransition();
@@ -48,7 +48,7 @@ export function ProposalDetailPageClient({
       try {
         const result = await rejectProposalAction(
           proposal._id,
-          rejectReason.trim() || undefined
+          rejectReason.trim() || undefined,
         );
         setProposal(result.data);
         setRejectReason("");
@@ -79,14 +79,11 @@ export function ProposalDetailPageClient({
       return;
     }
 
-    const attachmentsArray = resubmitData.attachments
+    const attachmentsArray = Array.isArray(resubmitData.attachments)
       ? resubmitData.attachments
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean)
       : [];
     const invalidUrl = attachmentsArray.find(
-      (item) => !/^https?:\/\//i.test(item)
+      (item) => !/^https?:\/\//i.test(item),
     );
     if (invalidUrl) {
       setResubmitError("Attachments must be valid URLs");
@@ -139,7 +136,7 @@ export function ProposalDetailPageClient({
   const isCreatorParty = jobRoles.some(
     (party) =>
       party.role === "CREATOR" &&
-      String(party.address) === String(currentUserId)
+      String(party.address) === String(currentUserId),
   );
   const isClient =
     currentUserId &&
@@ -154,7 +151,7 @@ export function ProposalDetailPageClient({
   const canCreateContract =
     isClient &&
     [PROPOSAL_STATUS.PENDING, PROPOSAL_STATUS.ACCEPTED].includes(
-      proposal?.status
+      proposal?.status,
     ) &&
     !contractId;
   const canViewContract = Boolean(contractId);

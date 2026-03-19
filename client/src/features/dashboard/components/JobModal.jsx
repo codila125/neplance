@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 import { Button, Input } from "@/shared/components/UI";
 import {
   formatBudget,
@@ -42,7 +43,7 @@ export const JobModal = ({
   const [coverLetter, setCoverLetter] = useState("");
   const [deliveryDays, setDeliveryDays] = useState("");
   const [revisionsIncluded, setRevisionsIncluded] = useState("0");
-  const [attachments, setAttachments] = useState("");
+  const [attachments, setAttachments] = useState([]);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
 
@@ -51,20 +52,13 @@ export const JobModal = ({
     setError("");
     setErrors({});
 
-    const attachmentsArray = attachments
-      ? attachments
-          .split(",")
-          .map((a) => a.trim())
-          .filter(Boolean)
-      : [];
-
     const submitData = {
       job: job._id,
       amount: Number(amount),
       coverLetter: coverLetter.trim(),
       deliveryDays: Number(deliveryDays),
       revisionsIncluded: Number(revisionsIncluded) || 0,
-      attachments: attachmentsArray,
+      attachments,
     };
 
     const { errors: validationErrors, data } = validateForm(
@@ -73,8 +67,8 @@ export const JobModal = ({
     );
 
     if (validationErrors) {
-      if (attachmentsArray.length > 0) {
-        const invalidUrl = attachmentsArray.find(
+      if (attachments.length > 0) {
+        const invalidUrl = attachments.find(
           (item) => !/^https?:\/\//i.test(item),
         );
         if (invalidUrl) {
@@ -94,6 +88,16 @@ export const JobModal = ({
     } catch (err) {
       setError(err.message || "Failed to submit proposal");
     }
+  };
+
+  const handleUploadedAttachment = (upload) => {
+    setAttachments((previous) => [...previous, upload.url]);
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments((previous) =>
+      previous.filter((_, attachmentIndex) => attachmentIndex !== index),
+    );
   };
 
   const isProposalMode = mode === "proposal";
@@ -436,15 +440,81 @@ export const JobModal = ({
             </div>
 
             <div style={{ marginTop: "1rem" }}>
-              <Input
-                type="text"
-                label="Attachments (comma-separated URLs)"
-                placeholder="https://example.com/file1.pdf, https://example.com/file2.pdf"
-                value={attachments}
-                onChange={(e) => setAttachments(e.target.value)}
-                error={getFieldError(errors, "attachments")}
+              <div
+                style={{
+                  display: "block",
+                  marginBottom: "0.5rem",
+                  fontWeight: 500,
+                }}
+              >
+                Proposal Attachments
+              </div>
+              <CloudinaryFileUploader
+                buttonLabel="Upload Proposal Attachment"
                 disabled={loading}
+                folder="proposal-attachments"
+                onUploaded={handleUploadedAttachment}
               />
+              {getFieldError(errors, "attachments") ? (
+                <p
+                  style={{
+                    color: "var(--color-error)",
+                    fontSize: "0.75rem",
+                    marginTop: "0.25rem",
+                  }}
+                >
+                  {getFieldError(errors, "attachments")}
+                </p>
+              ) : null}
+              {attachments.length > 0 ? (
+                <div
+                  style={{
+                    display: "grid",
+                    gap: "0.75rem",
+                    marginTop: "0.75rem",
+                  }}
+                >
+                  {attachments.map((attachment, index) => (
+                    <div key={attachment} className="card-sm">
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "1rem",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <a
+                          href={attachment}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-link"
+                        >
+                          Attachment {index + 1}
+                        </a>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => removeAttachment(index)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--color-text-light)",
+                    marginTop: "0.5rem",
+                  }}
+                >
+                  No attachments uploaded yet.
+                </p>
+              )}
             </div>
 
             {error && <p className="proposal-modal-error">{error}</p>}

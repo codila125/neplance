@@ -1,3 +1,4 @@
+import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 import { Button, Input } from "@/shared/components/UI";
 
 export function JobProposalFormSection({
@@ -16,6 +17,16 @@ export function JobProposalFormSection({
   setDeliveryDays,
   setRevisionsIncluded,
 }) {
+  const removeAttachment = (index) => {
+    setAttachments((previous) =>
+      previous.filter((_, attachmentIndex) => attachmentIndex !== index),
+    );
+  };
+
+  const handleUploadedAttachment = (upload) => {
+    setAttachments((previous) => [...previous, upload.url]);
+  };
+
   return (
     <div className="card" style={{ marginTop: "var(--space-6)" }}>
       <h2
@@ -110,14 +121,66 @@ export function JobProposalFormSection({
         </div>
 
         <div style={{ marginTop: "1rem" }}>
-          <Input
-            type="text"
-            label="Attachments (comma-separated URLs)"
-            placeholder="https://example.com/file1.pdf, https://example.com/file2.pdf"
-            value={attachments}
-            onChange={(event) => setAttachments(event.target.value)}
+          <div
+            style={{
+              display: "block",
+              marginBottom: "0.5rem",
+              fontWeight: 500,
+            }}
+          >
+            Proposal Attachments
+          </div>
+          <CloudinaryFileUploader
+            buttonLabel="Upload Proposal Attachment"
             disabled={isProposalPending}
+            folder="proposal-attachments"
+            onUploaded={handleUploadedAttachment}
           />
+          {attachments.length > 0 ? (
+            <div
+              style={{ display: "grid", gap: "0.75rem", marginTop: "0.75rem" }}
+            >
+              {attachments.map((attachment, index) => (
+                <div key={attachment} className="card-sm">
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "1rem",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <a
+                      href={attachment}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-link"
+                    >
+                      Attachment {index + 1}
+                    </a>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => removeAttachment(index)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--color-text-light)",
+                marginTop: "0.5rem",
+              }}
+            >
+              No attachments uploaded yet.
+            </p>
+          )}
         </div>
 
         {proposalError && (

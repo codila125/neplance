@@ -3,6 +3,7 @@ import { ContractCreatePageClient } from "@/features/contracts/components/Contra
 import { requireSession } from "@/lib/server/auth";
 import { getContractByProposalServer } from "@/lib/server/contracts";
 import { getProposalByIdServer } from "@/lib/server/proposals";
+import { getMyWalletServer } from "@/lib/server/wallet";
 import { PROPOSAL_STATUS } from "@/shared/constants/statuses";
 
 export default async function CreateContractPage({ searchParams }) {
@@ -18,9 +19,10 @@ export default async function CreateContractPage({ searchParams }) {
     notFound();
   }
 
-  const [proposal, existingContract] = await Promise.all([
+  const [proposal, existingContract, walletData] = await Promise.all([
     getProposalByIdServer(proposalId),
     getContractByProposalServer(proposalId),
+    getMyWalletServer(),
   ]);
 
   if (!proposal) {
@@ -39,5 +41,7 @@ export default async function CreateContractPage({ searchParams }) {
     redirect(`/proposals/${proposalId}`);
   }
 
-  return <ContractCreatePageClient proposal={proposal} />;
+  return (
+    <ContractCreatePageClient proposal={proposal} walletData={walletData} />
+  );
 }

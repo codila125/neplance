@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { JobCard } from "@/features/dashboard/components/JobCard";
 import { JobModal } from "@/features/dashboard/components/JobModal";
+import { toggleSavedJobAction } from "@/lib/actions/jobs";
 import { createProposalMutationAction } from "@/lib/actions/proposals";
 import {
   EXPERIENCE_LEVELS,
@@ -16,6 +17,7 @@ export function JobsPageClient({
   initialUser,
 }) {
   const user = initialUser;
+  const [jobs, setJobs] = useState(initialJobs);
   const [selectedJob, setSelectedJob] = useState(null);
   const [modalMode, setModalMode] = useState("view");
   const [searchFilters, setSearchFilters] = useState({
@@ -23,8 +25,13 @@ export function JobsPageClient({
     jobType: initialSearchParams.jobType || "",
     experienceLevel: initialSearchParams.experienceLevel || "",
     search: initialSearchParams.search || "",
+    skills: initialSearchParams.skills || "",
+    tags: initialSearchParams.tags || "",
+    sort: initialSearchParams.sort || "-createdAt",
+    savedOnly: initialSearchParams.savedOnly === "true",
   });
   const [isSubmittingProposal, startProposalTransition] = useTransition();
+  const [isSavingJob, startSaveTransition] = useTransition();
   const router = useRouter();
 
   const handleOpenProposalModal = (job) => {
@@ -54,6 +61,21 @@ export function JobsPageClient({
     setSearchFilters((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleToggleSave = (job) => {
+    startSaveTransition(async () => {
+      try {
+        const result = await toggleSavedJobAction(job._id);
+        setJobs((previous) =>
+          previous.map((item) =>
+            item._id === job._id
+              ? { ...item, isSaved: result.data.saved }
+              : item,
+          ),
+        );
+      } catch {}
+    });
+  };
+
   const handleSearch = () => {
     const params = new URLSearchParams();
 
@@ -69,6 +91,18 @@ export function JobsPageClient({
     if (searchFilters.search) {
       params.append("search", searchFilters.search);
     }
+    if (searchFilters.skills) {
+      params.append("skills", searchFilters.skills);
+    }
+    if (searchFilters.tags) {
+      params.append("tags", searchFilters.tags);
+    }
+    if (searchFilters.sort) {
+      params.append("sort", searchFilters.sort);
+    }
+    if (searchFilters.savedOnly) {
+      params.append("savedOnly", "true");
+    }
 
     const query = params.toString();
     router.push(query ? `/jobs?${query}` : "/jobs");
@@ -80,9 +114,38 @@ export function JobsPageClient({
       jobType: "",
       experienceLevel: "",
       search: "",
+      skills: "",
+      tags: "",
+      sort: "-createdAt",
+      savedOnly: false,
     });
     router.push("/jobs");
   };
+
+  const userSkills = Array.isArray(user?.skills)
+    ? user.skills.map((skill) => String(skill).toLowerCase())
+    : [];
+  const matchedJobs = jobs
+    .map((job) => {
+      const jobSkills = Array.isArray(job.requiredSkills)
+        ? job.requiredSkills.map((skill) => String(skill).toLowerCase())
+        : [];
+      const jobTags = Array.isArray(job.tags)
+        ? job.tags.map((tag) => String(tag).toLowerCase())
+        : [];
+      const matchCount = userSkills.filter(
+        (skill) => jobSkills.includes(skill) || jobTags.includes(skill),
+      ).length;
+
+      return { job, matchCount };
+    })
+    .filter((item) => item.matchCount > 0)
+    .sort((left, right) => right.matchCount - left.matchCount)
+    .slice(0, 4)
+    .map((item) => item.job);
+  const visibleJobs = searchFilters.savedOnly
+    ? jobs.filter((job) => job.isSaved)
+    : jobs;
 
   return (
     <>
@@ -207,6 +270,74 @@ export function JobsPageClient({
                     ))}
                   </select>
                 </div>
+                <div style={{ flex: "1 1 180px", minWidth: "180px" }}>
+                  <input
+                    type="text"
+                    placeholder="Filter by skills"
+                    value={searchFilters.skills}
+                    onChange={(e) =>
+                      handleFilterChange("skills", e.target.value)
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "var(--space-3)",
+                      borderRadius: "var(--radius)",
+                      border: "1px solid var(--color-border)",
+                      fontSize: "var(--text-base)",
+                    }}
+                  />
+                </div>
+                <div style={{ flex: "1 1 180px", minWidth: "180px" }}>
+                  <input
+                    type="text"
+                    placeholder="Filter by tags"
+                    value={searchFilters.tags}
+                    onChange={(e) => handleFilterChange("tags", e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "var(--space-3)",
+                      borderRadius: "var(--radius)",
+                      border: "1px solid var(--color-border)",
+                      fontSize: "var(--text-base)",
+                    }}
+                  />
+                </div>
+                <div style={{ flex: "1 1 180px", minWidth: "180px" }}>
+                  <select
+                    value={searchFilters.sort}
+                    onChange={(e) => handleFilterChange("sort", e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "var(--space-3)",
+                      borderRadius: "var(--radius)",
+                      border: "1px solid var(--color-border)",
+                      fontSize: "var(--text-base)",
+                    }}
+                  >
+                    <option value="-createdAt">Newest</option>
+                    <option value="createdAt">Oldest</option>
+                    <option value="-budget.max">Highest budget</option>
+                    <option value="budget.min">Lowest budget</option>
+                    <option value="deadline">Nearest deadline</option>
+                  </select>
+                </div>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-2)",
+                    padding: "0 var(--space-2)",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={searchFilters.savedOnly}
+                    onChange={(event) =>
+                      handleFilterChange("savedOnly", event.target.checked)
+                    }
+                  />
+                  Saved only
+                </label>
                 <button
                   type="button"
                   className="btn btn-primary"
@@ -227,15 +358,40 @@ export function JobsPageClient({
         </section>
 
         <div className="container section-sm">
-          {initialJobs.length > 0 ? (
+          {matchedJobs.length > 0 && !searchFilters.savedOnly ? (
+            <section style={{ marginBottom: "var(--space-8)" }}>
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div>
+                  <h2 style={{ marginBottom: "var(--space-1)" }}>For You</h2>
+                  <p className="text-light mb-0">
+                    Matches based on your saved skills and job tags.
+                  </p>
+                </div>
+              </div>
+              <div className="cards-list">
+                {matchedJobs.map((job) => (
+                  <JobCard
+                    key={`for-you-${job._id}`}
+                    job={job}
+                    variant="find"
+                    onSubmitProposal={handleOpenProposalModal}
+                    onToggleSave={handleToggleSave}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {visibleJobs.length > 0 ? (
             <div className="cards-list">
-              {initialJobs.map((job) => (
+              {visibleJobs.map((job) => (
                 <JobCard
                   key={job._id}
                   job={job}
                   variant="find"
                   onSubmitProposal={handleOpenProposalModal}
                   onViewDetails={handleViewJobDetails}
+                  onToggleSave={handleToggleSave}
                 />
               ))}
             </div>
@@ -248,7 +404,11 @@ export function JobsPageClient({
               }}
             >
               <h3 style={{ marginBottom: "var(--space-3)" }}>No jobs found</h3>
-              <p className="text-light">Try adjusting your search or filters</p>
+              <p className="text-light">
+                {searchFilters.savedOnly
+                  ? "You have not saved any jobs that match the current filters."
+                  : "Try adjusting your search or filters"}
+              </p>
             </div>
           )}
         </div>
@@ -261,6 +421,7 @@ export function JobsPageClient({
           onSubmit={handleSubmitProposal}
           onClose={handleCloseModal}
           loading={isSubmittingProposal}
+          saving={isSavingJob}
           userRole={user?.role?.[0]}
           currentUser={user}
         />

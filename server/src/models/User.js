@@ -103,6 +103,27 @@ const userSchema = new mongoose.Schema({
     },
   ],
   verificationDocuments: [verificationDocumentSchema],
+  savedJobs: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: "Job",
+    },
+  ],
+  verificationStatus: {
+    type: String,
+    enum: ["not_submitted", "pending", "verified", "rejected"],
+    default: "not_submitted",
+  },
+  verificationReviewedAt: Date,
+  verificationReviewedBy: {
+    type: mongoose.Schema.ObjectId,
+    ref: "User",
+  },
+  verificationRejectionReason: {
+    type: String,
+    trim: true,
+    maxlength: 2000,
+  },
   password: {
     type: String,
     required: [true, "Please provide a password"],

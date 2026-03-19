@@ -1,7 +1,18 @@
+"use client";
+
 import Link from "next/link";
+import { useActionState } from "react";
 import { loginAction } from "@/lib/actions/auth";
 
 export function LoginPageForm({ error }) {
+  const [actionState, formAction, isPending] = useActionState(loginAction, {
+    message: error || "",
+    errors: {},
+    values: {},
+  });
+  const fieldErrors = actionState?.errors || {};
+  const values = actionState?.values || {};
+
   return (
     <>
       <div className="mb-6">
@@ -17,7 +28,7 @@ export function LoginPageForm({ error }) {
         <p className="text-light">Welcome back! Please enter your details.</p>
       </div>
 
-      {error && (
+      {actionState?.message && (
         <div
           className="mb-6"
           style={{
@@ -28,11 +39,11 @@ export function LoginPageForm({ error }) {
             fontSize: "var(--text-sm)",
           }}
         >
-          {error}
+          {actionState.message}
         </div>
       )}
 
-      <form action={loginAction}>
+      <form action={formAction}>
         <div className="form-group">
           <label className="form-label" htmlFor="email">
             Email
@@ -41,11 +52,15 @@ export function LoginPageForm({ error }) {
             id="email"
             name="email"
             type="email"
-            className="form-input"
+            className={`form-input ${fieldErrors.email ? "form-input-error" : ""}`}
             placeholder="Enter your email"
             autoComplete="email"
+            defaultValue={values.email || ""}
             required
           />
+          {fieldErrors.email && (
+            <p className="form-error">{fieldErrors.email}</p>
+          )}
         </div>
 
         <div className="form-group">
@@ -56,15 +71,18 @@ export function LoginPageForm({ error }) {
             id="password"
             name="password"
             type="password"
-            className="form-input"
+            className={`form-input ${fieldErrors.password ? "form-input-error" : ""}`}
             placeholder="Enter your password"
             autoComplete="current-password"
             required
           />
+          {fieldErrors.password && (
+            <p className="form-error">{fieldErrors.password}</p>
+          )}
         </div>
 
-        <button type="submit" className="btn btn-primary">
-          Log In
+        <button type="submit" className="btn btn-primary" disabled={isPending}>
+          {isPending ? "Logging In..." : "Log In"}
         </button>
       </form>
 

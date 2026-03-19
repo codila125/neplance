@@ -5,6 +5,10 @@ const commonFields = [
   "bio",
   "location",
   "verificationDocuments",
+  "verificationStatus",
+  "verificationReviewedAt",
+  "verificationReviewedBy",
+  "verificationRejectionReason",
 ];
 
 const freelancerOnlyFields = [

@@ -48,12 +48,18 @@ export function ProfilePageClient({
     }
   };
 
-  const averageRating = 0.0;
+  const reviewSummary = user?.reviewSummary || {
+    averageRating: "0.0",
+    totalReviews: 0,
+    recentReviews: [],
+  };
+  const averageRating = Number(reviewSummary.averageRating || 0);
   const roleLabel = activeRole || user?.role?.[0] || "freelancer";
   const isFreelancerProfile = roleLabel === "freelancer";
   const verificationDocuments = Array.isArray(user?.verificationDocuments)
     ? user.verificationDocuments
     : [];
+  const verificationStatus = user?.verificationStatus || "not_submitted";
 
   return (
     <>
@@ -153,6 +159,20 @@ export function ProfilePageClient({
                         marginBottom: "var(--space-1)",
                       }}
                     >
+                      Verification
+                    </div>
+                    <span className="badge badge-primary">
+                      {verificationStatus}
+                    </span>
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        color: "var(--color-text-light)",
+                        marginBottom: "var(--space-1)",
+                      }}
+                    >
                       Phone
                     </div>
                     <div>{user?.phone || "N/A"}</div>
@@ -193,6 +213,12 @@ export function ProfilePageClient({
                       }}
                     >
                       {averageRating > 0 ? `${averageRating} /5` : "N/A"}
+                    </div>
+                    <div
+                      className="text-light"
+                      style={{ fontSize: "var(--text-sm)" }}
+                    >
+                      {reviewSummary.totalReviews || 0} review(s)
                     </div>
                   </div>
                   <div>
@@ -284,6 +310,50 @@ export function ProfilePageClient({
 
           {isFreelancerProfile && (
             <>
+              <div className="card" style={{ marginBottom: "var(--space-8)" }}>
+                <h2 style={{ marginBottom: "var(--space-4)" }}>
+                  Recent Reviews
+                </h2>
+                {reviewSummary.recentReviews?.length > 0 ? (
+                  <div style={{ display: "grid", gap: "var(--space-4)" }}>
+                    {reviewSummary.recentReviews.map((review) => (
+                      <article key={review._id} className="card-sm">
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: "var(--space-3)",
+                            flexWrap: "wrap",
+                            marginBottom: "var(--space-2)",
+                          }}
+                        >
+                          <div>
+                            <strong>
+                              {review.reviewer?.name || "Reviewer"}
+                            </strong>
+                            <div
+                              className="text-light"
+                              style={{ fontSize: "var(--text-sm)" }}
+                            >
+                              {review.job?.title || "Contract review"}
+                            </div>
+                          </div>
+                          <span className="badge badge-primary">
+                            {review.rating}/5
+                          </span>
+                        </div>
+                        <p className="text-light" style={{ marginBottom: 0 }}>
+                          {review.comment || "No written feedback provided."}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-light">No reviews yet.</p>
+                )}
+              </div>
+
               <div className="card" style={{ marginBottom: "var(--space-8)" }}>
                 <h2 style={{ marginBottom: "var(--space-4)" }}>
                   Verification Documents

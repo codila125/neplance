@@ -1,9 +1,24 @@
+"use client";
+
 import Link from "next/link";
+import { useActionState } from "react";
 import { signupAction } from "@/lib/actions/auth";
 
 const roles = ["freelancer", "client"];
+const INITIAL_SIGNUP_STATE = {
+  message: "",
+  errors: {},
+  values: {},
+};
 
 export function SignupPageForm({ error }) {
+  const [actionState, formAction, isPending] = useActionState(signupAction, {
+    ...INITIAL_SIGNUP_STATE,
+    message: error || "",
+  });
+  const fieldErrors = actionState?.errors || {};
+  const values = actionState?.values || {};
+
   return (
     <>
       <div className="mb-6">
@@ -19,7 +34,7 @@ export function SignupPageForm({ error }) {
         <p className="text-light">Join the world&apos;s work marketplace.</p>
       </div>
 
-      {error && (
+      {actionState?.message && (
         <div
           className="mb-6"
           style={{
@@ -30,11 +45,11 @@ export function SignupPageForm({ error }) {
             fontSize: "var(--text-sm)",
           }}
         >
-          {error}
+          {actionState.message}
         </div>
       )}
 
-      <form action={signupAction}>
+      <form action={formAction}>
         <fieldset className="form-group">
           <legend className="form-label" style={{ marginBottom: "0.5rem" }}>
             I want to:
@@ -52,11 +67,21 @@ export function SignupPageForm({ error }) {
                   cursor: "pointer",
                 }}
               >
-                <input type="checkbox" name="roles" value={role} />
+                <input
+                  type="checkbox"
+                  name="roles"
+                  value={role}
+                  defaultChecked={values.roles?.includes(role)}
+                />
                 <span>{role.charAt(0).toUpperCase() + role.slice(1)}</span>
               </label>
             ))}
           </div>
+          {fieldErrors.roles && (
+            <p className="form-error" style={{ color: "var(--color-error)" }}>
+              {fieldErrors.roles}
+            </p>
+          )}
         </fieldset>
 
         <div className="grid grid-cols-2" style={{ gap: "var(--space-4)" }}>
@@ -68,11 +93,15 @@ export function SignupPageForm({ error }) {
               id="name"
               name="name"
               type="text"
-              className="form-input"
+              className={`form-input ${fieldErrors.name ? "form-input-error" : ""}`}
               placeholder="Enter your full name"
               autoComplete="name"
+              defaultValue={values.name || ""}
               required
             />
+            {fieldErrors.name && (
+              <p className="form-error">{fieldErrors.name}</p>
+            )}
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="email">
@@ -82,11 +111,15 @@ export function SignupPageForm({ error }) {
               id="email"
               name="email"
               type="email"
-              className="form-input"
+              className={`form-input ${fieldErrors.email ? "form-input-error" : ""}`}
               placeholder="Enter your email"
               autoComplete="email"
+              defaultValue={values.email || ""}
               required
             />
+            {fieldErrors.email && (
+              <p className="form-error">{fieldErrors.email}</p>
+            )}
           </div>
         </div>
 
@@ -99,11 +132,14 @@ export function SignupPageForm({ error }) {
               id="password"
               name="password"
               type="password"
-              className="form-input"
+              className={`form-input ${fieldErrors.password ? "form-input-error" : ""}`}
               placeholder="Create a password"
               autoComplete="new-password"
               required
             />
+            {fieldErrors.password && (
+              <p className="form-error">{fieldErrors.password}</p>
+            )}
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="passwordConfirm">
@@ -113,11 +149,14 @@ export function SignupPageForm({ error }) {
               id="passwordConfirm"
               name="passwordConfirm"
               type="password"
-              className="form-input"
+              className={`form-input ${fieldErrors.passwordConfirm ? "form-input-error" : ""}`}
               placeholder="Confirm your password"
               autoComplete="new-password"
               required
             />
+            {fieldErrors.passwordConfirm && (
+              <p className="form-error">{fieldErrors.passwordConfirm}</p>
+            )}
           </div>
         </div>
 
@@ -129,10 +168,14 @@ export function SignupPageForm({ error }) {
             id="phone"
             name="phone"
             type="tel"
-            className="form-input"
+            className={`form-input ${fieldErrors.phone ? "form-input-error" : ""}`}
             placeholder="Enter your phone number"
             autoComplete="tel"
+            defaultValue={values.phone || ""}
           />
+          {fieldErrors.phone && (
+            <p className="form-error">{fieldErrors.phone}</p>
+          )}
         </div>
 
         <div className="form-group">
@@ -142,10 +185,12 @@ export function SignupPageForm({ error }) {
           <textarea
             id="bio"
             name="bio"
-            className="form-input"
+            className={`form-input ${fieldErrors.bio ? "form-input-error" : ""}`}
             rows={3}
             placeholder="Tell people about your background"
+            defaultValue={values.bio || ""}
           />
+          {fieldErrors.bio && <p className="form-error">{fieldErrors.bio}</p>}
         </div>
 
         <div className="grid grid-cols-3" style={{ gap: "var(--space-4)" }}>
@@ -153,7 +198,16 @@ export function SignupPageForm({ error }) {
             <label className="form-label" htmlFor="city">
               City
             </label>
-            <input id="city" name="city" type="text" className="form-input" />
+            <input
+              id="city"
+              name="city"
+              type="text"
+              className={`form-input ${fieldErrors.city ? "form-input-error" : ""}`}
+              defaultValue={values.city || ""}
+            />
+            {fieldErrors.city && (
+              <p className="form-error">{fieldErrors.city}</p>
+            )}
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="district">
@@ -163,8 +217,12 @@ export function SignupPageForm({ error }) {
               id="district"
               name="district"
               type="text"
-              className="form-input"
+              className={`form-input ${fieldErrors.district ? "form-input-error" : ""}`}
+              defaultValue={values.district || ""}
             />
+            {fieldErrors.district && (
+              <p className="form-error">{fieldErrors.district}</p>
+            )}
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="province">
@@ -174,8 +232,12 @@ export function SignupPageForm({ error }) {
               id="province"
               name="province"
               type="text"
-              className="form-input"
+              className={`form-input ${fieldErrors.province ? "form-input-error" : ""}`}
+              defaultValue={values.province || ""}
             />
+            {fieldErrors.province && (
+              <p className="form-error">{fieldErrors.province}</p>
+            )}
           </div>
         </div>
 
@@ -188,9 +250,13 @@ export function SignupPageForm({ error }) {
               id="skills"
               name="skills"
               type="text"
-              className="form-input"
+              className={`form-input ${fieldErrors.skills ? "form-input-error" : ""}`}
               placeholder="React, Node.js, UI Design"
+              defaultValue={values.skills || ""}
             />
+            {fieldErrors.skills && (
+              <p className="form-error">{fieldErrors.skills}</p>
+            )}
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="languages">
@@ -200,9 +266,13 @@ export function SignupPageForm({ error }) {
               id="languages"
               name="languages"
               type="text"
-              className="form-input"
+              className={`form-input ${fieldErrors.languages ? "form-input-error" : ""}`}
               placeholder="English, Nepali"
+              defaultValue={values.languages || ""}
             />
+            {fieldErrors.languages && (
+              <p className="form-error">{fieldErrors.languages}</p>
+            )}
           </div>
         </div>
 
@@ -216,9 +286,12 @@ export function SignupPageForm({ error }) {
               name="hourlyRate"
               type="number"
               min="0"
-              className="form-input"
-              defaultValue="0"
+              className={`form-input ${fieldErrors.hourlyRate ? "form-input-error" : ""}`}
+              defaultValue={values.hourlyRate || "0"}
             />
+            {fieldErrors.hourlyRate && (
+              <p className="form-error">{fieldErrors.hourlyRate}</p>
+            )}
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="experienceLevel">
@@ -228,12 +301,15 @@ export function SignupPageForm({ error }) {
               id="experienceLevel"
               name="experienceLevel"
               className="form-select"
-              defaultValue="entry"
+              defaultValue={values.experienceLevel || "entry"}
             >
               <option value="entry">Entry</option>
               <option value="intermediate">Intermediate</option>
               <option value="expert">Expert</option>
             </select>
+            {fieldErrors.experienceLevel && (
+              <p className="form-error">{fieldErrors.experienceLevel}</p>
+            )}
           </div>
         </div>
 
@@ -246,12 +322,15 @@ export function SignupPageForm({ error }) {
               id="jobTypePreference"
               name="jobTypePreference"
               className="form-select"
-              defaultValue="digital"
+              defaultValue={values.jobTypePreference || "digital"}
             >
               <option value="digital">Digital</option>
               <option value="physical">Physical</option>
               <option value="both">Both</option>
             </select>
+            {fieldErrors.jobTypePreference && (
+              <p className="form-error">{fieldErrors.jobTypePreference}</p>
+            )}
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="availabilityStatus">
@@ -261,17 +340,20 @@ export function SignupPageForm({ error }) {
               id="availabilityStatus"
               name="availabilityStatus"
               className="form-select"
-              defaultValue="available"
+              defaultValue={values.availabilityStatus || "available"}
             >
               <option value="available">Available</option>
               <option value="busy">Busy</option>
               <option value="unavailable">Unavailable</option>
             </select>
+            {fieldErrors.availabilityStatus && (
+              <p className="form-error">{fieldErrors.availabilityStatus}</p>
+            )}
           </div>
         </div>
 
-        <button type="submit" className="btn btn-primary">
-          Sign Up
+        <button type="submit" className="btn btn-primary" disabled={isPending}>
+          {isPending ? "Signing Up..." : "Sign Up"}
         </button>
       </form>
 

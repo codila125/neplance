@@ -30,7 +30,7 @@ export function JobDetailPageClient({ initialJob, initialUser }) {
   const [coverLetter, setCoverLetter] = useState("");
   const [deliveryDays, setDeliveryDays] = useState("");
   const [revisionsIncluded, setRevisionsIncluded] = useState("0");
-  const [attachments, setAttachments] = useState("");
+  const [attachments, setAttachments] = useState([]);
   const [proposalError, setProposalError] = useState("");
   const [isProposalPending, startProposalTransition] = useTransition();
 
@@ -108,7 +108,9 @@ export function JobDetailPageClient({ initialJob, initialUser }) {
                   delivery, cancellation, and completion now live there.
                 </p>
                 <Link
-                  href={`/contracts/${job.activeContract?._id || job.activeContract}`}
+                  href={`/contracts/${
+                    job.activeContract?._id || job.activeContract
+                  }`}
                   className="btn btn-secondary btn-sm"
                 >
                   View Contract

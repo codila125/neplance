@@ -32,9 +32,9 @@ export function ClientPostJobSection() {
   });
   const [actionState, formAction, isPending] = useActionState(createJobAction, {
     message: "",
-    errors: [],
+    errors: {},
   });
-  const formErrors = actionState?.errors || [];
+  const fieldErrors = actionState?.errors || {};
 
   const handleFormChange = (field, value) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
@@ -125,16 +125,6 @@ export function ClientPostJobSection() {
           <p style={{ margin: 0 }}>{actionState.message}</p>
         </div>
       )}
-      {formErrors.length > 0 && (
-        <div className="card-error" style={{ marginBottom: "var(--space-4)" }}>
-          {formErrors.map((error) => (
-            <p key={error} style={{ margin: 0 }}>
-              {error}
-            </p>
-          ))}
-        </div>
-      )}
-
       <div
         style={{
           display: "flex",
@@ -150,6 +140,7 @@ export function ClientPostJobSection() {
             placeholder="e.g. Landing page redesign"
             required
             disabled={isPending}
+            error={fieldErrors.title}
           />
         </div>
       </div>
@@ -160,6 +151,7 @@ export function ClientPostJobSection() {
         onChange={(e) => handleFormChange("description", e.target.value)}
         placeholder="Describe the work scope"
         disabled={isPending}
+        error={fieldErrors.description}
       />
 
       <div
@@ -189,12 +181,15 @@ export function ClientPostJobSection() {
               width: "100%",
               padding: "var(--space-2)",
               borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
+              border: `1px solid ${fieldErrors.jobType ? "var(--color-error)" : "var(--color-border)"}`,
             }}
           >
             <option value="digital">Digital</option>
             <option value="physical">Physical</option>
           </select>
+          {fieldErrors.jobType && (
+            <p className="form-error">{fieldErrors.jobType}</p>
+          )}
         </div>
         <div style={{ flex: "2", minWidth: "200px" }}>
           <label
@@ -217,7 +212,7 @@ export function ClientPostJobSection() {
               width: "100%",
               padding: "var(--space-2)",
               borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
+              border: `1px solid ${fieldErrors.category ? "var(--color-error)" : "var(--color-border)"}`,
             }}
           >
             <option value="">Select Category</option>
@@ -227,6 +222,9 @@ export function ClientPostJobSection() {
               </option>
             ))}
           </select>
+          {fieldErrors.category && (
+            <p className="form-error">{fieldErrors.category}</p>
+          )}
         </div>
         <div style={{ flex: "1", minWidth: "150px" }}>
           <Input
@@ -235,6 +233,7 @@ export function ClientPostJobSection() {
             onChange={(e) => handleFormChange("subcategory", e.target.value)}
             placeholder="e.g. Frontend"
             disabled={isPending}
+            error={fieldErrors.subcategory}
           />
         </div>
       </div>
@@ -253,6 +252,7 @@ export function ClientPostJobSection() {
             onChange={(e) => handleFormChange("tags", e.target.value)}
             placeholder="e.g. React, Node.js, MongoDB"
             disabled={isPending}
+            error={fieldErrors.tags}
           />
         </div>
         <div style={{ flex: "1", minWidth: "200px" }}>
@@ -262,6 +262,7 @@ export function ClientPostJobSection() {
             onChange={(e) => handleFormChange("requiredSkills", e.target.value)}
             placeholder="e.g. JavaScript, CSS"
             disabled={isPending}
+            error={fieldErrors.requiredSkills}
           />
         </div>
         <div style={{ flex: "1", minWidth: "150px" }}>
@@ -286,7 +287,7 @@ export function ClientPostJobSection() {
               width: "100%",
               padding: "var(--space-2)",
               borderRadius: "var(--radius)",
-              border: "1px solid var(--color-border)",
+              border: `1px solid ${fieldErrors.experienceLevel ? "var(--color-error)" : "var(--color-border)"}`,
             }}
           >
             <option value="">Any</option>
@@ -294,6 +295,9 @@ export function ClientPostJobSection() {
             <option value="intermediate">Intermediate</option>
             <option value="expert">Expert</option>
           </select>
+          {fieldErrors.experienceLevel && (
+            <p className="form-error">{fieldErrors.experienceLevel}</p>
+          )}
         </div>
       </div>
 
@@ -314,6 +318,7 @@ export function ClientPostJobSection() {
             placeholder="5000"
             required
             disabled={isPending}
+            error={fieldErrors["budget.min"]}
           />
         </div>
         <div style={{ flex: "1", minWidth: "150px" }}>
@@ -324,6 +329,7 @@ export function ClientPostJobSection() {
             onChange={(e) => handleFormChange("budgetMax", e.target.value)}
             placeholder="10000"
             disabled={isPending}
+            error={fieldErrors["budget.max"]}
           />
         </div>
         <div style={{ flex: "1", minWidth: "150px" }}>
@@ -333,6 +339,7 @@ export function ClientPostJobSection() {
             value={formState.deadline}
             onChange={(e) => handleFormChange("deadline", e.target.value)}
             disabled={isPending}
+            error={fieldErrors.deadline}
           />
         </div>
         <div
@@ -374,6 +381,7 @@ export function ClientPostJobSection() {
               onChange={(e) => handleFormChange("locationCity", e.target.value)}
               placeholder="Kathmandu"
               disabled={isPending}
+              error={fieldErrors["location.city"]}
             />
           </div>
           <div style={{ flex: "1", minWidth: "150px" }}>
@@ -385,6 +393,7 @@ export function ClientPostJobSection() {
               }
               placeholder="Kathmandu"
               disabled={isPending}
+              error={fieldErrors["location.district"]}
             />
           </div>
           <div style={{ flex: "1", minWidth: "150px" }}>
@@ -409,7 +418,7 @@ export function ClientPostJobSection() {
                 width: "100%",
                 padding: "var(--space-2)",
                 borderRadius: "var(--radius)",
-                border: "1px solid var(--color-border)",
+                border: `1px solid ${fieldErrors["location.province"] ? "var(--color-error)" : "var(--color-border)"}`,
               }}
             >
               <option value="">Select Province</option>
@@ -419,6 +428,9 @@ export function ClientPostJobSection() {
                 </option>
               ))}
             </select>
+            {fieldErrors["location.province"] && (
+              <p className="form-error">{fieldErrors["location.province"]}</p>
+            )}
           </div>
         </div>
       )}
@@ -484,6 +496,11 @@ export function ClientPostJobSection() {
           </div>
         ) : (
           <p className="text-light">No job attachments uploaded yet.</p>
+        )}
+        {fieldErrors.attachments && (
+          <p className="form-error" style={{ marginTop: "var(--space-2)" }}>
+            {fieldErrors.attachments}
+          </p>
         )}
       </div>
       <div

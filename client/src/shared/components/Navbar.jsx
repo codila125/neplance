@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import {
+  markAllNotificationsReadAction,
+  markNotificationReadAction,
+} from "@/lib/actions/notifications";
 import { logoutAction, switchRoleAction } from "@/lib/actions/session";
 
 /**
@@ -35,10 +39,17 @@ const Logo = () => (
  * Props:
  * - user: user object (null when logged out)
  */
-export function Navbar({ activeRole: activeRoleProp, unreadCount = 0, user }) {
+export function Navbar({
+  activeRole: activeRoleProp,
+  notifications = [],
+  unreadCount = 0,
+  user,
+}) {
   const pathname = usePathname();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef(null);
+  const notificationsRef = useRef(null);
 
   // Derive role info
   const roleList = Array.isArray(user?.role)
@@ -63,6 +74,12 @@ export function Navbar({ activeRole: activeRoleProp, unreadCount = 0, user }) {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false);
+      }
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target)
+      ) {
+        setShowNotifications(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -157,22 +174,142 @@ export function Navbar({ activeRole: activeRoleProp, unreadCount = 0, user }) {
               Messages
             </Link>
           </li>
-          <li>
-            <Link
-              href="/notifications"
-              className={`navbar-link ${
-                isActive("/notifications") ? "active" : ""
-              }`}
-            >
-              Notifications
-              {unreadCount > 0 ? (
-                <span className="navbar-badge">{unreadCount}</span>
-              ) : null}
-            </Link>
-          </li>
         </ul>
 
         <div className="navbar-right">
+          <div className="profile-menu" ref={notificationsRef}>
+            <button
+              type="button"
+              className={`profile-btn ${pathname.startsWith("/notifications") ? "active" : ""}`}
+              onClick={() => setShowNotifications((previous) => !previous)}
+            >
+              <span>Notifications</span>
+              {unreadCount > 0 ? (
+                <span className="navbar-badge">{unreadCount}</span>
+              ) : null}
+            </button>
+
+            {showNotifications && (
+              <div
+                className="profile-dropdown"
+                style={{ width: "360px", maxWidth: "calc(100vw - 2rem)" }}
+              >
+                <div className="dropdown-header">
+                  <div className="dropdown-header-name">Notifications</div>
+                  <div className="dropdown-header-email">
+                    Recent updates across proposals, contracts, and chat.
+                  </div>
+                </div>
+                {notifications.length > 0 ? (
+                  <>
+                    {notifications.map((notification) => (
+                      <div
+                        key={notification._id}
+                        className="dropdown-item"
+                        style={{
+                          display: "block",
+                          paddingBottom: "var(--space-3)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: "var(--space-2)",
+                            marginBottom: "var(--space-1)",
+                          }}
+                        >
+                          <strong>{notification.title}</strong>
+                          {!notification.isRead ? (
+                            <span className="dropdown-badge">New</span>
+                          ) : null}
+                        </div>
+                        <div
+                          className="text-light"
+                          style={{ fontSize: "var(--text-sm)" }}
+                        >
+                          {notification.message}
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "var(--space-2)",
+                            marginTop: "var(--space-2)",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {notification.link ? (
+                            <form
+                              action={markNotificationReadAction.bind(
+                                null,
+                                notification._id,
+                                notification.link,
+                              )}
+                            >
+                              <button
+                                type="submit"
+                                className="btn btn-ghost btn-sm"
+                              >
+                                Open
+                              </button>
+                            </form>
+                          ) : null}
+                          {!notification.isRead ? (
+                            <form
+                              action={markNotificationReadAction.bind(
+                                null,
+                                notification._id,
+                                null,
+                              )}
+                            >
+                              <button
+                                type="submit"
+                                className="btn btn-ghost btn-sm"
+                              >
+                                Mark read
+                              </button>
+                            </form>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="dropdown-divider" />
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "var(--space-2)",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Link
+                        href="/notifications"
+                        className="dropdown-item"
+                        onClick={() => setShowNotifications(false)}
+                      >
+                        View all
+                      </Link>
+                      {unreadCount > 0 ? (
+                        <form action={markAllNotificationsReadAction}>
+                          <button
+                            type="submit"
+                            className="btn btn-ghost btn-sm"
+                          >
+                            Mark all read
+                          </button>
+                        </form>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <div className="dropdown-item text-light">
+                    No notifications yet.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="profile-menu" ref={dropdownRef}>
             <button
               type="button"

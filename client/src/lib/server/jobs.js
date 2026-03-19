@@ -23,3 +23,8 @@ export async function listAllJobsServer(searchParams = "") {
   );
   return data?.data || [];
 }
+
+export async function listSavedJobsServer() {
+  const data = await apiServerCall("/api/users/me/saved-jobs");
+  return data?.data || [];
+}

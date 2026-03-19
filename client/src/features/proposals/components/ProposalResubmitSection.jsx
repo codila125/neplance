@@ -1,3 +1,4 @@
+import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 import { Button, Input } from "@/shared/components/UI";
 
 export function ProposalResubmitSection({
@@ -114,16 +115,76 @@ export function ProposalResubmitSection({
           />
         </div>
         <div style={{ marginTop: "var(--space-4)" }}>
-          <Input
-            type="text"
-            label="Attachments (comma-separated URLs)"
-            placeholder="https://example.com/file1.pdf, https://example.com/file2.pdf"
-            value={resubmitData.attachments}
-            onChange={(event) =>
-              handleResubmitChange("attachments", event.target.value)
-            }
+          <div
+            style={{
+              display: "block",
+              marginBottom: "var(--space-2)",
+              fontWeight: "var(--font-weight-medium)",
+            }}
+          >
+            Proposal Attachments
+          </div>
+          <CloudinaryFileUploader
+            buttonLabel="Upload Proposal Attachment"
             disabled={isResubmitting}
+            folder="proposal-attachments"
+            onUploaded={(upload) =>
+              handleResubmitChange("attachments", [
+                ...(resubmitData.attachments || []),
+                upload.url,
+              ])
+            }
           />
+          {resubmitData.attachments?.length > 0 ? (
+            <div
+              style={{
+                display: "grid",
+                gap: "var(--space-3)",
+                marginTop: "var(--space-3)",
+              }}
+            >
+              {resubmitData.attachments.map((attachment, index) => (
+                <div key={attachment} className="card-sm">
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "var(--space-3)",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <a
+                      href={attachment}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-link"
+                    >
+                      Attachment {index + 1}
+                    </a>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() =>
+                        handleResubmitChange(
+                          "attachments",
+                          resubmitData.attachments.filter(
+                            (_, itemIndex) => itemIndex !== index,
+                          ),
+                        )
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-light" style={{ marginTop: "var(--space-2)" }}>
+              No attachments uploaded yet.
+            </p>
+          )}
         </div>
         {resubmitError && (
           <p className="card-error" style={{ marginTop: "var(--space-3)" }}>

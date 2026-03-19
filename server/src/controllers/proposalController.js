@@ -1,5 +1,6 @@
 const Job = require("../models/Job");
 const Proposal = require("../models/Proposal");
+const Review = require("../models/Review");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 const {
@@ -15,11 +16,141 @@ const {
 } = require("../services/proposalService");
 const { createNotification } = require("../services/notificationService");
 
+const attachReviewSummaryToFreelancer = async (proposalDoc) => {
+  if (!proposalDoc?.freelancer?._id) {
+    return proposalDoc;
+  }
+
+  const summaryRows = await Review.aggregate([
+    { $match: { reviewee: proposalDoc.freelancer._id } },
+    {
+      $group: {
+        _id: "$reviewee",
+        averageRating: { $avg: "$rating" },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const summary = summaryRows[0]
+    ? {
+        averageRating: Number(summaryRows[0].averageRating || 0).toFixed(1),
+        totalReviews: Number(summaryRows[0].totalReviews || 0),
+      }
+    : {
+        averageRating: "0.0",
+        totalReviews: 0,
+      };
+
+  return {
+    ...proposalDoc.toObject(),
+    freelancer: {
+      ...proposalDoc.freelancer.toObject(),
+      reviewSummary: summary,
+    },
+  };
+};
+
+const attachReviewSummariesToFreelancers = async (proposalDocs) => {
+  if (!Array.isArray(proposalDocs) || proposalDocs.length === 0) {
+    return [];
+  }
+
+  const freelancerIds = proposalDocs
+    .map((proposal) => proposal.freelancer?._id)
+    .filter(Boolean);
+  const rows = freelancerIds.length
+    ? await Review.aggregate([
+        { $match: { reviewee: { $in: freelancerIds } } },
+        {
+          $group: {
+            _id: "$reviewee",
+            averageRating: { $avg: "$rating" },
+            totalReviews: { $sum: 1 },
+          },
+        },
+      ])
+    : [];
+  const summaryMap = rows.reduce((acc, row) => {
+    acc[String(row._id)] = {
+      averageRating: Number(row.averageRating || 0).toFixed(1),
+      totalReviews: Number(row.totalReviews || 0),
+    };
+    return acc;
+  }, {});
+
+  return proposalDocs.map((proposal) => ({
+    ...proposal.toObject(),
+    freelancer: proposal.freelancer
+      ? {
+          ...proposal.freelancer.toObject(),
+          reviewSummary:
+            summaryMap[String(proposal.freelancer._id)] || {
+              averageRating: "0.0",
+              totalReviews: 0,
+            },
+        }
+      : proposal.freelancer,
+  }));
+};
+
+const attachClientSummariesToProposalJobs = async (proposalDocs) => {
+  if (!Array.isArray(proposalDocs) || proposalDocs.length === 0) {
+    return [];
+  }
+
+  const creatorIds = proposalDocs
+    .map((proposal) => proposal.job?.creatorAddress?._id)
+    .filter(Boolean);
+  const rows = creatorIds.length
+    ? await Review.aggregate([
+        { $match: { reviewee: { $in: creatorIds } } },
+        {
+          $group: {
+            _id: "$reviewee",
+            averageRating: { $avg: "$rating" },
+            totalReviews: { $sum: 1 },
+          },
+        },
+      ])
+    : [];
+  const summaryMap = rows.reduce((acc, row) => {
+    acc[String(row._id)] = {
+      averageRating: Number(row.averageRating || 0).toFixed(1),
+      totalReviews: Number(row.totalReviews || 0),
+    };
+    return acc;
+  }, {});
+
+  return proposalDocs.map((proposal) => ({
+    ...proposal.toObject(),
+    job: proposal.job
+      ? {
+          ...proposal.job.toObject(),
+          creatorAddress: proposal.job.creatorAddress
+            ? {
+                ...proposal.job.creatorAddress.toObject(),
+                reviewSummary:
+                  summaryMap[String(proposal.job.creatorAddress._id)] || {
+                    averageRating: "0.0",
+                    totalReviews: 0,
+                  },
+              }
+            : proposal.job.creatorAddress,
+        }
+      : proposal.job,
+  }));
+};
+
 const getMyProposals = catchAsync(async (req, res) => {
-  const data = await Proposal.find({ freelancer: req.user.id }).populate({
+  const proposals = await Proposal.find({ freelancer: req.user.id }).populate({
     path: "job",
-    populate: { path: "creatorAddress", select: "name email" },
+    populate: {
+      path: "creatorAddress",
+      select: "name email avatar verificationStatus",
+    },
   });
+  const data = await attachClientSummariesToProposalJobs(proposals);
 
   res.status(200).json({
     status: "success",
@@ -109,7 +240,11 @@ const getProposalForJob = catchAsync(async (req, res) => {
     "You are not authorized to do this. Only creator of Job can get a proposal"
   );
 
-  const data = await Proposal.find({ job: jobId }).populate("freelancer");
+  const proposals = await Proposal.find({ job: jobId }).populate(
+    "freelancer",
+    "name email avatar bio experienceLevel availabilityStatus skills verificationStatus"
+  );
+  const data = await attachReviewSummariesToFreelancers(proposals);
 
   res.status(200).json({
     status: "success",
@@ -166,12 +301,20 @@ const getProposalById = catchAsync(async (req, res, next) => {
 
   if (isFreelancer) {
     const populatedProposal = await Proposal.findById(proposalId)
-      .populate("freelancer", "name email")
+      .populate(
+        "freelancer",
+        "name email avatar bio experienceLevel availabilityStatus skills verificationStatus"
+      )
       .populate({
         path: "job",
-        populate: { path: "creatorAddress", select: "name email" },
+        populate: {
+          path: "creatorAddress",
+          select: "name email avatar verificationStatus",
+        },
       });
-    return res.status(200).json({ status: "success", data: populatedProposal });
+    return res
+      .status(200)
+      .json({ status: "success", data: await attachReviewSummaryToFreelancer(populatedProposal) });
   }
 
   const job = await Job.findById(proposal.job);
@@ -190,12 +333,20 @@ const getProposalById = catchAsync(async (req, res, next) => {
   }
 
   const populatedProposal = await Proposal.findById(proposalId)
-    .populate("freelancer", "name email")
+    .populate(
+      "freelancer",
+      "name email avatar bio experienceLevel availabilityStatus skills verificationStatus"
+    )
     .populate({
       path: "job",
-      populate: { path: "creatorAddress", select: "name email" },
+      populate: {
+        path: "creatorAddress",
+        select: "name email avatar verificationStatus",
+      },
     });
-  res.status(200).json({ status: "success", data: populatedProposal });
+  res
+    .status(200)
+    .json({ status: "success", data: await attachReviewSummaryToFreelancer(populatedProposal) });
 });
 
 const withdrawProposal = catchAsync(async (req, res, next) => {

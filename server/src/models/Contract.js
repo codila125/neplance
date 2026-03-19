@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const {
   CONTRACT_STATUS,
+  CONTRACT_FUNDING_STATUS,
   CONTRACT_TYPE,
   MILESTONE_STATUS,
 } = require("../constants/statuses");
@@ -32,6 +33,16 @@ const contractMilestoneSchema = new mongoose.Schema(
     evidence: String,
     completedAt: Date,
     approvedAt: Date,
+    revisionRequestedAt: Date,
+    revisionRequestedBy: {
+      type: mongoose.Schema.ObjectId,
+      ref: "User",
+    },
+    revisionNotes: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
+    },
   },
   { _id: true }
 );
@@ -91,6 +102,27 @@ const contractSchema = new mongoose.Schema({
     required: true,
     min: 0,
   },
+  fundingStatus: {
+    type: String,
+    enum: Object.values(CONTRACT_FUNDING_STATUS),
+    default: CONTRACT_FUNDING_STATUS.UNFUNDED,
+  },
+  fundedAmount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  releasedAmount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  refundedAmount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  fundedAt: Date,
   currency: {
     type: String,
     default: "NPR",
@@ -118,6 +150,11 @@ const contractSchema = new mongoose.Schema({
     default: () => ({}),
   },
   deliverySubmission: {
+    status: {
+      type: String,
+      enum: ["NONE", "SUBMITTED", "CHANGES_REQUESTED", "ACCEPTED"],
+      default: "NONE",
+    },
     notes: {
       type: String,
       trim: true,
@@ -127,6 +164,16 @@ const contractSchema = new mongoose.Schema({
     submittedBy: {
       type: mongoose.Schema.ObjectId,
       ref: "User",
+    },
+    revisionRequestedAt: Date,
+    revisionRequestedBy: {
+      type: mongoose.Schema.ObjectId,
+      ref: "User",
+    },
+    revisionNotes: {
+      type: String,
+      trim: true,
+      maxlength: 3000,
     },
   },
   cancellation: {

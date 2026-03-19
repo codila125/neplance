@@ -20,8 +20,8 @@ export function ClientJobsSection({ initialContracts, initialUser }) {
         const result = await publishJobAction(job._id);
         setContracts((prev) =>
           prev.map((contract) =>
-            contract._id === result.data._id ? result.data : contract,
-          ),
+            contract._id === result.data._id ? result.data : contract
+          )
         );
         router.refresh();
       } catch (err) {
@@ -42,7 +42,7 @@ export function ClientJobsSection({ initialContracts, initialUser }) {
       try {
         await deleteJobAction(job._id);
         setContracts((prev) =>
-          prev.filter((contract) => contract._id !== job._id),
+          prev.filter((contract) => contract._id !== job._id)
         );
         router.refresh();
       } catch (err) {

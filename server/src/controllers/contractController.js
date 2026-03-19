@@ -1,6 +1,7 @@
 const Contract = require("../models/Contract");
 const Job = require("../models/Job");
 const Proposal = require("../models/Proposal");
+const Review = require("../models/Review");
 const {
   CONTRACT_TYPE,
   JOB_STATUS,
@@ -9,10 +10,20 @@ const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const { createNotification } = require("../services/notificationService");
 const {
+  createContractReview,
+  listContractReviews,
+} = require("../services/reviewService");
+const {
+  createContractDispute,
+  listDisputesForContracts,
+} = require("../services/disputeService");
+const {
   approveContractCompletion,
   approveContractMilestone,
   createContractFromProposal,
   requestContractCancellation,
+  requestContractDeliveryChanges,
+  requestContractMilestoneChanges,
   respondContractCancellation,
   signContract,
   submitContractMilestone,
@@ -21,17 +32,77 @@ const {
 
 const populateContract = (query) =>
   query
-    .populate("client", "name email")
-    .populate("freelancer", "name email")
-    .populate("job", "title status budget creatorAddress selectedProposal activeContract hiredFreelancer")
-    .populate("proposal", "amount deliveryDays status coverLetter");
+    .populate("client", "name email avatar")
+    .populate("freelancer", "name email avatar bio experienceLevel availabilityStatus skills")
+    .populate(
+      "job",
+      "title description status budget attachments creatorAddress selectedProposal activeContract hiredFreelancer"
+    )
+    .populate("proposal", "amount deliveryDays status coverLetter attachments");
+
+const attachReviewsToContract = async (contractDoc) => {
+  if (!contractDoc) {
+    return null;
+  }
+
+  const [reviews, disputes] = await Promise.all([
+    listContractReviews(contractDoc._id),
+    listDisputesForContracts([contractDoc._id]),
+  ]);
+
+  return {
+    ...contractDoc.toObject(),
+    reviews,
+    disputes: disputes || [],
+  };
+};
+
+const attachReviewsToContracts = async (contractDocs) => {
+  if (!Array.isArray(contractDocs) || contractDocs.length === 0) {
+    return [];
+  }
+
+  const contractIds = contractDocs.map((contract) => contract._id);
+  const [reviews, disputes] = await Promise.all([
+    Review.find({ contract: { $in: contractIds } })
+      .populate("reviewer", "name email avatar")
+      .populate("reviewee", "name email avatar")
+      .sort({ createdAt: -1 }),
+    listDisputesForContracts(contractIds),
+  ]);
+
+  const reviewMap = reviews.reduce((acc, review) => {
+    const key = String(review.contract);
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(review);
+    return acc;
+  }, {});
+
+  const disputeMap = disputes.reduce((acc, dispute) => {
+    const key = String(dispute.contract);
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(dispute);
+    return acc;
+  }, {});
+
+  return contractDocs.map((contract) => ({
+    ...contract.toObject(),
+    reviews: reviewMap[String(contract._id)] || [],
+    disputes: disputeMap[String(contract._id)] || [],
+  }));
+};
 
 const listMyContracts = catchAsync(async (req, res) => {
-  const data = await populateContract(
+  const contracts = await populateContract(
     Contract.find({
       $or: [{ client: req.user.id }, { freelancer: req.user.id }],
     }).sort({ createdAt: -1 })
   );
+  const data = await attachReviewsToContracts(contracts);
 
   res.status(200).json({
     status: "success",
@@ -41,16 +112,18 @@ const listMyContracts = catchAsync(async (req, res) => {
 });
 
 const getContractById = catchAsync(async (req, res) => {
-  const data = await populateContract(
+  const contract = await populateContract(
     Contract.findOne({
       _id: req.params.id,
       $or: [{ client: req.user.id }, { freelancer: req.user.id }],
     })
   );
 
-  if (!data) {
+  if (!contract) {
     throw new AppError("Contract not found", 404);
   }
+
+  const data = await attachReviewsToContract(contract);
 
   res.status(200).json({
     status: "success",
@@ -59,12 +132,14 @@ const getContractById = catchAsync(async (req, res) => {
 });
 
 const getContractByProposal = catchAsync(async (req, res) => {
-  const data = await populateContract(
+  const contract = await populateContract(
     Contract.findOne({
       proposal: req.params.proposalId,
       $or: [{ client: req.user.id }, { freelancer: req.user.id }],
     })
   );
+
+  const data = await attachReviewsToContract(contract);
 
   res.status(200).json({
     status: "success",
@@ -90,7 +165,8 @@ const createContract = catchAsync(async (req, res) => {
     proposal,
   });
 
-  const data = await populateContract(Contract.findById(contract._id));
+  const populatedContract = await populateContract(Contract.findById(contract._id));
+  const data = await attachReviewsToContract(populatedContract);
 
   await createNotification({
     recipient: proposal.freelancer,
@@ -126,7 +202,10 @@ const signMyContract = catchAsync(async (req, res) => {
     await job.save();
   }
 
-  const data = await populateContract(Contract.findById(updatedContract._id));
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
 
   await createNotification({
     recipient: updatedContract.client,
@@ -162,7 +241,10 @@ const submitMyMilestone = catchAsync(async (req, res) => {
   });
 
   const milestone = updatedContract.milestones?.[milestoneIndex];
-  const data = await populateContract(Contract.findById(updatedContract._id));
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
 
   await createNotification({
     recipient: updatedContract.client,
@@ -208,7 +290,10 @@ const approveMyMilestone = catchAsync(async (req, res) => {
   }
 
   const milestone = updatedContract.milestones?.[milestoneIndex];
-  const data = await populateContract(Contract.findById(updatedContract._id));
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
 
   await createNotification({
     recipient: updatedContract.freelancer,
@@ -220,6 +305,46 @@ const approveMyMilestone = catchAsync(async (req, res) => {
     message: allCompleted
       ? `Your contract "${updatedContract.title}" is now complete.`
       : `Your milestone "${milestone?.title || `#${milestoneIndex + 1}`}" was approved.`,
+    link: `/contracts/${updatedContract._id}`,
+    metadata: {
+      contract: updatedContract._id,
+      job: updatedContract.job,
+      proposal: updatedContract.proposal,
+    },
+  });
+
+  res.status(200).json({
+    status: "success",
+    data,
+  });
+});
+
+const requestMilestoneChanges = catchAsync(async (req, res) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) {
+    throw new AppError("Contract not found", 404);
+  }
+
+  const milestoneIndex = Number(req.params.index);
+  const updatedContract = await requestContractMilestoneChanges({
+    contract,
+    clientId: req.user.id,
+    milestoneIndex,
+    notes: req.body?.notes,
+  });
+
+  const milestone = updatedContract.milestones?.[milestoneIndex];
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
+
+  await createNotification({
+    recipient: updatedContract.freelancer,
+    actor: req.user.id,
+    type: "contract.milestone_changes_requested",
+    title: "Milestone changes requested",
+    message: `Changes were requested for milestone "${milestone?.title || `#${milestoneIndex + 1}`}".`,
     link: `/contracts/${updatedContract._id}`,
     metadata: {
       contract: updatedContract._id,
@@ -246,7 +371,10 @@ const submitContractWork = catchAsync(async (req, res) => {
     notes: req.body?.notes,
   });
 
-  const data = await populateContract(Contract.findById(updatedContract._id));
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
 
   await createNotification({
     recipient: updatedContract.client,
@@ -254,6 +382,43 @@ const submitContractWork = catchAsync(async (req, res) => {
     type: "contract.delivery_submitted",
     title: "Final work submitted",
     message: `${req.user.name || "Your freelancer"} submitted final work for "${updatedContract.title}".`,
+    link: `/contracts/${updatedContract._id}`,
+    metadata: {
+      contract: updatedContract._id,
+      job: updatedContract.job,
+      proposal: updatedContract.proposal,
+    },
+  });
+
+  res.status(200).json({
+    status: "success",
+    data,
+  });
+});
+
+const requestContractWorkChanges = catchAsync(async (req, res) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) {
+    throw new AppError("Contract not found", 404);
+  }
+
+  const updatedContract = await requestContractDeliveryChanges({
+    contract,
+    clientId: req.user.id,
+    notes: req.body?.notes,
+  });
+
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
+
+  await createNotification({
+    recipient: updatedContract.freelancer,
+    actor: req.user.id,
+    type: "contract.delivery_changes_requested",
+    title: "Delivery changes requested",
+    message: `Changes were requested for the final delivery of "${updatedContract.title}".`,
     link: `/contracts/${updatedContract._id}`,
     metadata: {
       contract: updatedContract._id,
@@ -286,7 +451,10 @@ const completeMyContract = catchAsync(async (req, res) => {
     await job.save();
   }
 
-  const data = await populateContract(Contract.findById(updatedContract._id));
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
 
   await createNotification({
     recipient: updatedContract.freelancer,
@@ -325,7 +493,10 @@ const requestMyContractCancellation = catchAsync(async (req, res) => {
       ? updatedContract.freelancer
       : updatedContract.client;
 
-  const data = await populateContract(Contract.findById(updatedContract._id));
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
 
   await createNotification({
     recipient,
@@ -367,7 +538,10 @@ const respondMyContractCancellation = catchAsync(async (req, res) => {
     await job.save();
   }
 
-  const data = await populateContract(Contract.findById(updatedContract._id));
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
 
   await createNotification({
     recipient: updatedContract.cancellation?.initiatedBy,
@@ -393,16 +567,103 @@ const respondMyContractCancellation = catchAsync(async (req, res) => {
   });
 });
 
+const createMyContractReview = catchAsync(async (req, res) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) {
+    throw new AppError("Contract not found", 404);
+  }
+
+  const review = await createContractReview({
+    contract,
+    reviewerId: req.user.id,
+    rating: req.body?.rating,
+    comment: req.body?.comment,
+  });
+
+  const reviewRecipient =
+    String(review.reviewee) === String(contract.client)
+      ? contract.client
+      : contract.freelancer;
+
+  await createNotification({
+    recipient: reviewRecipient,
+    actor: req.user.id,
+    type: "contract.review_submitted",
+    title: "New review received",
+    message: `${req.user.name || "A user"} left you a review for "${contract.title}".`,
+    link: `/contracts/${contract._id}`,
+    metadata: {
+      contract: contract._id,
+      job: contract.job,
+      proposal: contract.proposal,
+      review: review._id,
+    },
+  });
+
+  const populatedContract = await populateContract(Contract.findById(contract._id));
+  const data = await attachReviewsToContract(populatedContract);
+
+  res.status(201).json({
+    status: "success",
+    data,
+  });
+});
+
+const createMyContractDispute = catchAsync(async (req, res) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) {
+    throw new AppError("Contract not found", 404);
+  }
+
+  const dispute = await createContractDispute({
+    contract,
+    userId: req.user.id,
+    payload: req.body,
+  });
+
+  const otherParty =
+    String(contract.client) === String(req.user.id)
+      ? contract.freelancer
+      : contract.client;
+
+  await createNotification({
+    recipient: otherParty,
+    actor: req.user.id,
+    type: "contract.dispute_created",
+    title: "Contract dispute opened",
+    message: `${req.user.name || "A user"} opened a dispute for "${contract.title}".`,
+    link: `/contracts/${contract._id}`,
+    metadata: {
+      contract: contract._id,
+      job: contract.job,
+      proposal: contract.proposal,
+      dispute: dispute._id,
+    },
+  });
+
+  const populatedContract = await populateContract(Contract.findById(contract._id));
+  const data = await attachReviewsToContract(populatedContract);
+
+  res.status(201).json({
+    status: "success",
+    data,
+  });
+});
+
 module.exports = {
   approveMyMilestone,
   completeMyContract,
   createContract,
+  createMyContractDispute,
   getContractById,
   getContractByProposal,
   listMyContracts,
+  requestContractWorkChanges,
   requestMyContractCancellation,
+  requestMilestoneChanges,
   respondMyContractCancellation,
   signMyContract,
   submitContractWork,
   submitMyMilestone,
+  createMyContractReview,
 };

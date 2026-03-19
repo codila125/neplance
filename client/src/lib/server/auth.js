@@ -5,8 +5,8 @@ import { apiServerCall } from "@/lib/api/server";
 import { normalizeRoleList } from "@/shared/utils/auth";
 
 const DASHBOARD_ROLE_REDIRECTS = {
-  client: "/dashboard/freelancer/active-proposals",
-  freelancer: "/dashboard/client/post-job",
+  client: "/dashboard/client/my-contracts",
+  freelancer: "/dashboard/freelancer/my-contracts",
 };
 
 async function resolveSession(user) {
@@ -29,6 +29,11 @@ async function resolveSession(user) {
     activeRole,
   };
 }
+
+const isAdminUser = (user) => {
+  const roles = normalizeRoleList(user?.role);
+  return roles.includes("admin");
+};
 
 export async function getCurrentUserServer() {
   const data = await apiServerCall("/api/auth/me");
@@ -55,6 +60,16 @@ export async function requireSession() {
   return resolveSession(user);
 }
 
+export async function requireAdminSession() {
+  const session = await requireSession();
+
+  if (!isAdminUser(session.user)) {
+    redirect("/dashboard");
+  }
+
+  return session;
+}
+
 export async function requireDashboardRole(role) {
   const session = await requireSession();
 
@@ -69,7 +84,7 @@ export async function redirectIfAuthenticated(destination = "/dashboard") {
   const user = await getCurrentUserServer();
 
   if (user) {
-    redirect(destination);
+    redirect(isAdminUser(user) ? "/admin" : destination);
   }
 
   return null;

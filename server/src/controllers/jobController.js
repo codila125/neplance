@@ -1,7 +1,9 @@
 const Job = require("../models/Job");
 const Proposal = require("../models/Proposal");
+const Review = require("../models/Review");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
+const User = require("../models/User");
 const {
   getJobOrThrow,
   ensureCreator,
@@ -13,6 +15,110 @@ const {
   publishJob: publishJobService,
   deleteJob: deleteJobService,
 } = require("../services/jobService");
+
+const attachCreatorInsightsToJobs = async (jobs, currentUserId = null) => {
+  if (!Array.isArray(jobs) || jobs.length === 0) {
+    return [];
+  }
+
+  const creatorIds = jobs
+    .map((job) => job.creatorAddress?._id || job.creatorAddress)
+    .filter(Boolean);
+
+  const reviewRows = creatorIds.length
+    ? await Review.aggregate([
+        { $match: { reviewee: { $in: creatorIds } } },
+        {
+          $group: {
+            _id: "$reviewee",
+            averageRating: { $avg: "$rating" },
+            totalReviews: { $sum: 1 },
+          },
+        },
+      ])
+    : [];
+
+  const reviewMap = reviewRows.reduce((acc, row) => {
+    acc[String(row._id)] = {
+      averageRating: Number(row.averageRating || 0).toFixed(1),
+      totalReviews: Number(row.totalReviews || 0),
+    };
+    return acc;
+  }, {});
+
+  const savedSet = currentUserId
+    ? new Set(
+        (
+          (
+            await User.findById(currentUserId)
+              .select("savedJobs")
+              .lean()
+          )?.savedJobs || []
+        ).map((value) => String(value)),
+      )
+    : new Set();
+
+  return jobs.map((job) => {
+    const creatorId = String(job.creatorAddress?._id || job.creatorAddress || "");
+
+    return {
+      ...job.toObject(),
+      creatorAddress: job.creatorAddress
+        ? {
+            ...job.creatorAddress.toObject(),
+            reviewSummary: reviewMap[creatorId] || {
+              averageRating: "0.0",
+              totalReviews: 0,
+            },
+          }
+        : job.creatorAddress,
+      isSaved: savedSet.has(String(job._id)),
+    };
+  });
+};
+
+const attachFreelancerInsightsToProposals = async (proposals) => {
+  if (!Array.isArray(proposals) || proposals.length === 0) {
+    return [];
+  }
+
+  const freelancerIds = proposals
+    .map((proposal) => proposal.freelancer?._id || proposal.freelancer)
+    .filter(Boolean);
+  const rows = freelancerIds.length
+    ? await Review.aggregate([
+        { $match: { reviewee: { $in: freelancerIds } } },
+        {
+          $group: {
+            _id: "$reviewee",
+            averageRating: { $avg: "$rating" },
+            totalReviews: { $sum: 1 },
+          },
+        },
+      ])
+    : [];
+  const summaryMap = rows.reduce((acc, row) => {
+    acc[String(row._id)] = {
+      averageRating: Number(row.averageRating || 0).toFixed(1),
+      totalReviews: Number(row.totalReviews || 0),
+    };
+    return acc;
+  }, {});
+
+  return proposals.map((proposal) => ({
+    ...proposal.toObject(),
+    freelancer: proposal.freelancer
+      ? {
+          ...proposal.freelancer.toObject(),
+          reviewSummary:
+            summaryMap[String(proposal.freelancer._id)] || {
+              averageRating: "0.0",
+              totalReviews: 0,
+            },
+        }
+      : proposal.freelancer,
+  }));
+};
 
 const createJob = catchAsync(async (req, res) => {
   const {
@@ -158,7 +264,7 @@ const findJobs = catchAsync(async (req, res) => {
 
   const [data, total] = await Promise.all([
     Job.find(query)
-      .populate("creatorAddress", "name email")
+      .populate("creatorAddress", "name email avatar verificationStatus")
       .sort(sort)
       .skip(skip)
       .limit(Number(limit)),
@@ -176,8 +282,9 @@ const findJobs = catchAsync(async (req, res) => {
     acc[item._id.toString()] = item.count;
     return acc;
   }, {});
-  const responseData = data.map((job) => ({
-    ...job.toObject(),
+  const enrichedJobs = await attachCreatorInsightsToJobs(data, req.user?.id);
+  const responseData = enrichedJobs.map((job) => ({
+    ...job,
     proposalCount: proposalCountMap[job._id.toString()] || 0,
   }));
 
@@ -254,7 +361,7 @@ const adminFindJobs = catchAsync(async (req, res) => {
 
   const [data, total] = await Promise.all([
     Job.find(query)
-      .populate("creatorAddress", "name email")
+      .populate("creatorAddress", "name email avatar verificationStatus")
       .sort(sort)
       .skip(skip)
       .limit(Number(limit)),
@@ -272,8 +379,9 @@ const adminFindJobs = catchAsync(async (req, res) => {
     acc[item._id.toString()] = item.count;
     return acc;
   }, {});
-  const responseData = data.map((job) => ({
-    ...job.toObject(),
+  const enrichedJobs = await attachCreatorInsightsToJobs(data);
+  const responseData = enrichedJobs.map((job) => ({
+    ...job,
     proposalCount: proposalCountMap[job._id.toString()] || 0,
   }));
 
@@ -297,8 +405,11 @@ const findMyJobs = catchAsync(async (req, res) => {
 
   const [data, total] = await Promise.all([
     Job.find(query)
-      .populate("creatorAddress", "name email")
-      .populate("hiredFreelancer", "name email")
+      .populate("creatorAddress", "name email avatar")
+      .populate(
+        "hiredFreelancer",
+        "name email avatar bio experienceLevel availabilityStatus skills"
+      )
       .sort(sort)
       .skip(skip)
       .limit(Number(limit)),
@@ -306,19 +417,41 @@ const findMyJobs = catchAsync(async (req, res) => {
   ]);
 
   const jobIds = data.map((job) => job._id);
-  const proposalCounts = jobIds.length
-    ? await Proposal.aggregate([
-        { $match: { job: { $in: jobIds } } },
-        { $group: { _id: "$job", count: { $sum: 1 } } },
+  const [proposalCounts, proposalPreviews] = jobIds.length
+    ? await Promise.all([
+        Proposal.aggregate([
+          { $match: { job: { $in: jobIds } } },
+          { $group: { _id: "$job", count: { $sum: 1 } } },
+        ]),
+        Proposal.find({ job: { $in: jobIds } })
+          .populate(
+            "freelancer",
+            "name email avatar bio experienceLevel availabilityStatus skills verificationStatus"
+          )
+          .sort({ createdAt: -1 }),
       ])
-    : [];
+    : [[], []];
   const proposalCountMap = proposalCounts.reduce((acc, item) => {
     acc[item._id.toString()] = item.count;
+    return acc;
+  }, {});
+  const enrichedProposalPreviews =
+    await attachFreelancerInsightsToProposals(proposalPreviews);
+  const proposalPreviewMap = enrichedProposalPreviews.reduce((acc, proposal) => {
+    const key = proposal.job?.toString();
+    if (!key) return acc;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    if (acc[key].length < 3) {
+      acc[key].push(proposal);
+    }
     return acc;
   }, {});
   const responseData = data.map((job) => ({
     ...job.toObject(),
     proposalCount: proposalCountMap[job._id.toString()] || 0,
+    proposalPreviews: proposalPreviewMap[job._id.toString()] || [],
   }));
 
   res.status(200).json({
@@ -333,8 +466,11 @@ const findMyJobs = catchAsync(async (req, res) => {
 
 const getJob = catchAsync(async (req, res) => {
   const job = await Job.findById(req.params.id)
-    .populate("creatorAddress", "name email")
-    .populate("hiredFreelancer", "name email");
+    .populate("creatorAddress", "name email avatar verificationStatus")
+    .populate(
+      "hiredFreelancer",
+      "name email avatar bio experienceLevel availabilityStatus skills verificationStatus"
+    );
 
   if (!job) throw new AppError("Job not found", 404);
 
@@ -362,9 +498,11 @@ const getJob = catchAsync(async (req, res) => {
 
   const proposalCount = await Proposal.countDocuments({ job: job._id });
 
+  const [enrichedJob] = await attachCreatorInsightsToJobs([job], req.user?.id);
+
   res.status(200).json({
     status: "success",
-    data: { ...job.toObject(), proposalCount },
+    data: { ...enrichedJob, proposalCount },
   });
 });
 

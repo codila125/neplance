@@ -2,16 +2,20 @@ import { ProfilePageClient } from "@/features/profile/components/ProfilePageClie
 import { requireSession } from "@/lib/server/auth";
 import { getMyJobsServer } from "@/lib/server/jobs";
 import { getMyProposalsServer } from "@/lib/server/proposals";
-import { checkDeleteEligibilityServer } from "@/lib/server/users";
+import {
+  checkDeleteEligibilityServer,
+  getMyProfileServer,
+} from "@/lib/server/users";
 import { JOB_STATUS, PROPOSAL_STATUS } from "@/shared/constants/statuses";
 
 export default async function ProfilePage() {
-  const { activeRole, user } = await requireSession();
+  const { activeRole } = await requireSession();
   const isFreelancer = activeRole === "freelancer";
-  const [deleteEligibility, jobs, proposals] = await Promise.all([
+  const [deleteEligibility, jobs, proposals, user] = await Promise.all([
     checkDeleteEligibilityServer(),
     isFreelancer ? Promise.resolve([]) : getMyJobsServer(),
     isFreelancer ? getMyProposalsServer() : Promise.resolve([]),
+    getMyProfileServer(),
   ]);
 
   const completedJobs = isFreelancer

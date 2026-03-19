@@ -1,6 +1,9 @@
 import "./globals.css";
 import { getCurrentSessionServer } from "@/lib/server/auth";
-import { getNotificationSummaryServer } from "@/lib/server/notifications";
+import {
+  getNotificationSummaryServer,
+  listNotificationsServer,
+} from "@/lib/server/notifications";
 import { Navbar } from "@/shared/components/Navbar";
 
 export const metadata = {
@@ -16,12 +19,16 @@ export default async function RootLayout({ children }) {
   const notificationSummary = session?.user
     ? await getNotificationSummaryServer()
     : { unreadCount: 0 };
+  const recentNotifications = session?.user
+    ? await listNotificationsServer(5)
+    : [];
 
   return (
     <html lang="en">
       <body>
         <Navbar
           activeRole={session?.activeRole}
+          notifications={recentNotifications}
           unreadCount={notificationSummary.unreadCount}
           user={session?.user}
         />
