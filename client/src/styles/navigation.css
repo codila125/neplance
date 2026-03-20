@@ -87,6 +87,15 @@
   line-height: 1;
 }
 
+.navbar-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
+}
+
 .navbar-link::after {
   content: "";
   position: absolute;

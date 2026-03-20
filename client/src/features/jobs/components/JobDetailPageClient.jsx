@@ -22,7 +22,12 @@ const formatDate = (date) => {
   });
 };
 
-export function JobDetailPageClient({ initialJob, initialUser }) {
+export function JobDetailPageClient({
+  conversationId = null,
+  existingProposalId = null,
+  initialJob,
+  initialUser,
+}) {
   const router = useRouter();
   const user = initialUser;
   const [job] = useState(initialJob);
@@ -115,29 +120,65 @@ export function JobDetailPageClient({ initialJob, initialUser }) {
                 >
                   View Contract
                 </Link>
+                {conversationId ? (
+                  <Link
+                    href={`/messages/${conversationId}`}
+                    className="btn btn-ghost btn-sm"
+                    style={{ marginLeft: "var(--space-2)" }}
+                  >
+                    Open Chat
+                  </Link>
+                ) : null}
               </div>
             </div>
           ) : null}
         </div>
 
-        {job.status === JOB_STATUS.OPEN && !isJobOwner && (
-          <JobProposalFormSection
-            amount={amount}
-            attachments={attachments}
-            coverLetter={coverLetter}
-            deliveryDays={deliveryDays}
-            handleSubmitProposal={handleSubmitProposal}
-            isProposalPending={isProposalPending}
-            proposalError={proposalError}
-            revisionsIncluded={revisionsIncluded}
-            router={router}
-            setAmount={setAmount}
-            setAttachments={setAttachments}
-            setCoverLetter={setCoverLetter}
-            setDeliveryDays={setDeliveryDays}
-            setRevisionsIncluded={setRevisionsIncluded}
-          />
-        )}
+        {job.status === JOB_STATUS.OPEN && !isJobOwner ? (
+          existingProposalId ? (
+            <div className="card" style={{ marginTop: "var(--space-6)" }}>
+              <h2
+                style={{
+                  fontSize: "var(--text-lg)",
+                  fontWeight: "var(--font-weight-semibold)",
+                  marginBottom: "var(--space-3)",
+                }}
+              >
+                Proposal already submitted
+              </h2>
+              <p
+                className="text-light"
+                style={{ marginBottom: "var(--space-4)" }}
+              >
+                You already applied to this job. Open your proposal to review or
+                edit it instead of submitting a duplicate.
+              </p>
+              <Link
+                href={`/proposals/${existingProposalId}`}
+                className="btn btn-primary"
+              >
+                Edit Proposal
+              </Link>
+            </div>
+          ) : (
+            <JobProposalFormSection
+              amount={amount}
+              attachments={attachments}
+              coverLetter={coverLetter}
+              deliveryDays={deliveryDays}
+              handleSubmitProposal={handleSubmitProposal}
+              isProposalPending={isProposalPending}
+              proposalError={proposalError}
+              revisionsIncluded={revisionsIncluded}
+              router={router}
+              setAmount={setAmount}
+              setAttachments={setAttachments}
+              setCoverLetter={setCoverLetter}
+              setDeliveryDays={setDeliveryDays}
+              setRevisionsIncluded={setRevisionsIncluded}
+            />
+          )
+        ) : null}
       </div>
     </div>
   );

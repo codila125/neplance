@@ -2,11 +2,13 @@ import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUpload
 import { Button, Input } from "@/shared/components/UI";
 
 export function ProposalResubmitSection({
+  buttonLabel = "Resubmit Proposal",
   handleResubmit,
   handleResubmitChange,
   isResubmitting,
   resubmitData,
   resubmitError,
+  title = "Resubmit Proposal",
 }) {
   return (
     <div style={{ marginTop: "var(--space-6)" }}>
@@ -17,7 +19,7 @@ export function ProposalResubmitSection({
           marginBottom: "var(--space-2)",
         }}
       >
-        Resubmit Proposal
+        {title}
       </h3>
       <form
         onSubmit={handleResubmit}
@@ -193,7 +195,7 @@ export function ProposalResubmitSection({
         )}
         <div style={{ marginTop: "var(--space-4)" }}>
           <Button type="submit" disabled={isResubmitting}>
-            {isResubmitting ? "Resubmitting..." : "Resubmit Proposal"}
+            {isResubmitting ? "Saving..." : buttonLabel}
           </Button>
         </div>
       </form>

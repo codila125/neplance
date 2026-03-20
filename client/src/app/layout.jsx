@@ -1,5 +1,6 @@
 import "./globals.css";
 import { getCurrentSessionServer } from "@/lib/server/auth";
+import { getChatSummaryServer } from "@/lib/server/chat";
 import {
   getNotificationSummaryServer,
   listNotificationsServer,
@@ -16,18 +17,20 @@ export const metadata = {
 
 export default async function RootLayout({ children }) {
   const session = await getCurrentSessionServer();
-  const notificationSummary = session?.user
-    ? await getNotificationSummaryServer()
-    : { unreadCount: 0 };
-  const recentNotifications = session?.user
-    ? await listNotificationsServer(5)
-    : [];
+  const [notificationSummary, recentNotifications, chatSummary] = session?.user
+    ? await Promise.all([
+        getNotificationSummaryServer(),
+        listNotificationsServer(3),
+        getChatSummaryServer(),
+      ])
+    : [{ unreadCount: 0 }, [], { unreadCount: 0 }];
 
   return (
     <html lang="en">
       <body>
         <Navbar
           activeRole={session?.activeRole}
+          initialChatUnreadCount={chatSummary.unreadCount}
           notifications={recentNotifications}
           unreadCount={notificationSummary.unreadCount}
           user={session?.user}

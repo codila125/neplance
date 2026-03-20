@@ -2,6 +2,7 @@ const AppError = require("../utils/appError");
 const { PROPOSAL_STATUS } = require("../constants/statuses");
 const {
   assertProposalCanReject,
+  assertProposalCanUpdate,
   assertProposalCanWithdraw,
   assertProposalCanCreate,
 } = require("./statusTransitions");
@@ -29,8 +30,24 @@ const withdrawProposal = async (proposal) => {
   return proposal;
 };
 
+const updateProposal = async (proposal, payload = {}) => {
+  assertProposalCanUpdate(proposal);
+
+  proposal.amount = payload.amount;
+  proposal.coverLetter = payload.coverLetter;
+  proposal.deliveryDays = payload.deliveryDays;
+  proposal.revisionsIncluded = payload.revisionsIncluded;
+  proposal.attachments = Array.isArray(payload.attachments)
+    ? payload.attachments
+    : [];
+  proposal.updatedAt = new Date();
+  await proposal.save();
+  return proposal;
+};
+
 module.exports = {
   createProposal,
   rejectProposal,
+  updateProposal,
   withdrawProposal,
 };

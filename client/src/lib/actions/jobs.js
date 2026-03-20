@@ -58,6 +58,7 @@ export async function createJobAction(_previousState, formData) {
   if (intent === "draft") {
     const draftPayload = {
       ...payload,
+      status: JOB_STATUS.DRAFT,
       attachments: sanitizeAttachments(payload.attachments),
     };
     const title = payload.title?.trim() || "";
@@ -111,7 +112,10 @@ export async function createJobAction(_previousState, formData) {
   try {
     await apiServerRequest("/api/jobs", {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        status: JOB_STATUS.OPEN,
+      }),
     });
   } catch (error) {
     return {

@@ -90,6 +90,28 @@ export async function createProposalMutationAction(payload) {
   return successResult(response?.data || response);
 }
 
+export async function updateProposalMutationAction(proposalId, payload) {
+  await requireSession();
+
+  const submitData = buildProposalPayload(payload);
+  const { errors, data } = validateForm(proposalSchema, submitData);
+
+  if (errors) {
+    throw new Error(Object.values(errors)[0] || "Invalid proposal update.");
+  }
+
+  const response = await apiServerRequest(`/api/proposals/${proposalId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/jobs/${submitData.job}`);
+  revalidatePath(`/proposals/${proposalId}`);
+
+  return successResult(response?.data || response);
+}
+
 export async function resubmitProposalAction(_previousState, formData) {
   await requireSession();
 
