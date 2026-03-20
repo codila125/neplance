@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { RemoteAvatar } from "@/shared/components/RemoteAvatar";
 import { JOB_STATUS, PROPOSAL_STATUS } from "@/shared/constants/statuses";
 import {
   formatBudget,
@@ -10,39 +11,13 @@ import {
 } from "@/shared/utils/job";
 
 function Avatar({ person, fallback }) {
-  if (person?.avatar) {
-    return (
-      <img
-        src={person.avatar}
-        alt={person.name || fallback}
-        style={{
-          width: "40px",
-          height: "40px",
-          borderRadius: "50%",
-          objectFit: "cover",
-          border: "1px solid var(--color-border)",
-        }}
-      />
-    );
-  }
-
   return (
-    <div
-      style={{
-        width: "40px",
-        height: "40px",
-        borderRadius: "50%",
-        backgroundColor: "var(--color-primary-lightest)",
-        color: "var(--color-primary)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: "var(--font-weight-semibold)",
-        fontSize: "var(--text-lg)",
-      }}
-    >
-      {fallback.charAt(0).toUpperCase()}
-    </div>
+    <RemoteAvatar
+      src={person?.avatar}
+      alt={person?.name || fallback}
+      fallback={fallback}
+      size={40}
+    />
   );
 }
 

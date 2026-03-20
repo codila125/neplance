@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RemoteAvatar } from "@/shared/components/RemoteAvatar";
 import { PROPOSAL_STATUS } from "@/shared/constants/statuses";
 import { formatStatus } from "@/shared/utils/job";
 
@@ -128,37 +129,15 @@ export function ProposalSummarySection({ proposal }) {
               alignItems: "center",
             }}
           >
-            {proposal.freelancer.avatar ? (
-              <img
-                src={proposal.freelancer.avatar}
-                alt={proposal.freelancer.name || "Freelancer"}
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                  border: "1px solid var(--color-border)",
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  backgroundColor: "var(--color-primary-lightest)",
-                  color: "var(--color-primary)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: "var(--font-weight-semibold)",
-                }}
-              >
-                {(proposal.freelancer.name || proposal.freelancer.email || "U")
-                  .charAt(0)
-                  .toUpperCase()}
-              </div>
-            )}
+            <RemoteAvatar
+              src={proposal.freelancer.avatar}
+              alt={proposal.freelancer.name || "Freelancer"}
+              fallback={
+                proposal.freelancer.name || proposal.freelancer.email || "U"
+              }
+              size={40}
+              textSize="var(--text-base)"
+            />
             <div>
               <div style={{ fontWeight: "var(--font-weight-medium)" }}>
                 {proposal.freelancer.name || "Unknown"}

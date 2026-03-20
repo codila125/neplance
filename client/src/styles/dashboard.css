@@ -147,7 +147,11 @@
   width: 48px;
   height: 48px;
   border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, var(--color-primary-lightest) 0%, var(--color-primary-100) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-lightest) 0%,
+    var(--color-primary-100) 100%
+  );
   color: var(--color-primary);
   display: inline-flex;
   align-items: center;
