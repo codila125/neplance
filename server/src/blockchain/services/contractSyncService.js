@@ -159,6 +159,33 @@ const waitForMilestoneCompletion = async ({
   return false;
 };
 
+const waitForContractStatus = async ({
+  contractUrl,
+  targetStatus,
+  attempts = 2,
+  delayMs = BLOCKCHAIN_SETTLE_DELAY_MS,
+}) => {
+  const normalizedTarget = String(targetStatus || "").toUpperCase();
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const latestContract = await getJson(
+      contractUrl,
+      "Invalid contract response from Foedus blockchain"
+    );
+    const latestStatus = String(latestContract?.status || "").toUpperCase();
+
+    if (latestStatus === normalizedTarget) {
+      return true;
+    }
+
+    if (attempt < attempts - 1) {
+      await sleep(delayMs);
+    }
+  }
+
+  return false;
+};
+
 const loadContractWithWallets = async (contractId) => {
   return Contract.findById(contractId)
     .populate("client", "walletId")
@@ -365,7 +392,66 @@ const syncApprovedMilestoneToBlockchain = async ({ contractId, milestoneIndex })
   return contract;
 };
 
+const syncAcceptedCancellationToBlockchain = async ({ contractId }) => {
+  let contract = await loadContractWithWallets(contractId);
+
+  if (!contract) {
+    throw new AppError("Contract not found for cancellation sync", 404);
+  }
+
+  if (!contract.blockchain?.contractAddress || contract.blockchain?.syncStatus !== "SYNCED") {
+    await syncActiveContractToBlockchain(contractId);
+    contract = await loadContractWithWallets(contractId);
+  }
+
+  const blockchainContractId = contract.blockchain?.contractAddress;
+  const cancellerAddress = contract.client?.walletId;
+
+  if (!blockchainContractId || contract.blockchain?.syncStatus !== "SYNCED") {
+    throw new AppError("Contract is not synced with blockchain", 400);
+  }
+
+  if (!cancellerAddress) {
+    throw new AppError("Client wallet id is required for contract cancellation", 400);
+  }
+
+  const blockchainBaseUrl = resolveBlockchainBaseUrl();
+  const contractUrl = `${blockchainBaseUrl}/blockchain/getcontract/${blockchainContractId}`;
+  const blockchainContract = await getJson(
+    contractUrl,
+    "Invalid contract response from Foedus blockchain"
+  );
+  const currentStatus = String(blockchainContract?.status || "").toUpperCase();
+
+  if (currentStatus === "CANCELLED") {
+    return contract;
+  }
+
+  await postJson(
+    `${blockchainBaseUrl}/blockchain/cancelcontract`,
+    {
+      contract_id: blockchainContractId,
+      canceller_address: cancellerAddress,
+    },
+    { waitAfter: true }
+  );
+
+  const cancelledOnChain = await waitForContractStatus({
+    contractUrl,
+    targetStatus: "CANCELLED",
+  });
+
+  if (!cancelledOnChain) {
+    throw new AppError("Contract is not cancelled on Foedus blockchain", 502);
+  }
+
+  logger.info(`Contract cancellation synced to Foedus blockchain: ${contract._id}`);
+
+  return contract;
+};
+
 module.exports = {
   syncActiveContractToBlockchain,
   syncApprovedMilestoneToBlockchain,
+  syncAcceptedCancellationToBlockchain,
 };

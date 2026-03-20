@@ -20,6 +20,7 @@ const {
   updateFundingStatus,
 } = require("./walletService");
 const {
+  syncAcceptedCancellationToBlockchainStrict,
   syncCompletedMilestoneToBlockchain,
   syncSignedContractToBlockchain,
 } = require("../blockchain/controllers/contractSyncController");
@@ -688,6 +689,8 @@ const respondContractCancellation = async ({ contract, userId, action }) => {
   contract.cancellation.respondedAt = new Date();
 
   if (accepted) {
+    await syncAcceptedCancellationToBlockchainStrict({ contractId: contract._id });
+
     const refundableAmount =
       Number(contract.fundedAmount || 0) -
       Number(contract.releasedAmount || 0) -
