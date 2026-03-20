@@ -1,5 +1,8 @@
 const logger = require("../../utils/logger");
-const { syncActiveContractToBlockchain } = require("../services/contractSyncService");
+const {
+  syncActiveContractToBlockchain,
+  syncApprovedMilestoneToBlockchain,
+} = require("../services/contractSyncService");
 
 const syncSignedContractToBlockchain = async (contractId) => {
   try {
@@ -10,6 +13,19 @@ const syncSignedContractToBlockchain = async (contractId) => {
   }
 };
 
+const syncCompletedMilestoneToBlockchain = async ({ contractId, milestoneIndex }) => {
+  try {
+    return await syncApprovedMilestoneToBlockchain({ contractId, milestoneIndex });
+  } catch (error) {
+    logger.error(
+      `Milestone blockchain sync failed for ${contractId}#${milestoneIndex}`,
+      error?.message || error
+    );
+    throw error;
+  }
+};
+
 module.exports = {
+  syncCompletedMilestoneToBlockchain,
   syncSignedContractToBlockchain,
 };

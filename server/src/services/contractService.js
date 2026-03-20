@@ -20,6 +20,7 @@ const {
   updateFundingStatus,
 } = require("./walletService");
 const {
+  syncCompletedMilestoneToBlockchain,
   syncSignedContractToBlockchain,
 } = require("../blockchain/controllers/contractSyncController");
 
@@ -399,24 +400,50 @@ const approveContractMilestone = async ({
   milestone.status = MILESTONE_STATUS.COMPLETED;
   milestone.approvedAt = new Date();
 
-  await releaseContractFunds({
-    contract,
-    amount: milestone.value,
-    description: `Released funds for milestone "${milestone.title}"`,
-  });
-
-  const allCompleted = (contract.milestones || []).every(
-    (item) => item.status === MILESTONE_STATUS.COMPLETED
-  );
-
-  if (allCompleted) {
-    contract.status = CONTRACT_STATUS.COMPLETED;
-    contract.completedAt = new Date();
-  }
-
   contract.updatedAt = new Date();
   await contract.save();
-  return { contract, allCompleted };
+
+  const previousContractStatus = contract.status;
+  const previousCompletedAt = contract.completedAt;
+
+  try {
+    await syncCompletedMilestoneToBlockchain({
+      contractId: contract._id,
+      milestoneIndex,
+    });
+
+    await releaseContractFunds({
+      contract,
+      amount: milestone.value,
+      description: `Released funds for milestone "${milestone.title}"`,
+    });
+
+    const allCompleted = (contract.milestones || []).every(
+      (item) => item.status === MILESTONE_STATUS.COMPLETED
+    );
+
+    if (allCompleted) {
+      contract.status = CONTRACT_STATUS.COMPLETED;
+      contract.completedAt = new Date();
+    }
+
+    contract.updatedAt = new Date();
+    await contract.save();
+
+    return { contract, allCompleted };
+  } catch (error) {
+    milestone.status = MILESTONE_STATUS.SUBMITTED;
+    milestone.approvedAt = undefined;
+    contract.status = previousContractStatus;
+    contract.completedAt = previousCompletedAt;
+    contract.updatedAt = new Date();
+    await contract.save();
+
+    throw new AppError(
+      error?.message || "Milestone approval failed due to blockchain sync error",
+      error?.statusCode || 502
+    );
+  }
 };
 
 const submitFullProjectDelivery = async ({
@@ -493,6 +520,19 @@ const approveContractCompletion = async ({ contract, clientId }) => {
     if (!allCompleted) {
       throw new AppError("All milestones must be approved first", 400);
     }
+  }
+
+  const hasMilestones = Array.isArray(contract.milestones) && contract.milestones.length > 0;
+  if (!hasMilestones) {
+    await syncCompletedMilestoneToBlockchain({
+      contractId: contract._id,
+      milestoneIndex: 0,
+    }).catch((error) => {
+      throw new AppError(
+        error?.message || "Contract completion failed due to blockchain milestone sync error",
+        error?.statusCode || 502
+      );
+    });
   }
 
   const unreleasedAmount =

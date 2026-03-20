@@ -31,10 +31,12 @@ AUTH_JWT_SECRET=<secure 64+ char string>
 AUTH_JWT_EXPIRATION=24h
 AUTH_JWT_COOKIE_EXPIRATION_DAYS=1
 BLOCKCHAIN_BASE_URL=http://localhost:3008
+BLOCKCHAIN_SETTLE_DELAY_MS=900
 ```
 - `FRONTEND_BASE_URL` is used by `cors()` so you can match whatever host the client runs on (Next.js dev server, Vercel preview, etc.).
 - Keep `AUTH_JWT_SECRET` secret; rotate it before hitting production.
 - `BLOCKCHAIN_BASE_URL` is used to create wallet IDs when admin verifies a user.
+- `BLOCKCHAIN_SETTLE_DELAY_MS` adds a small wait after blockchain writes so Foedus state can settle before Neplance validates it.
 
 ## Scripts
 | Command | Description |

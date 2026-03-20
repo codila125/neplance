@@ -236,11 +236,21 @@ const releaseContractFunds = async ({
     getOrCreateWallet(contract.freelancer),
   ]);
 
-  if (clientWallet.heldBalance < normalizedAmount) {
-    throw new AppError("Client wallet does not have enough held funds", 400);
+  const heldBalance = Number(clientWallet.heldBalance || 0);
+  const availableBalance = Number(clientWallet.balance || 0);
+  const totalSpendable = heldBalance + availableBalance;
+
+  if (totalSpendable < normalizedAmount) {
+    throw new AppError("Client wallet does not have enough funds", 400);
   }
 
-  clientWallet.heldBalance -= normalizedAmount;
+  const fromHeld = Math.min(heldBalance, normalizedAmount);
+  const fromAvailable = normalizedAmount - fromHeld;
+
+  clientWallet.heldBalance = heldBalance - fromHeld;
+  if (fromAvailable > 0) {
+    clientWallet.balance = availableBalance - fromAvailable;
+  }
   clientWallet.totalSpent += normalizedAmount;
   pushTransaction(clientWallet, {
     type: "contract_release",
