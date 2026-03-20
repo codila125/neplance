@@ -132,6 +132,8 @@ export function Navbar({
     roleList.includes("freelancer") && roleList.includes("client");
 
   const isActive = (path) => pathname === path;
+  const isMessagesActive = pathname.startsWith("/messages");
+  const isNotificationsActive = pathname.startsWith("/notifications");
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -287,16 +289,51 @@ export function Navbar({
               {isFreelancer ? "Find Work" : "Find Talent"}
             </Link>
           </li>
-          <li>
-            <Link
-              href="/messages"
-              className={`navbar-link ${
-                pathname.startsWith("/messages") ? "active" : ""
+        </ul>
+
+        <div className="navbar-right">
+          <Link
+            href="/messages"
+            className={`navbar-icon-link ${isMessagesActive ? "active" : ""}`}
+            aria-label="Messages"
+            title="Messages"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            {liveMessageUnreadCount > 0 ? (
+              <>
+                <span className="navbar-dot" aria-hidden="true" />
+                <span className="sr-only">
+                  {liveMessageUnreadCount} unread messages
+                </span>
+              </>
+            ) : null}
+          </Link>
+
+          <div className="profile-menu" ref={notificationsRef}>
+            <button
+              type="button"
+              className={`navbar-icon-button ${
+                isNotificationsActive ? "active" : ""
               }`}
+              onClick={() => setShowNotifications((previous) => !previous)}
+              aria-label="Notifications"
+              title="Notifications"
             >
               <svg
-                width="16"
-                height="16"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -305,29 +342,9 @@ export function Navbar({
                 strokeLinejoin="round"
                 aria-hidden="true"
               >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
-              Messages
-              {liveMessageUnreadCount > 0 ? (
-                <>
-                  <span className="navbar-dot" aria-hidden="true" />
-                  <span className="sr-only">
-                    {liveMessageUnreadCount} unread messages
-                  </span>
-                </>
-              ) : null}
-            </Link>
-          </li>
-        </ul>
-
-        <div className="navbar-right">
-          <div className="profile-menu" ref={notificationsRef}>
-            <button
-              type="button"
-              className={`profile-btn ${pathname.startsWith("/notifications") ? "active" : ""}`}
-              onClick={() => setShowNotifications((previous) => !previous)}
-            >
-              <span>Notifications</span>
               {liveNotificationUnreadCount > 0 ? (
                 <span className="navbar-badge">
                   {liveNotificationUnreadCount}

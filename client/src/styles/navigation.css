@@ -134,6 +134,53 @@
   gap: var(--space-3);
 }
 
+.navbar-icon-link,
+.navbar-icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-xl);
+  border: 1px solid transparent;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.navbar-icon-link:hover,
+.navbar-icon-button:hover {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  color: var(--color-text);
+}
+
+.navbar-icon-link.active,
+.navbar-icon-button.active {
+  color: var(--color-primary);
+  background: var(--color-primary-lightest);
+  border-color: var(--color-primary-100);
+}
+
+.navbar-icon-link .navbar-dot,
+.navbar-icon-button .navbar-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.navbar-icon-link .navbar-badge,
+.navbar-icon-button .navbar-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+}
+
 /* Profile menu (dropdown) */
 .profile-menu {
   position: relative;

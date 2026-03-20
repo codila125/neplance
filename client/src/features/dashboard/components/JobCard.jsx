@@ -833,30 +833,41 @@ export const ProposalCard = ({ proposal, onWithdraw }) => {
             {budgetDisplay}
           </div>
         </div>
-        <Link
-          href={`/proposals/${proposal._id}`}
-          className="btn btn-ghost btn-sm"
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--space-2)",
+            marginLeft: "auto",
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+          }}
         >
-          View Details
-        </Link>
-        {status === PROPOSAL_STATUS.REJECTED ? (
           <Link
             href={`/proposals/${proposal._id}`}
-            className="btn btn-primary btn-sm"
-          >
-            Resubmit
-          </Link>
-        ) : null}
-        {status === PROPOSAL_STATUS.PENDING && onWithdraw ? (
-          <button
-            type="button"
             className="btn btn-ghost btn-sm"
-            style={{ color: "var(--color-error)" }}
-            onClick={() => onWithdraw(proposal)}
           >
-            Withdraw
-          </button>
-        ) : null}
+            View Details
+          </Link>
+          {status === PROPOSAL_STATUS.REJECTED ? (
+            <Link
+              href={`/proposals/${proposal._id}`}
+              className="btn btn-primary btn-sm"
+            >
+              Resubmit
+            </Link>
+          ) : null}
+          {status === PROPOSAL_STATUS.PENDING && onWithdraw ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              style={{ color: "var(--color-error)" }}
+              onClick={() => onWithdraw(proposal)}
+            >
+              Withdraw
+            </button>
+          ) : null}
+        </div>
       </div>
     </article>
   );
