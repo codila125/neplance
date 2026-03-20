@@ -5,90 +5,16 @@ const { CONTRACT_STATUS } = require("../../constants/statuses");
 const { resolveBlockchainBaseUrl } = require("../../config/blockchain");
 const { mapContractToCreatePayload } = require("../models/contractPayloadModel");
 const {
+  BLOCKCHAIN_SETTLE_DELAY_MS,
+  getJson,
+  postJson,
+  sleep,
+} = require("./httpClient");
+const {
   getMilestoneByIndex,
   includesAddress,
   isCompletedStatus,
 } = require("../models/milestoneSyncModel");
-
-const BLOCKCHAIN_SETTLE_DELAY_MS = Math.max(
-  0,
-  Number(process.env.BLOCKCHAIN_SETTLE_DELAY_MS) || 900
-);
-
-const parseJson = async (response, fallbackMessage) => {
-  try {
-    return await response.json();
-  } catch {
-    throw new AppError(fallbackMessage, 502);
-  }
-};
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const waitForBlockchainSettle = async () => {
-  if (BLOCKCHAIN_SETTLE_DELAY_MS > 0) {
-    await sleep(BLOCKCHAIN_SETTLE_DELAY_MS);
-  }
-};
-
-const getErrorReason = async (response) => {
-  const errorText = await response.text().catch(() => "");
-  if (typeof errorText === "string" && errorText.trim()) {
-    return errorText.trim().slice(0, 240);
-  }
-  return `HTTP ${response.status}`;
-};
-
-const getJson = async (url, fallbackMessage) => {
-  let response;
-
-  try {
-    response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-  } catch {
-    throw new AppError("Unable to connect to Foedus blockchain service", 503);
-  }
-
-  if (!response.ok) {
-    const reason = await getErrorReason(response);
-    throw new AppError(`Foedus blockchain request failed: ${reason}`, 502);
-  }
-
-  return parseJson(response, fallbackMessage);
-};
-
-const postJson = async (url, payload, options = {}) => {
-  const { waitAfter = false } = options;
-  let response;
-
-  try {
-    response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    throw new AppError("Unable to connect to Foedus blockchain service", 503);
-  }
-
-  if (!response.ok) {
-    const reason = await getErrorReason(response);
-    throw new AppError(`Foedus blockchain request failed: ${reason}`, 502);
-  }
-
-  if (waitAfter) {
-    await waitForBlockchainSettle();
-  }
-
-  return response;
-};
 
 const extractFoedusContractId = (payload = {}) => {
   const contractId = payload?.contract_id;
@@ -235,14 +161,13 @@ const syncActiveContractToBlockchain = async (contractId) => {
       freelancerWalletId,
     });
 
-    const createResponse = await postJson(
+    const createResult = await postJson(
       `${blockchainBaseUrl}/blockchain/createcontract/${creatorWalletId}`,
       createPayload,
-      { waitAfter: true }
-    );
-    const createResult = await parseJson(
-      createResponse,
-      "Invalid create contract response from Foedus blockchain"
+      {
+        waitAfter: true,
+        fallbackMessage: "Invalid create contract response from Foedus blockchain",
+      }
     );
     const contractAddress = extractFoedusContractId(createResult);
 
@@ -250,17 +175,16 @@ const syncActiveContractToBlockchain = async (contractId) => {
       throw new AppError("Foedus contract id missing in response", 502);
     }
 
-    const approveResponse = await postJson(
+    await postJson(
       `${blockchainBaseUrl}/blockchain/approvecontract`,
       {
         contract_id: contractAddress,
         approver_address: freelancerWalletId,
       },
-      { waitAfter: true }
-    );
-    await parseJson(
-      approveResponse,
-      "Invalid approve contract response from Foedus blockchain"
+      {
+        waitAfter: true,
+        fallbackMessage: "Invalid approve contract response from Foedus blockchain",
+      }
     );
 
     const updatedContract = await Contract.findByIdAndUpdate(
@@ -363,12 +287,19 @@ const syncApprovedMilestoneToBlockchain = async ({ contractId, milestoneIndex })
       return;
     }
 
-    await postJson(`${blockchainBaseUrl}/blockchain/approvemilestone`, {
-      contract_id: blockchainContractId,
-      milestone_id: milestoneId,
-      approver_address: approverAddress,
-      evidence,
-    }, { waitAfter: true });
+    await postJson(
+      `${blockchainBaseUrl}/blockchain/approvemilestone`,
+      {
+        contract_id: blockchainContractId,
+        milestone_id: milestoneId,
+        approver_address: approverAddress,
+        evidence,
+      },
+      {
+        waitAfter: true,
+        fallbackMessage: "Invalid approve milestone response from Foedus blockchain",
+      }
+    );
   };
 
   await ensureApproval(clientWalletId);
@@ -433,7 +364,10 @@ const syncAcceptedCancellationToBlockchain = async ({ contractId }) => {
       contract_id: blockchainContractId,
       canceller_address: cancellerAddress,
     },
-    { waitAfter: true }
+    {
+      waitAfter: true,
+      fallbackMessage: "Invalid cancel contract response from Foedus blockchain",
+    }
   );
 
   const cancelledOnChain = await waitForContractStatus({

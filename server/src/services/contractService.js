@@ -283,6 +283,23 @@ const signContract = async (contract, freelancerId) => {
   return contract;
 };
 
+const withBlockchainRollback = async ({
+  contract,
+  apply,
+  rollback,
+  blockchainAction,
+  errorMessage,
+}) => {
+  await apply();
+
+  try {
+    await blockchainAction();
+  } catch (error) {
+    await rollback();
+    throw new AppError(error?.message || errorMessage, error?.statusCode || 502);
+  }
+};
+
 const ensurePendingFreelancerSignature = (contract) => {
   if (contract.status !== CONTRACT_STATUS.PENDING_FREELANCER_SIGNATURE) {
     throw new AppError(
@@ -398,53 +415,53 @@ const approveContractMilestone = async ({
     throw new AppError("Milestone has not been submitted yet", 400);
   }
 
-  milestone.status = MILESTONE_STATUS.COMPLETED;
-  milestone.approvedAt = new Date();
+  const previousContractStatus = contract.status;
+  const previousCompletedAt = contract.completedAt;
+
+  await withBlockchainRollback({
+    contract,
+    apply: async () => {
+      milestone.status = MILESTONE_STATUS.COMPLETED;
+      milestone.approvedAt = new Date();
+      contract.updatedAt = new Date();
+      await contract.save();
+    },
+    rollback: async () => {
+      milestone.status = MILESTONE_STATUS.SUBMITTED;
+      milestone.approvedAt = undefined;
+      contract.status = previousContractStatus;
+      contract.completedAt = previousCompletedAt;
+      contract.updatedAt = new Date();
+      await contract.save();
+    },
+    blockchainAction: async () => {
+      await syncCompletedMilestoneToBlockchain({
+        contractId: contract._id,
+        milestoneIndex,
+      });
+    },
+    errorMessage: "Milestone approval failed due to blockchain sync error",
+  });
+
+  await releaseContractFunds({
+    contract,
+    amount: milestone.value,
+    description: `Released funds for milestone "${milestone.title}"`,
+  });
+
+  const allCompleted = (contract.milestones || []).every(
+    (item) => item.status === MILESTONE_STATUS.COMPLETED
+  );
+
+  if (allCompleted) {
+    contract.status = CONTRACT_STATUS.COMPLETED;
+    contract.completedAt = new Date();
+  }
 
   contract.updatedAt = new Date();
   await contract.save();
 
-  const previousContractStatus = contract.status;
-  const previousCompletedAt = contract.completedAt;
-
-  try {
-    await syncCompletedMilestoneToBlockchain({
-      contractId: contract._id,
-      milestoneIndex,
-    });
-
-    await releaseContractFunds({
-      contract,
-      amount: milestone.value,
-      description: `Released funds for milestone "${milestone.title}"`,
-    });
-
-    const allCompleted = (contract.milestones || []).every(
-      (item) => item.status === MILESTONE_STATUS.COMPLETED
-    );
-
-    if (allCompleted) {
-      contract.status = CONTRACT_STATUS.COMPLETED;
-      contract.completedAt = new Date();
-    }
-
-    contract.updatedAt = new Date();
-    await contract.save();
-
-    return { contract, allCompleted };
-  } catch (error) {
-    milestone.status = MILESTONE_STATUS.SUBMITTED;
-    milestone.approvedAt = undefined;
-    contract.status = previousContractStatus;
-    contract.completedAt = previousCompletedAt;
-    contract.updatedAt = new Date();
-    await contract.save();
-
-    throw new AppError(
-      error?.message || "Milestone approval failed due to blockchain sync error",
-      error?.statusCode || 502
-    );
-  }
+  return { contract, allCompleted };
 };
 
 const submitFullProjectDelivery = async ({
@@ -525,14 +542,17 @@ const approveContractCompletion = async ({ contract, clientId }) => {
 
   const hasMilestones = Array.isArray(contract.milestones) && contract.milestones.length > 0;
   if (!hasMilestones) {
-    await syncCompletedMilestoneToBlockchain({
-      contractId: contract._id,
-      milestoneIndex: 0,
-    }).catch((error) => {
-      throw new AppError(
-        error?.message || "Contract completion failed due to blockchain milestone sync error",
-        error?.statusCode || 502
-      );
+    await withBlockchainRollback({
+      contract,
+      apply: async () => {},
+      rollback: async () => {},
+      blockchainAction: async () => {
+        await syncCompletedMilestoneToBlockchain({
+          contractId: contract._id,
+          milestoneIndex: 0,
+        });
+      },
+      errorMessage: "Contract completion failed due to blockchain milestone sync error",
     });
   }
 

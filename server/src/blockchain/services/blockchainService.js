@@ -3,6 +3,7 @@ const { extractWalletId } = require("../models/walletModel");
 const { resolveBlockchainBaseUrl } = require("../../config/blockchain");
 const BlockchainBlock = require("../../models/BlockchainBlock");
 const Contract = require("../../models/Contract");
+const { getJson } = require("./httpClient");
 
 const resolveCreateWalletUrl = () => {
   return `${resolveBlockchainBaseUrl()}/blockchain/createwallet`;
@@ -12,33 +13,11 @@ const resolvePrintChainUrl = () => {
   return `${resolveBlockchainBaseUrl()}/blockchain/printchain`;
 };
 
-const parseJsonResponse = async (response) => {
-  try {
-    return await response.json();
-  } catch {
-    throw new AppError("Invalid wallet response from Foedus blockchain", 502);
-  }
-};
-
 const fetchFoedusChain = async () => {
-  let response;
-
-  try {
-    response = await fetch(resolvePrintChainUrl(), {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-  } catch {
-    throw new AppError("Unable to connect to Foedus blockchain service", 503);
-  }
-
-  if (!response.ok) {
-    throw new AppError("Failed to fetch chain from Foedus blockchain", 502);
-  }
-
-  const payload = await parseJsonResponse(response);
+  const payload = await getJson(
+    resolvePrintChainUrl(),
+    "Invalid chain response from Foedus blockchain"
+  );
   if (!Array.isArray(payload)) {
     throw new AppError("Invalid chain response from Foedus blockchain", 502);
   }
@@ -64,16 +43,7 @@ const normalizeBlock = (block = {}, index = 0) => {
   };
 };
 
-const syncBlockchainBlocks = async () => {
-  const chain = await fetchFoedusChain();
-  const normalizedBlocks = chain
-    .map((block, index) => normalizeBlock(block, index))
-    .filter(Boolean);
-
-  if (normalizedBlocks.length === 0) {
-    return [];
-  }
-
+const upsertBlocks = async (normalizedBlocks) => {
   const operations = normalizedBlocks.map((block) => ({
     updateOne: {
       filter: { hash: block.hash },
@@ -83,10 +53,12 @@ const syncBlockchainBlocks = async () => {
   }));
 
   await BlockchainBlock.bulkWrite(operations, { ordered: false });
+};
 
-  const blocks = await BlockchainBlock.find({})
-    .sort({ blockIndex: 1, sourceFetchedAt: 1 })
-    .lean();
+const enrichBlocksWithContractMetadata = async (blocks) => {
+  if (!Array.isArray(blocks) || blocks.length === 0) {
+    return [];
+  }
 
   const contractIds = blocks.flatMap((block) =>
     Array.isArray(block.contracts)
@@ -143,25 +115,30 @@ const syncBlockchainBlocks = async () => {
   }));
 };
 
+const syncBlockchainBlocks = async () => {
+  const chain = await fetchFoedusChain();
+  const normalizedBlocks = chain
+    .map((block, index) => normalizeBlock(block, index))
+    .filter(Boolean);
+
+  if (normalizedBlocks.length === 0) {
+    return [];
+  }
+
+  await upsertBlocks(normalizedBlocks);
+
+  const blocks = await BlockchainBlock.find({})
+    .sort({ blockIndex: 1, sourceFetchedAt: 1 })
+    .lean();
+
+  return enrichBlocksWithContractMetadata(blocks);
+};
+
 const createFoedusWallet = async () => {
-  let response;
-
-  try {
-    response = await fetch(resolveCreateWalletUrl(), {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-  } catch {
-    throw new AppError("Unable to connect to Foedus blockchain service", 503);
-  }
-
-  if (!response.ok) {
-    throw new AppError("Failed to create wallet from Foedus blockchain", 502);
-  }
-
-  const payload = await parseJsonResponse(response);
+  const payload = await getJson(
+    resolveCreateWalletUrl(),
+    "Invalid wallet response from Foedus blockchain"
+  );
 
   const walletId = extractWalletId(payload);
   if (!walletId) {
