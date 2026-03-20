@@ -42,6 +42,7 @@ export default async function ChainPage({ searchParams }) {
           </div>
           <div className="chain-meta-row">
             <span className="badge badge-primary">Total Blocks: {total}</span>
+            <span className="badge badge-secondary">Total Pages: {pages}</span>
             <span className="badge badge-success">
               Page {page} of {pages}
             </span>
@@ -96,6 +97,24 @@ export default async function ChainPage({ searchParams }) {
                             className="chain-id-chip"
                           >
                             <code>{contract.id || "Unknown contract id"}</code>
+                            <div className="chain-id-subtitle">
+                              {contract.title || "Untitled contract"}
+                            </div>
+                            {Array.isArray(contract.milestoneTitles) &&
+                            contract.milestoneTitles.length > 0 ? (
+                              <div className="chain-milestone-list">
+                                {contract.milestoneTitles.map(
+                                  (milestoneTitle, index) => (
+                                    <span
+                                      key={`${contract.id || block.hash}-milestone-${index}`}
+                                      className="chain-milestone-chip"
+                                    >
+                                      {milestoneTitle}
+                                    </span>
+                                  ),
+                                )}
+                              </div>
+                            ) : null}
                           </div>
                         ))
                       ) : (

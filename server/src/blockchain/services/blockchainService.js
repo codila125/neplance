@@ -2,6 +2,7 @@ const AppError = require("../../utils/appError");
 const { extractWalletId } = require("../models/walletModel");
 const { resolveBlockchainBaseUrl } = require("../../config/blockchain");
 const BlockchainBlock = require("../../models/BlockchainBlock");
+const Contract = require("../../models/Contract");
 
 const resolveCreateWalletUrl = () => {
   return `${resolveBlockchainBaseUrl()}/blockchain/createwallet`;
@@ -83,9 +84,63 @@ const syncBlockchainBlocks = async () => {
 
   await BlockchainBlock.bulkWrite(operations, { ordered: false });
 
-  return BlockchainBlock.find({})
-    .sort({ blockIndex: -1, sourceFetchedAt: -1 })
+  const blocks = await BlockchainBlock.find({})
+    .sort({ blockIndex: 1, sourceFetchedAt: 1 })
     .lean();
+
+  const contractIds = blocks.flatMap((block) =>
+    Array.isArray(block.contracts)
+      ? block.contracts
+          .map((contract) =>
+            typeof contract?.id === "string" ? contract.id.trim() : ""
+          )
+          .filter(Boolean)
+      : []
+  );
+
+  if (contractIds.length === 0) {
+    return blocks;
+  }
+
+  const uniqueContractIds = [...new Set(contractIds)];
+  const neplanceContracts = await Contract.find({
+    "blockchain.contractAddress": { $in: uniqueContractIds },
+  })
+    .select("title milestones blockchain.contractAddress")
+    .lean();
+
+  const contractMetaMap = new Map(
+    neplanceContracts.map((contract) => {
+      const milestoneTitles = Array.isArray(contract.milestones)
+        ? contract.milestones
+            .map((milestone) =>
+              typeof milestone?.title === "string" ? milestone.title.trim() : ""
+            )
+            .filter(Boolean)
+        : [];
+
+      return [String(contract?.blockchain?.contractAddress || ""), {
+        title: contract?.title || "",
+        milestoneTitles,
+      }];
+    })
+  );
+
+  return blocks.map((block) => ({
+    ...block,
+    contracts: Array.isArray(block.contracts)
+      ? block.contracts.map((contract) => {
+          const contractId = typeof contract?.id === "string" ? contract.id.trim() : "";
+          const metadata = contractMetaMap.get(contractId);
+
+          return {
+            ...contract,
+            title: metadata?.title || contract?.title || "Untitled contract",
+            milestoneTitles: metadata?.milestoneTitles || [],
+          };
+        })
+      : [],
+  }));
 };
 
 const createFoedusWallet = async () => {

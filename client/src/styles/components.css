@@ -899,6 +899,29 @@ textarea.form-input {
   overflow-wrap: anywhere;
 }
 
+.chain-id-subtitle {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.chain-milestone-list {
+  margin-top: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chain-milestone-chip {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+}
+
 .chain-pagination-wrap {
   margin-top: var(--space-6);
   display: flex;
