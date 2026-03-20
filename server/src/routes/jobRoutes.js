@@ -12,7 +12,11 @@ const {
   deleteJob,
   getJobCategories,
 } = require("../controllers/jobController");
-const { protect, restrictTo } = require("../middlewares/authMiddleware");
+const {
+  protect,
+  requireVerifiedUser,
+  restrictTo,
+} = require("../middlewares/authMiddleware");
 
 router.use(protect);
 
@@ -22,7 +26,7 @@ router.get("/myJobs", restrictTo("client"), findMyJobs);
 router
   .route("/")
   .get(restrictTo("freelancer"), findJobs)
-  .post(restrictTo("client"), createJob);
+  .post(restrictTo("client"), requireVerifiedUser, createJob);
 
 router
   .route("/:id")
@@ -30,6 +34,6 @@ router
   .patch(restrictTo("client"), updateJob)
   .delete(restrictTo("client"), deleteJob);
 
-router.patch("/:id/publish", restrictTo("client"), publishJob);
+router.patch("/:id/publish", restrictTo("client"), requireVerifiedUser, publishJob);
 
 module.exports = router;

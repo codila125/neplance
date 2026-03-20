@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { successResult } from "@/lib/actions/result";
 import { apiServerRequest } from "@/lib/api/server";
-import { requireSession } from "@/lib/server/auth";
+import { requireSession, requireVerifiedSession } from "@/lib/server/auth";
 import {
   contractCreateSchema,
   reviewCreateSchema,
@@ -20,7 +20,7 @@ const parsePayload = (formData) => {
 };
 
 export async function createContractAction(_previousState, formData) {
-  await requireSession();
+  await requireVerifiedSession();
   const payload = parsePayload(formData);
 
   if (!payload) {
@@ -75,7 +75,7 @@ export async function createContractAction(_previousState, formData) {
 }
 
 export async function signContractAction(contractId) {
-  await requireSession();
+  await requireVerifiedSession();
 
   const response = await apiServerRequest(`/api/contracts/${contractId}/sign`, {
     method: "PATCH",

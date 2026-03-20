@@ -63,7 +63,24 @@ const restrictTo =
       next();
     };
 
+const requireVerifiedUser = (req, res, next) => {
+  if (!req.user) {
+    throw new AppError("You are not logged in ", 401);
+  }
+
+  if (req.user.verificationStatus !== "verified") {
+    throw new AppError(
+      "Please upload your verification documents before continuing.",
+      403,
+      "VERIFICATION_REQUIRED"
+    );
+  }
+
+  next();
+};
+
 module.exports = {
   protect,
+  requireVerifiedUser,
   restrictTo,
 };

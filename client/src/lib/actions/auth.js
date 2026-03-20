@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { API_BASE_URL } from "@/lib/api/config";
+import { VERIFICATION_REDIRECT_PATH } from "@/lib/server/auth";
 import { loginSchema, signupSchema, validateForm } from "@/shared/validation";
 
 const INITIAL_AUTH_ACTION_STATE = {
@@ -193,6 +194,7 @@ export async function loginAction(_previousState, formData) {
 
 export async function signupAction(_previousState, formData) {
   const { errors, payload } = buildSignupPayload(formData);
+  const locality = String(formData.get("locality") || "");
   const values = {
     name: String(formData.get("name") || ""),
     email: String(formData.get("email") || ""),
@@ -223,8 +225,8 @@ export async function signupAction(_previousState, formData) {
   }
 
   try {
-    const response = await submitAuthRequest("/api/auth/register", payload);
-    redirect(getPostAuthRedirectPath(response?.data?.user));
+    await submitAuthRequest("/api/auth/register", payload);
+    redirect(VERIFICATION_REDIRECT_PATH);
   } catch (error) {
     return {
       ...INITIAL_AUTH_ACTION_STATE,

@@ -16,7 +16,7 @@ const {
   submitContractWork,
   submitMyMilestone,
 } = require("../controllers/contractController");
-const { protect } = require("../middlewares/authMiddleware");
+const { protect, requireVerifiedUser } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
@@ -24,7 +24,7 @@ router.use(protect);
 
 router.get("/", listMyContracts);
 router.get("/proposal/:proposalId", getContractByProposal);
-router.post("/proposal/:proposalId", createContract);
+router.post("/proposal/:proposalId", requireVerifiedUser, createContract);
 router.patch("/:id/milestones/:index/submit", submitMyMilestone);
 router.patch("/:id/milestones/:index/approve", approveMyMilestone);
 router.patch("/:id/milestones/:index/request-changes", requestMilestoneChanges);
@@ -36,6 +36,6 @@ router.patch("/:id/cancel/respond", respondMyContractCancellation);
 router.post("/:id/reviews", createMyContractReview);
 router.post("/:id/disputes", createMyContractDispute);
 router.get("/:id", getContractById);
-router.patch("/:id/sign", signMyContract);
+router.patch("/:id/sign", requireVerifiedUser, signMyContract);
 
 module.exports = router;

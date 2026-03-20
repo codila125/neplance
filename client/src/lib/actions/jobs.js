@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { successResult } from "@/lib/actions/result";
 import { apiServerRequest } from "@/lib/api/server";
-import { requireSession } from "@/lib/server/auth";
+import { requireSession, requireVerifiedSession } from "@/lib/server/auth";
 import { getJobByIdServer } from "@/lib/server/jobs";
 import { JOB_STATUS } from "@/shared/constants/statuses";
 import { jobCreateSchema, validateForm } from "@/shared/validation";
@@ -44,7 +44,7 @@ const mapValidationErrors = (validationErrors) => {
 };
 
 export async function createJobAction(_previousState, formData) {
-  await requireSession();
+  await requireVerifiedSession();
   const payload = parsePayload(formData);
   const intent = String(formData.get("intent") || "open");
 
@@ -227,7 +227,7 @@ export async function updateJobAction(jobId, _previousState, formData) {
   redirect("/dashboard");
 }
 export async function publishJobAction(jobId) {
-  await requireSession();
+  await requireVerifiedSession();
 
   await apiServerRequest(`/api/jobs/${jobId}/publish`, {
     method: "PATCH",

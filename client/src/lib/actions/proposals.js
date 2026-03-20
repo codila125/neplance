@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { successResult } from "@/lib/actions/result";
 import { apiServerRequest } from "@/lib/api/server";
-import { requireSession } from "@/lib/server/auth";
+import { requireSession, requireVerifiedSession } from "@/lib/server/auth";
 import { getProposalByIdServer } from "@/lib/server/proposals";
 import { proposalSchema, validateForm } from "@/shared/validation";
 
@@ -30,7 +30,7 @@ const buildProposalPayload = (payload) => {
 };
 
 export async function submitProposalAction(_previousState, formData) {
-  await requireSession();
+  await requireVerifiedSession();
 
   let payload;
   try {
@@ -70,7 +70,7 @@ export async function submitProposalAction(_previousState, formData) {
 }
 
 export async function createProposalMutationAction(payload) {
-  await requireSession();
+  await requireVerifiedSession();
 
   const submitData = buildProposalPayload(payload);
   const { errors, data } = validateForm(proposalSchema, submitData);
@@ -113,7 +113,7 @@ export async function updateProposalMutationAction(proposalId, payload) {
 }
 
 export async function resubmitProposalAction(_previousState, formData) {
-  await requireSession();
+  await requireVerifiedSession();
 
   let payload;
   try {

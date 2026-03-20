@@ -193,13 +193,20 @@ export function EditProfileBasicSection({
       </div>
 
       <h3
+        id="verification"
         style={{
           marginBottom: "var(--space-4)",
           marginTop: "var(--space-6)",
+          scrollMarginTop: "7rem",
         }}
       >
         Verification Documents
       </h3>
+
+      <p className="text-light" style={{ marginBottom: "var(--space-4)" }}>
+        Upload your ID or business verification documents here to unlock job
+        posting, proposal sending, and contract signing.
+      </p>
 
       {formData.verificationDocuments.length === 0 && (
         <p className="text-light" style={{ marginBottom: "var(--space-6)" }}>

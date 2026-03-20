@@ -8,14 +8,18 @@ const {
   updateProposal,
   withdrawProposal,
 } = require("../controllers/proposalController");
-const { restrictTo, protect } = require("../middlewares/authMiddleware");
+const {
+  protect,
+  requireVerifiedUser,
+  restrictTo,
+} = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
 router.use(protect);
 
 //restrict to freelancers only
-router.route("/").post(restrictTo("freelancer"), createProposal);
+router.route("/").post(restrictTo("freelancer"), requireVerifiedUser, createProposal);
 
 //find my  proposals
 router.route("/myProposals").get(restrictTo("freelancer"), getMyProposals);

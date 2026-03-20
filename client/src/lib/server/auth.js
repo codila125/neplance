@@ -8,6 +8,7 @@ const DASHBOARD_ROLE_REDIRECTS = {
   client: "/dashboard/client/my-contracts",
   freelancer: "/dashboard/freelancer/my-contracts",
 };
+const VERIFICATION_REDIRECT_PATH = "/profile/edit#verification";
 
 async function resolveSession(user) {
   if (!user) {
@@ -60,6 +61,18 @@ export async function requireSession() {
   return resolveSession(user);
 }
 
+export async function requireVerifiedSession(
+  redirectTo = VERIFICATION_REDIRECT_PATH,
+) {
+  const session = await requireSession();
+
+  if (session?.user?.verificationStatus !== "verified") {
+    redirect(redirectTo);
+  }
+
+  return session;
+}
+
 export async function requireAdminSession() {
   const session = await requireSession();
 
@@ -89,3 +102,5 @@ export async function redirectIfAuthenticated(destination = "/dashboard") {
 
   return null;
 }
+
+export { VERIFICATION_REDIRECT_PATH };
