@@ -10,6 +10,7 @@ export default async function SignupPage({ searchParams }) {
     <AuthLayoutShell
       title="Create your account"
       description="Join thousands of freelancers and clients"
+      maxWidth="820px"
     >
       <SignupPageForm error={params?.error} />
     </AuthLayoutShell>

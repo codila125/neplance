@@ -1,7 +1,8 @@
 export const HeroSection = () => (
   <div className="hero">
+    <div className="hero-backdrop" />
     <div className="hero-content container">
-      <h1 className="hero-title">
+      <h1 className="hero-title text-black">
         How the world <span className="highlight">works</span>
       </h1>
       <p className="hero-subtitle">

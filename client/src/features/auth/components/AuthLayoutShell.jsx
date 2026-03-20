@@ -1,4 +1,9 @@
-export function AuthLayoutShell({ children, description, title }) {
+export function AuthLayoutShell({
+  children,
+  description,
+  title,
+  maxWidth = "560px",
+}) {
   return (
     <main
       style={{
@@ -51,7 +56,7 @@ export function AuthLayoutShell({ children, description, title }) {
         <div
           style={{
             width: "100%",
-            maxWidth: "560px",
+            maxWidth,
             animation: "slideUp 0.4s ease-out",
           }}
         >
@@ -112,7 +117,7 @@ export function AuthLayoutShell({ children, description, title }) {
             </p>
           </div>
 
-          <div className="card" style={{ maxWidth: "560px", width: "100%" }}>
+          <div className="card" style={{ maxWidth, width: "100%" }}>
             {children}
           </div>
         </div>

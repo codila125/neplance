@@ -54,16 +54,13 @@ const applyBackendCookies = async (response) => {
 };
 
 const buildSignupPayload = (formData) => {
-  const parseCsv = (value) =>
-    value
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-
   const roles = formData.getAll("roles").map(String);
   const isFreelancerSelected = roles.includes("freelancer");
+  const selectedSkills = formData.getAll("skills").map(String).filter(Boolean);
+  const selectedTags = formData.getAll("tags").map(String).filter(Boolean);
+  const locality = String(formData.get("locality") || "").trim();
   const location = {
-    city: String(formData.get("city") || "").trim(),
+    city: locality,
     district: String(formData.get("district") || "").trim(),
     province: String(formData.get("province") || "").trim(),
   };
@@ -79,11 +76,9 @@ const buildSignupPayload = (formData) => {
     city: location.city || undefined,
     district: location.district || undefined,
     province: location.province || undefined,
-    skills: isFreelancerSelected
-      ? parseCsv(String(formData.get("skills") || ""))
-      : undefined,
+    skills: isFreelancerSelected ? selectedSkills : undefined,
     languages: isFreelancerSelected
-      ? parseCsv(String(formData.get("languages") || ""))
+      ? formData.getAll("languages").map(String).filter(Boolean)
       : undefined,
     hourlyRate: isFreelancerSelected
       ? String(formData.get("hourlyRate") || "0")
@@ -117,10 +112,10 @@ const buildSignupPayload = (formData) => {
       bio: data.bio,
       location: hasLocation ? location : undefined,
       skills: isFreelancerSelected
-        ? parseCsv(String(formData.get("skills") || ""))
+        ? Array.from(new Set([...selectedSkills, ...selectedTags]))
         : undefined,
       languages: isFreelancerSelected
-        ? parseCsv(String(formData.get("languages") || ""))
+        ? formData.getAll("languages").map(String).filter(Boolean)
         : undefined,
       hourlyRate: isFreelancerSelected
         ? Number(String(formData.get("hourlyRate") || "0")) || 0
@@ -203,11 +198,13 @@ export async function signupAction(_previousState, formData) {
     email: String(formData.get("email") || ""),
     phone: String(formData.get("phone") || ""),
     bio: String(formData.get("bio") || ""),
-    city: String(formData.get("city") || ""),
+    locality,
+    city: locality,
     district: String(formData.get("district") || ""),
     province: String(formData.get("province") || ""),
-    skills: String(formData.get("skills") || ""),
-    languages: String(formData.get("languages") || ""),
+    skills: formData.getAll("skills").map(String),
+    tags: formData.getAll("tags").map(String),
+    languages: formData.getAll("languages").map(String),
     hourlyRate: String(formData.get("hourlyRate") || "0"),
     experienceLevel: String(formData.get("experienceLevel") || "entry"),
     jobTypePreference: String(formData.get("jobTypePreference") || "digital"),
