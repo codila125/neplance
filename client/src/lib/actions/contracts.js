@@ -19,6 +19,9 @@ const parsePayload = (formData) => {
   }
 };
 
+const isRedirectSignal = (error) =>
+  typeof error?.digest === "string" && error.digest.startsWith("NEXT_REDIRECT");
+
 export async function createContractAction(_previousState, formData) {
   await requireVerifiedSession();
   const payload = parsePayload(formData);
@@ -67,8 +70,68 @@ export async function createContractAction(_previousState, formData) {
 
     redirect(contractId ? `/contracts/${contractId}` : "/dashboard");
   } catch (error) {
+    if (isRedirectSignal(error)) {
+      throw error;
+    }
+
     return {
       message: error.message || "Failed to create contract.",
+      errors: {},
+    };
+  }
+}
+
+export async function updateContractAction(
+  contractId,
+  _previousState,
+  formData,
+) {
+  await requireSession();
+  const payload = parsePayload(formData);
+
+  if (!payload) {
+    return { message: "Invalid contract payload.", errors: {} };
+  }
+
+  const { errors, data } = validateForm(contractCreateSchema, {
+    ...payload,
+    totalAmount: payload.totalAmount ? Number(payload.totalAmount) : undefined,
+    milestones: Array.isArray(payload.milestones)
+      ? payload.milestones.map((milestone) => ({
+          ...milestone,
+          value: Number(milestone.value) || 0,
+        }))
+      : [],
+  });
+
+  if (errors) {
+    return { message: "Please fix the highlighted fields.", errors };
+  }
+
+  try {
+    await apiServerRequest(`/api/contracts/${contractId}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        title: data.title,
+        description: data.description,
+        terms: data.terms,
+        contractType: data.contractType,
+        totalAmount: data.totalAmount,
+        milestones: data.milestones,
+      }),
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/client/wallet");
+    revalidatePath(`/contracts/${contractId}`);
+    redirect(`/contracts/${contractId}`);
+  } catch (error) {
+    if (isRedirectSignal(error)) {
+      throw error;
+    }
+
+    return {
+      message: error.message || "Failed to update contract.",
       errors: {},
     };
   }
@@ -85,6 +148,52 @@ export async function signContractAction(contractId) {
   revalidatePath("/dashboard/client/wallet");
   revalidatePath("/dashboard/freelancer/earnings");
   revalidatePath(`/contracts/${contractId}`);
+  revalidatePath("/messages");
+
+  return successResult(response?.data || response);
+}
+
+export async function rejectPendingContractAction(contractId, reason) {
+  await requireSession();
+
+  const response = await apiServerRequest(
+    `/api/contracts/${contractId}/reject`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        reason: typeof reason === "string" ? reason.trim() : "",
+      }),
+    },
+  );
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/contracts/${contractId}`);
+  revalidatePath("/messages");
+
+  return successResult(response?.data || response);
+}
+
+export async function cancelPendingContractAction(contractId) {
+  await requireSession();
+
+  const response = await apiServerRequest(`/api/contracts/${contractId}`, {
+    method: "DELETE",
+  });
+  const proposalId = response?.data?.proposalId;
+  const jobId = response?.data?.jobId;
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/client/wallet");
+  revalidatePath("/dashboard/client/proposals");
+  revalidatePath("/dashboard/freelancer/active-proposals");
+  revalidatePath("/proposals");
+  revalidatePath("/jobs");
+  if (proposalId) {
+    revalidatePath(`/proposals/${proposalId}`);
+  }
+  if (jobId) {
+    revalidatePath(`/jobs/${jobId}`);
+  }
   revalidatePath("/messages");
 
   return successResult(response?.data || response);

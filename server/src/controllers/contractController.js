@@ -20,7 +20,9 @@ const {
 const {
   approveContractCompletion,
   approveContractMilestone,
+  cancelPendingContract,
   createContractFromProposal,
+  rejectPendingContract,
   requestContractCancellation,
   requestContractDeliveryChanges,
   requestContractMilestoneChanges,
@@ -28,6 +30,7 @@ const {
   signContract,
   submitContractMilestone,
   submitFullProjectDelivery,
+  updatePendingContract,
 } = require("../services/contractService");
 
 const populateContract = (query) =>
@@ -223,6 +226,120 @@ const signMyContract = catchAsync(async (req, res) => {
   res.status(200).json({
     status: "success",
     data,
+  });
+});
+
+const updateMyPendingContract = catchAsync(async (req, res) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) {
+    throw new AppError("Contract not found", 404);
+  }
+
+  const updatedContract = await updatePendingContract({
+    clientId: req.user.id,
+    contract,
+    payload: req.body,
+  });
+
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
+
+  await createNotification({
+    recipient: updatedContract.freelancer,
+    actor: req.user.id,
+    type: "contract.updated",
+    title: "Contract updated",
+    message: `The contract "${updatedContract.title}" was updated. Review the revised terms.`,
+    link: `/contracts/${updatedContract._id}`,
+    metadata: {
+      contract: updatedContract._id,
+      job: updatedContract.job,
+      proposal: updatedContract.proposal,
+    },
+  });
+
+  res.status(200).json({
+    status: "success",
+    data,
+  });
+});
+
+const rejectMyPendingContract = catchAsync(async (req, res) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) {
+    throw new AppError("Contract not found", 404);
+  }
+
+  const updatedContract = await rejectPendingContract({
+    contract,
+    freelancerId: req.user.id,
+    reason: req.body?.reason,
+  });
+
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
+
+  await createNotification({
+    recipient: updatedContract.client,
+    actor: req.user.id,
+    type: "contract.rejected",
+    title: "Contract changes requested",
+    message: `${req.user.name || "The freelancer"} rejected the current contract and asked for revisions.`,
+    link: `/contracts/${updatedContract._id}`,
+    metadata: {
+      contract: updatedContract._id,
+      job: updatedContract.job,
+      proposal: updatedContract.proposal,
+    },
+  });
+
+  res.status(200).json({
+    status: "success",
+    data,
+  });
+});
+
+const cancelMyPendingContract = catchAsync(async (req, res) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) {
+    throw new AppError("Contract not found", 404);
+  }
+
+  const job = await Job.findById(contract.job);
+  if (!job) {
+    throw new AppError("Job not found", 404);
+  }
+
+  await cancelPendingContract({
+    clientId: req.user.id,
+    contract,
+    job,
+  });
+
+  await createNotification({
+    recipient: contract.freelancer,
+    actor: req.user.id,
+    type: "contract.cancelled",
+    title: "Pending contract cancelled",
+    message: `The client cancelled the pending contract for "${contract.title}".`,
+    link: `/proposals/${contract.proposal}`,
+    metadata: {
+      job: contract.job,
+      proposal: contract.proposal,
+    },
+  });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      cancelled: true,
+      proposalId: contract.proposal,
+      jobId: contract.job,
+    },
   });
 });
 
@@ -652,12 +769,14 @@ const createMyContractDispute = catchAsync(async (req, res) => {
 
 module.exports = {
   approveMyMilestone,
+  cancelMyPendingContract,
   completeMyContract,
   createContract,
   createMyContractDispute,
   getContractById,
   getContractByProposal,
   listMyContracts,
+  rejectMyPendingContract,
   requestContractWorkChanges,
   requestMyContractCancellation,
   requestMilestoneChanges,
@@ -666,4 +785,5 @@ module.exports = {
   submitContractWork,
   submitMyMilestone,
   createMyContractReview,
+  updateMyPendingContract,
 };

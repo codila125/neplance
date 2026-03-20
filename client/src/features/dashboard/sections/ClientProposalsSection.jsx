@@ -51,6 +51,13 @@ export function ClientProposalsSection({
           "Untitled Contract";
         const contractDescription =
           proposal.job?.description || proposal._contract?.description || "";
+        const hasActiveContract = Boolean(
+          proposal.job?.activeContract || proposal._contract?.activeContract,
+        );
+        const canCreateContract =
+          [PROPOSAL_STATUS.PENDING, PROPOSAL_STATUS.ACCEPTED].includes(
+            proposal.status,
+          ) && !hasActiveContract;
 
         return (
           <article key={proposal._id} className="job-card">
@@ -99,7 +106,7 @@ export function ClientProposalsSection({
                 >
                   View Details
                 </Link>
-                {proposal.status === PROPOSAL_STATUS.PENDING && (
+                {canCreateContract && (
                   <Link
                     href={`/contracts/create?proposalId=${proposal._id}`}
                     className="btn btn-primary btn-sm"
@@ -107,9 +114,10 @@ export function ClientProposalsSection({
                     Create Contract
                   </Link>
                 )}
-                {proposal.status === PROPOSAL_STATUS.ACCEPTED && (
+                {proposal.status === PROPOSAL_STATUS.ACCEPTED &&
+                hasActiveContract ? (
                   <span className="badge badge-success">Contract Selected</span>
-                )}
+                ) : null}
               </div>
             </div>
           </article>

@@ -118,6 +118,100 @@ const reserveContractFunds = async ({
   return wallet;
 };
 
+const syncPendingContractFunding = async ({
+  clientId,
+  contract,
+  nextFundedAmount,
+  description,
+}) => {
+  const normalizedNextAmount = Number(nextFundedAmount);
+
+  if (!Number.isFinite(normalizedNextAmount) || normalizedNextAmount < 0) {
+    throw new AppError("Contract funding amount must be zero or greater", 400);
+  }
+
+  const wallet = await getOrCreateWallet(clientId);
+  const currentFundedAmount = Number(contract.fundedAmount || 0);
+  const difference = normalizedNextAmount - currentFundedAmount;
+
+  if (difference > 0) {
+    if (wallet.balance < difference) {
+      throw new AppError(
+        `Insufficient wallet balance. Please load at least NPR ${(difference - wallet.balance).toLocaleString()}.`,
+        400
+      );
+    }
+
+    wallet.balance -= difference;
+    wallet.heldBalance += difference;
+    pushTransaction(wallet, {
+      type: "contract_funding_adjustment",
+      amount: difference,
+      direction: "debit",
+      description,
+    });
+  } else if (difference < 0) {
+    const refundAmount = Math.abs(difference);
+
+    if (wallet.heldBalance < refundAmount) {
+      throw new AppError("Client wallet does not have enough held funds", 400);
+    }
+
+    wallet.heldBalance -= refundAmount;
+    wallet.balance += refundAmount;
+    pushTransaction(wallet, {
+      type: "contract_funding_adjustment",
+      amount: refundAmount,
+      direction: "credit",
+      description,
+    });
+  }
+
+  wallet.updatedAt = new Date();
+  await wallet.save();
+
+  contract.fundedAmount = normalizedNextAmount;
+  if (normalizedNextAmount > 0 && !contract.fundedAt) {
+    contract.fundedAt = new Date();
+  }
+  updateFundingStatus(contract);
+
+  return wallet;
+};
+
+const releasePendingContractFunding = async ({
+  clientId,
+  contract,
+  description,
+}) => {
+  const wallet = await getOrCreateWallet(clientId);
+  const fundedAmount = Number(contract.fundedAmount || 0);
+
+  if (fundedAmount <= 0) {
+    return wallet;
+  }
+
+  if (wallet.heldBalance < fundedAmount) {
+    throw new AppError("Client wallet does not have enough held funds", 400);
+  }
+
+  wallet.heldBalance -= fundedAmount;
+  wallet.balance += fundedAmount;
+  pushTransaction(wallet, {
+    type: "contract_funding_cancelled",
+    amount: fundedAmount,
+    direction: "credit",
+    description,
+  });
+  wallet.updatedAt = new Date();
+  await wallet.save();
+
+  contract.fundedAmount = 0;
+  contract.fundingStatus = CONTRACT_FUNDING_STATUS.UNFUNDED;
+
+  return wallet;
+};
+
 const releaseContractFunds = async ({
   contract,
   amount,
@@ -267,8 +361,10 @@ module.exports = {
   getOrCreateWallet,
   getWalletSummary,
   loadWalletFunds,
+  releasePendingContractFunding,
   refundContractFunds,
   releaseContractFunds,
   reserveContractFunds,
+  syncPendingContractFunding,
   updateFundingStatus,
 };

@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   approveContractMilestoneAction,
+  cancelPendingContractAction,
   completeContractAction,
   createContractDisputeAction,
   requestContractCancellationAction,
@@ -65,6 +67,17 @@ const getTimelineEvents = (contract) => {
       title: "Freelancer signed",
       description: "The freelancer signed and activated the contract.",
       at: contract.freelancerSignature.signedAt,
+    });
+  }
+
+  if (contract.freelancerSignature?.rejectedAt) {
+    events.push({
+      key: "freelancer-rejected",
+      title: "Freelancer requested contract changes",
+      description:
+        contract.freelancerSignature.rejectionReason ||
+        "The freelancer asked the client to revise the contract terms.",
+      at: contract.freelancerSignature.rejectedAt,
     });
   }
 
@@ -185,6 +198,7 @@ const getTimelineEvents = (contract) => {
 };
 
 export function ContractDetailPageClient({ contract, currentUserId }) {
+  const router = useRouter();
   const [currentContract, setCurrentContract] = useState(contract);
   const [error, setError] = useState("");
   const [deliveryNotes, setDeliveryNotes] = useState("");
@@ -208,11 +222,12 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
     String(currentContract.client?._id || currentContract.client) ===
     String(currentUserId);
   const isActive = currentContract.status === CONTRACT_STATUS.ACTIVE;
+  const isPendingFreelancerSignature =
+    currentContract.status === CONTRACT_STATUS.PENDING_FREELANCER_SIGNATURE;
   const isMilestoneContract =
     currentContract.contractType === CONTRACT_TYPE.MILESTONE_BASED;
-  const canSign =
-    isFreelancer &&
-    currentContract.status === CONTRACT_STATUS.PENDING_FREELANCER_SIGNATURE;
+  const canSign = isFreelancer && isPendingFreelancerSignature;
+  const canEditPendingContract = isClient && isPendingFreelancerSignature;
   const canSubmitDelivery =
     isFreelancer &&
     isActive &&
@@ -248,6 +263,9 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
       CONTRACT_STATUS.COMPLETED,
       CONTRACT_STATUS.CANCELLED,
     ].includes(currentContract.status);
+  const freelancerRejectedContract = Boolean(
+    currentContract.freelancerSignature?.rejectedAt,
+  );
 
   const runAction = (work) => {
     setError("");
@@ -305,6 +323,27 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
     runAction(() =>
       respondContractCancellationAction(currentContract._id, action),
     );
+  };
+
+  const handleCancelPendingContract = () => {
+    setError("");
+    startTransition(async () => {
+      try {
+        const result = await cancelPendingContractAction(currentContract._id);
+        const proposalId = result?.data?.proposalId;
+
+        if (proposalId) {
+          router.push(`/proposals/${proposalId}`);
+          router.refresh();
+          return;
+        }
+
+        router.push("/dashboard");
+        router.refresh();
+      } catch (actionError) {
+        setError(actionError.message || "Something went wrong.");
+      }
+    });
   };
 
   const handleSubmitReview = () => {
@@ -380,6 +419,16 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
     <div className="section section-sm">
       <div className="container max-w-3xl">
         <div className="card">
+          <div className="mb-4">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => router.back()}
+            >
+              Back
+            </button>
+          </div>
+
           <div className="flex items-start justify-between gap-4 mb-6">
             <div>
               <h1 className="mb-2">{currentContract.title}</h1>
@@ -446,6 +495,14 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
               <strong>Freelancer signed:</strong>{" "}
               {currentContract.freelancerSignature?.signedAt ? "Yes" : "No"}
             </div>
+            {currentContract.freelancerSignature?.rejectedAt ? (
+              <div>
+                <strong>Freelancer requested changes:</strong>{" "}
+                {new Date(
+                  currentContract.freelancerSignature.rejectedAt,
+                ).toLocaleString("en-NP")}
+              </div>
+            ) : null}
             {currentContract.completedAt ? (
               <div>
                 <strong>Completed at:</strong>{" "}
@@ -467,6 +524,23 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
             <div className="mb-6">
               <h3 className="mb-2">Terms</h3>
               <p className="text-secondary mb-0">{currentContract.terms}</p>
+            </div>
+          ) : null}
+
+          {freelancerRejectedContract ? (
+            <div className="card-sm mb-6">
+              <div className="flex items-center gap-3 flex-wrap mb-2">
+                <span className="badge">Revision Requested</span>
+                <span className="text-sm text-muted">
+                  {formatDateTime(
+                    currentContract.freelancerSignature.rejectedAt,
+                  )}
+                </span>
+              </div>
+              <p className="text-secondary mb-0">
+                {currentContract.freelancerSignature.rejectionReason ||
+                  "The freelancer rejected the current draft. The proposal is still active, and the client can edit this contract and resend it."}
+              </p>
             </div>
           ) : null}
 
@@ -747,11 +821,19 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
 
           <div className="mb-6">
             <h3 className="mb-3">Contract Status Actions</h3>
-            {canCompleteContract &&
-            currentContract.status !== CONTRACT_STATUS.COMPLETED &&
-            ((isMilestoneContract && allMilestonesApproved) ||
-              (!isMilestoneContract &&
-                currentContract.deliverySubmission?.submittedAt)) ? (
+            {isPendingFreelancerSignature ? (
+              <p className="text-muted mb-0">
+                {isClient
+                  ? freelancerRejectedContract
+                    ? "The freelancer asked for changes. You can update this contract or cancel it while keeping the proposal available."
+                    : "This contract is waiting for the freelancer to sign. You can still update or cancel it before signature."
+                  : "Review the contract terms carefully before signing."}
+              </p>
+            ) : canCompleteContract &&
+              currentContract.status !== CONTRACT_STATUS.COMPLETED &&
+              ((isMilestoneContract && allMilestonesApproved) ||
+                (!isMilestoneContract &&
+                  currentContract.deliverySubmission?.submittedAt)) ? (
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
@@ -1037,70 +1119,80 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
           <div className="mb-6">
             <h3 className="mb-3">Cancellation</h3>
             <div className="card-sm">
-              <div className="flex items-center gap-3 flex-wrap mb-2">
-                <span className="badge">
-                  {formatStatus(
-                    cancellation.status || CANCELLATION_STATUS.NONE,
-                  )}
-                </span>
-                {cancellation.initiatedRole ? (
-                  <span className="text-sm text-muted">
-                    Initiated by {cancellation.initiatedRole.toLowerCase()}
-                  </span>
-                ) : null}
-              </div>
-              {cancellation.reason ? (
-                <p className="text-secondary mb-3">{cancellation.reason}</p>
-              ) : null}
-              {canRequestCancellation ? (
-                <>
-                  <textarea
-                    className="form-input"
-                    rows={3}
-                    placeholder="Explain why you want to cancel this contract"
-                    value={cancellationReason}
-                    onChange={(event) =>
-                      setCancellationReason(event.target.value)
-                    }
-                  />
-                  <div className="flex justify-end mt-3">
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={handleRequestCancellation}
-                      disabled={isPending}
-                    >
-                      {isPending ? "Requesting..." : "Request Cancellation"}
-                    </button>
-                  </div>
-                </>
-              ) : null}
-              {canRespondCancellation ? (
-                <div className="flex gap-2 mt-3">
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={() => handleRespondCancellation("accept")}
-                    disabled={isPending}
-                  >
-                    {isPending ? "Processing..." : "Accept"}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => handleRespondCancellation("reject")}
-                    disabled={isPending}
-                  >
-                    Reject
-                  </button>
-                </div>
-              ) : null}
-              {hasPendingCancellation && isCancellationInitiator ? (
-                <p className="text-muted mt-3 mb-0">
-                  Waiting for the other party to respond to your cancellation
-                  request.
+              {isPendingFreelancerSignature ? (
+                <p className="text-muted mb-0">
+                  Use the pending contract actions below to cancel this draft
+                  before signature. Standard cancellation requests apply after
+                  the contract becomes active.
                 </p>
-              ) : null}
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 flex-wrap mb-2">
+                    <span className="badge">
+                      {formatStatus(
+                        cancellation.status || CANCELLATION_STATUS.NONE,
+                      )}
+                    </span>
+                    {cancellation.initiatedRole ? (
+                      <span className="text-sm text-muted">
+                        Initiated by {cancellation.initiatedRole.toLowerCase()}
+                      </span>
+                    ) : null}
+                  </div>
+                  {cancellation.reason ? (
+                    <p className="text-secondary mb-3">{cancellation.reason}</p>
+                  ) : null}
+                  {canRequestCancellation ? (
+                    <>
+                      <textarea
+                        className="form-input"
+                        rows={3}
+                        placeholder="Explain why you want to cancel this contract"
+                        value={cancellationReason}
+                        onChange={(event) =>
+                          setCancellationReason(event.target.value)
+                        }
+                      />
+                      <div className="flex justify-end mt-3">
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={handleRequestCancellation}
+                          disabled={isPending}
+                        >
+                          {isPending ? "Requesting..." : "Request Cancellation"}
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
+                  {canRespondCancellation ? (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => handleRespondCancellation("accept")}
+                        disabled={isPending}
+                      >
+                        {isPending ? "Processing..." : "Accept"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => handleRespondCancellation("reject")}
+                        disabled={isPending}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  ) : null}
+                  {hasPendingCancellation && isCancellationInitiator ? (
+                    <p className="text-muted mt-3 mb-0">
+                      Waiting for the other party to respond to your
+                      cancellation request.
+                    </p>
+                  ) : null}
+                </>
+              )}
             </div>
           </div>
 
@@ -1113,6 +1205,24 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
             >
               View Job
             </Link>
+            {canEditPendingContract ? (
+              <>
+                <Link
+                  href={`/contracts/${currentContract._id}/edit`}
+                  className="btn btn-secondary"
+                >
+                  Edit Contract
+                </Link>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={handleCancelPendingContract}
+                  disabled={isPending}
+                >
+                  {isPending ? "Cancelling..." : "Cancel Contract"}
+                </button>
+              </>
+            ) : null}
             {canSign ? (
               <button
                 type="button"

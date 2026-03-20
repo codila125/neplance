@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   approveMyMilestone,
+  cancelMyPendingContract,
   completeMyContract,
   createMyContractReview,
   createMyContractDispute,
@@ -8,6 +9,7 @@ const {
   getContractById,
   getContractByProposal,
   listMyContracts,
+  rejectMyPendingContract,
   requestContractWorkChanges,
   requestMyContractCancellation,
   requestMilestoneChanges,
@@ -15,6 +17,7 @@ const {
   signMyContract,
   submitContractWork,
   submitMyMilestone,
+  updateMyPendingContract,
 } = require("../controllers/contractController");
 const { protect, requireVerifiedUser } = require("../middlewares/authMiddleware");
 
@@ -31,7 +34,10 @@ router.patch("/:id/milestones/:index/request-changes", requestMilestoneChanges);
 router.patch("/:id/submit", submitContractWork);
 router.patch("/:id/submit/request-changes", requestContractWorkChanges);
 router.patch("/:id/complete", completeMyContract);
+router.patch("/:id", updateMyPendingContract);
+router.patch("/:id/reject", rejectMyPendingContract);
 router.patch("/:id/cancel", requestMyContractCancellation);
+router.delete("/:id", cancelMyPendingContract);
 router.patch("/:id/cancel/respond", respondMyContractCancellation);
 router.post("/:id/reviews", createMyContractReview);
 router.post("/:id/disputes", createMyContractDispute);

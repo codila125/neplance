@@ -14,7 +14,7 @@ const mergeMessages = (serverMessages, currentMessages) => {
     return serverMessages;
   }
 
-  return [...serverMessages, ...pendingMessages];
+  return currentMessages;
 };
 
 const formatMessageTime = (value) =>

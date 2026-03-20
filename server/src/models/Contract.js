@@ -50,6 +50,12 @@ const contractMilestoneSchema = new mongoose.Schema(
 const signatureSchema = new mongoose.Schema(
   {
     signedAt: Date,
+    rejectedAt: Date,
+    rejectionReason: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
+    },
     walletAddress: String,
     signatureHash: String,
   },

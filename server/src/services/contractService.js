@@ -1,4 +1,5 @@
 const Contract = require("../models/Contract");
+const Proposal = require("../models/Proposal");
 const AppError = require("../utils/appError");
 const {
   CANCELLATION_STATUS,
@@ -10,9 +11,11 @@ const {
   PROPOSAL_STATUS,
 } = require("../constants/statuses");
 const {
+  releasePendingContractFunding,
   refundContractFunds,
   releaseContractFunds,
   reserveContractFunds,
+  syncPendingContractFunding,
   updateFundingStatus,
 } = require("./walletService");
 
@@ -220,12 +223,23 @@ const signContract = async (contract, freelancerId) => {
 
   contract.freelancerSignature = {
     ...(contract.freelancerSignature || {}),
+    rejectedAt: undefined,
+    rejectionReason: "",
     signedAt: new Date(),
   };
   contract.status = CONTRACT_STATUS.ACTIVE;
   contract.updatedAt = new Date();
   await contract.save();
   return contract;
+};
+
+const ensurePendingFreelancerSignature = (contract) => {
+  if (contract.status !== CONTRACT_STATUS.PENDING_FREELANCER_SIGNATURE) {
+    throw new AppError(
+      "This contract can only be changed before the freelancer signs",
+      400
+    );
+  }
 };
 
 const getParticipantRole = (contract, userId) => {
@@ -547,11 +561,133 @@ const respondContractCancellation = async ({ contract, userId, action }) => {
   return { contract, accepted };
 };
 
+const updatePendingContract = async ({ clientId, contract, payload }) => {
+  ensurePendingFreelancerSignature(contract);
+
+  if (String(contract.client) !== String(clientId)) {
+    throw new AppError("Only the client can update this contract", 403);
+  }
+
+  const contractType = normalizeContractType(payload.contractType);
+  const milestones = normalizeMilestones(contractType, payload.milestones);
+  const totalAmount =
+    contractType === CONTRACT_TYPE.MILESTONE_BASED
+      ? milestones.reduce(
+          (total, milestone) => total + (Number(milestone.value) || 0),
+          0
+        )
+      : Number(payload.totalAmount) || 0;
+
+  if (totalAmount <= 0) {
+    throw new AppError("Contract amount must be greater than zero", 400);
+  }
+
+  await syncPendingContractFunding({
+    clientId,
+    contract,
+    nextFundedAmount: totalAmount,
+    description: `Adjusted funding for contract "${payload.title?.trim() || contract.title}"`,
+  });
+
+  contract.title = payload.title?.trim() || contract.title;
+  contract.description = payload.description?.trim() || "";
+  contract.terms = payload.terms?.trim() || "";
+  contract.contractType = contractType;
+  contract.totalAmount = totalAmount;
+  contract.milestones = milestones;
+  contract.freelancerSignature = {
+    ...(contract.freelancerSignature || {}),
+    rejectedAt: undefined,
+    rejectionReason: "",
+  };
+  contract.updatedAt = new Date();
+  await contract.save();
+
+  return contract;
+};
+
+const rejectPendingContract = async ({ contract, freelancerId, reason }) => {
+  ensurePendingFreelancerSignature(contract);
+
+  if (String(contract.freelancer) !== String(freelancerId)) {
+    throw new AppError("Only the assigned freelancer can reject this contract", 403);
+  }
+
+  contract.freelancerSignature = {
+    ...(contract.freelancerSignature || {}),
+    rejectedAt: new Date(),
+    rejectionReason: typeof reason === "string" ? reason.trim() : "",
+    signedAt: undefined,
+    signatureHash: undefined,
+    walletAddress: undefined,
+  };
+  contract.updatedAt = new Date();
+  await contract.save();
+
+  return contract;
+};
+
+const cancelPendingContract = async ({ clientId, contract, job }) => {
+  ensurePendingFreelancerSignature(contract);
+
+  if (String(contract.client) !== String(clientId)) {
+    throw new AppError("Only the client can cancel this pending contract", 403);
+  }
+
+  await releasePendingContractFunding({
+    clientId,
+    contract,
+    description: `Cancelled pending contract "${contract.title}" before freelancer signature`,
+  });
+
+  if (String(job.activeContract || "") === String(contract._id)) {
+    job.activeContract = undefined;
+  }
+  if (String(job.selectedProposal || "") === String(contract.proposal || "")) {
+    job.selectedProposal = undefined;
+  }
+  if (
+    String(job.hiredFreelancer || "") === String(contract.freelancer || "")
+  ) {
+    job.hiredFreelancer = undefined;
+  }
+  if (Array.isArray(job.parties)) {
+    job.parties = job.parties.filter(
+      (party) =>
+        !(
+          party?.role === "CONTRACTOR" &&
+          String(party.address) === String(contract.freelancer || "")
+        ),
+    );
+  }
+  job.status = JOB_STATUS.OPEN;
+  job.updatedAt = new Date();
+  await job.save();
+
+  await Proposal.findByIdAndUpdate(contract.proposal, {
+    $set: {
+      status: PROPOSAL_STATUS.PENDING,
+      updatedAt: new Date(),
+    },
+    $unset: {
+      rejectedAt: 1,
+      rejectionReason: 1,
+      withdrawnAt: 1,
+    },
+  });
+
+  await contract.deleteOne();
+
+  return job;
+};
+
 module.exports = {
   approveContractCompletion,
   approveContractMilestone,
+  cancelPendingContract,
   createContractFromProposal,
   getParticipantRole,
+  rejectPendingContract,
   requestContractCancellation,
   requestContractDeliveryChanges,
   requestContractMilestoneChanges,
@@ -559,4 +695,5 @@ module.exports = {
   signContract,
   submitContractMilestone,
   submitFullProjectDelivery,
+  updatePendingContract,
 };

@@ -1,7 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { createContractAction } from "@/lib/actions/contracts";
+import { useActionState, useMemo, useState } from "react";
+import {
+  createContractAction,
+  updateContractAction,
+} from "@/lib/actions/contracts";
 import { CONTRACT_TYPE } from "@/shared/constants/statuses";
 
 const createInitialMilestone = () => ({
@@ -12,22 +15,62 @@ const createInitialMilestone = () => ({
   dueDate: "",
 });
 
-export function ContractCreatePageClient({ proposal, walletData }) {
-  const [formState, setFormState] = useState({
-    title: proposal.job?.title || "",
-    description: proposal.job?.description || "",
-    terms: proposal.job?.terms || "",
-    contractType: CONTRACT_TYPE.FULL_PROJECT,
-    totalAmount: proposal.amount?.toString() || "",
-    milestones: [createInitialMilestone()],
-  });
-  const [actionState, formAction, isPending] = useActionState(
-    createContractAction,
-    {
-      message: "",
-      errors: {},
-    },
+const mapContractMilestone = (milestone, index) => ({
+  id: milestone?._id || `${Date.now()}-${index}`,
+  title: milestone?.title || "",
+  description: milestone?.description || "",
+  value:
+    milestone?.value === undefined || milestone?.value === null
+      ? ""
+      : String(milestone.value),
+  dueDate: milestone?.dueDate
+    ? new Date(milestone.dueDate).toISOString().slice(0, 10)
+    : "",
+});
+
+const buildInitialState = (proposal, contract) => {
+  const source = contract || {};
+  const initialContractType = source.contractType || CONTRACT_TYPE.FULL_PROJECT;
+  const initialMilestones =
+    initialContractType === CONTRACT_TYPE.MILESTONE_BASED &&
+    Array.isArray(source.milestones) &&
+    source.milestones.length > 0
+      ? source.milestones.map(mapContractMilestone)
+      : [createInitialMilestone()];
+
+  return {
+    title: source.title || proposal.job?.title || "",
+    description: source.description || proposal.job?.description || "",
+    terms: source.terms || proposal.job?.terms || "",
+    contractType: initialContractType,
+    totalAmount:
+      source.totalAmount !== undefined && source.totalAmount !== null
+        ? String(source.totalAmount)
+        : proposal.amount?.toString() || "",
+    milestones: initialMilestones,
+  };
+};
+
+export function ContractCreatePageClient({
+  proposal,
+  walletData,
+  contract = null,
+}) {
+  const isEditing = Boolean(contract?._id);
+  const action = useMemo(
+    () =>
+      isEditing
+        ? updateContractAction.bind(null, contract._id)
+        : createContractAction,
+    [contract?._id, isEditing],
   );
+  const [formState, setFormState] = useState(() =>
+    buildInitialState(proposal, contract),
+  );
+  const [actionState, formAction, isPending] = useActionState(action, {
+    message: "",
+    errors: {},
+  });
 
   const handleChange = (field, value) => {
     setFormState((previous) => ({ ...previous, [field]: value }));
@@ -89,10 +132,13 @@ export function ContractCreatePageClient({ proposal, walletData }) {
       <input type="hidden" name="payload" value={JSON.stringify(payload)} />
 
       <div className="mb-6">
-        <h1 className="mb-2">Create Contract</h1>
+        <h1 className="mb-2">
+          {isEditing ? "Edit Contract" : "Create Contract"}
+        </h1>
         <p className="text-muted mb-0">
-          This accepts the proposal and creates the working agreement. Work
-          starts only after the freelancer signs the contract.
+          {isEditing
+            ? "Update the contract before the freelancer signs it. Revised terms stay tied to the same proposal."
+            : "This accepts the proposal and creates the working agreement. Work starts only after the freelancer signs the contract."}
         </p>
       </div>
 
@@ -163,11 +209,16 @@ export function ContractCreatePageClient({ proposal, walletData }) {
       ) : null}
       {expectedFundingAmount > 0 ? (
         <div className={`card-sm mb-6 ${hasEnoughFunds ? "" : "card-error"}`}>
-          <strong>Funding required to create this contract</strong>
+          <strong>
+            Funding required to {isEditing ? "keep" : "create"} this contract
+          </strong>
           <p className="text-muted mb-0">
             {wallet.currency || "NPR"}{" "}
             {Number(expectedFundingAmount || 0).toLocaleString()} will be
-            reserved from the client wallet when the contract is created.
+            reserved from the client wallet{" "}
+            {isEditing
+              ? "for this revised contract."
+              : "when the contract is created."}
           </p>
           {!hasEnoughFunds ? (
             <p className="mb-0" style={{ marginTop: "var(--space-2)" }}>
@@ -381,7 +432,13 @@ export function ContractCreatePageClient({ proposal, walletData }) {
           className="btn btn-primary"
           disabled={isPending || !hasEnoughFunds}
         >
-          {isPending ? "Creating Contract..." : "Create Contract"}
+          {isPending
+            ? isEditing
+              ? "Saving Changes..."
+              : "Creating Contract..."
+            : isEditing
+              ? "Save Contract Changes"
+              : "Create Contract"}
         </button>
       </div>
     </form>
