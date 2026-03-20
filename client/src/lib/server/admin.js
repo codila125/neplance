@@ -13,3 +13,8 @@ export async function listDisputesQueueServer(status = "all") {
   );
   return data?.data || [];
 }
+
+export async function getAdminContractServer(contractId) {
+  const data = await apiServerCall(`/api/admin/contracts/${contractId}`);
+  return data?.data || null;
+}

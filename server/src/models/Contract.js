@@ -31,6 +31,18 @@ const contractMilestoneSchema = new mongoose.Schema(
       default: MILESTONE_STATUS.ACTIVE,
     },
     evidence: String,
+    evidenceAttachments: {
+      type: [
+        {
+          name: String,
+          url: String,
+          publicId: String,
+          resourceType: String,
+          uploadedAt: Date,
+        },
+      ],
+      default: [],
+    },
     completedAt: Date,
     approvedAt: Date,
     revisionRequestedAt: Date,
@@ -42,6 +54,60 @@ const contractMilestoneSchema = new mongoose.Schema(
       type: String,
       trim: true,
       maxlength: 2000,
+    },
+    revisionHistory: {
+      type: [
+        {
+          notes: {
+            type: String,
+            trim: true,
+            maxlength: 2000,
+          },
+          requestedAt: Date,
+          requestedBy: {
+            type: mongoose.Schema.ObjectId,
+            ref: "User",
+          },
+          requestedByRole: {
+            type: String,
+            enum: ["CLIENT", "FREELANCER", "ADMIN"],
+          },
+        },
+      ],
+      default: [],
+    },
+    submissionHistory: {
+      type: [
+        {
+          notes: {
+            type: String,
+            trim: true,
+            maxlength: 5000,
+          },
+          attachments: {
+            type: [
+              {
+                name: String,
+                url: String,
+                publicId: String,
+                resourceType: String,
+                uploadedAt: Date,
+              },
+            ],
+            default: [],
+          },
+          submittedAt: Date,
+          submittedBy: {
+            type: mongoose.Schema.ObjectId,
+            ref: "User",
+          },
+          submittedByRole: {
+            type: String,
+            enum: ["CLIENT", "FREELANCER", "ADMIN"],
+          },
+        },
+      ],
+      default: [],
     },
   },
   { _id: true }
@@ -166,6 +232,18 @@ const contractSchema = new mongoose.Schema({
       trim: true,
       maxlength: 5000,
     },
+    attachments: {
+      type: [
+        {
+          name: String,
+          url: String,
+          publicId: String,
+          resourceType: String,
+          uploadedAt: Date,
+        },
+      ],
+      default: [],
+    },
     submittedAt: Date,
     submittedBy: {
       type: mongoose.Schema.ObjectId,
@@ -180,6 +258,60 @@ const contractSchema = new mongoose.Schema({
       type: String,
       trim: true,
       maxlength: 3000,
+    },
+    revisionHistory: {
+      type: [
+        {
+          notes: {
+            type: String,
+            trim: true,
+            maxlength: 3000,
+          },
+          requestedAt: Date,
+          requestedBy: {
+            type: mongoose.Schema.ObjectId,
+            ref: "User",
+          },
+          requestedByRole: {
+            type: String,
+            enum: ["CLIENT", "FREELANCER", "ADMIN"],
+          },
+        },
+      ],
+      default: [],
+    },
+    submissionHistory: {
+      type: [
+        {
+          notes: {
+            type: String,
+            trim: true,
+            maxlength: 5000,
+          },
+          attachments: {
+            type: [
+              {
+                name: String,
+                url: String,
+                publicId: String,
+                resourceType: String,
+                uploadedAt: Date,
+              },
+            ],
+            default: [],
+          },
+          submittedAt: Date,
+          submittedBy: {
+            type: mongoose.Schema.ObjectId,
+            ref: "User",
+          },
+          submittedByRole: {
+            type: String,
+            enum: ["CLIENT", "FREELANCER", "ADMIN"],
+          },
+        },
+      ],
+      default: [],
     },
   },
   cancellation: {

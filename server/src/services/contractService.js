@@ -24,6 +24,19 @@ const normalizeContractType = (value) =>
     ? CONTRACT_TYPE.MILESTONE_BASED
     : CONTRACT_TYPE.FULL_PROJECT;
 
+const normalizeAttachments = (attachments = []) =>
+  Array.isArray(attachments)
+    ? attachments
+        .filter((attachment) => attachment?.url)
+        .map((attachment) => ({
+          name: attachment.name || "",
+          url: attachment.url,
+          publicId: attachment.publicId || "",
+          resourceType: attachment.resourceType || "raw",
+          uploadedAt: attachment.uploadedAt || new Date(),
+        }))
+    : [];
+
 const normalizeMilestones = (contractType, milestones = []) => {
   if (contractType !== CONTRACT_TYPE.MILESTONE_BASED) {
     return [];
@@ -265,6 +278,7 @@ const submitContractMilestone = async ({
   freelancerId,
   milestoneIndex,
   evidence,
+  evidenceAttachments,
 }) => {
   ensureContractIsActive(contract);
 
@@ -295,9 +309,22 @@ const submitContractMilestone = async ({
   milestone.status = MILESTONE_STATUS.SUBMITTED;
   milestone.completedAt = new Date();
   milestone.evidence = typeof evidence === "string" ? evidence.trim() : "";
+  milestone.evidenceAttachments = normalizeAttachments(evidenceAttachments);
   milestone.revisionRequestedAt = undefined;
   milestone.revisionRequestedBy = undefined;
   milestone.revisionNotes = "";
+  milestone.submissionHistory = [
+    ...(Array.isArray(milestone.submissionHistory)
+      ? milestone.submissionHistory
+      : []),
+    {
+      notes: milestone.evidence,
+      attachments: milestone.evidenceAttachments,
+      submittedAt: milestone.completedAt,
+      submittedBy: freelancerId,
+      submittedByRole: "FREELANCER",
+    },
+  ];
   contract.updatedAt = new Date();
   await contract.save();
   return contract;
@@ -357,7 +384,12 @@ const approveContractMilestone = async ({
   return { contract, allCompleted };
 };
 
-const submitFullProjectDelivery = async ({ contract, freelancerId, notes }) => {
+const submitFullProjectDelivery = async ({
+  contract,
+  freelancerId,
+  notes,
+  attachments,
+}) => {
   ensureContractIsActive(contract);
 
   if (contract.contractType !== CONTRACT_TYPE.FULL_PROJECT) {
@@ -371,14 +403,34 @@ const submitFullProjectDelivery = async ({ contract, freelancerId, notes }) => {
     throw new AppError("Only the assigned freelancer can submit delivery", 403);
   }
 
+  const normalizedAttachments = normalizeAttachments(attachments);
+  const submissionNotes = typeof notes === "string" ? notes.trim() : "";
+  const submittedAt = new Date();
+
   contract.deliverySubmission = {
     status: "SUBMITTED",
-    notes: typeof notes === "string" ? notes.trim() : "",
-    submittedAt: new Date(),
+    notes: submissionNotes,
+    attachments: normalizedAttachments,
+    submittedAt,
     submittedBy: freelancerId,
     revisionRequestedAt: undefined,
     revisionRequestedBy: undefined,
     revisionNotes: "",
+    revisionHistory: Array.isArray(contract.deliverySubmission?.revisionHistory)
+      ? contract.deliverySubmission.revisionHistory
+      : [],
+    submissionHistory: [
+      ...(Array.isArray(contract.deliverySubmission?.submissionHistory)
+        ? contract.deliverySubmission.submissionHistory
+        : []),
+      {
+        notes: submissionNotes,
+        attachments: normalizedAttachments,
+        submittedAt,
+        submittedBy: freelancerId,
+        submittedByRole: "FREELANCER",
+      },
+    ],
   };
   contract.updatedAt = new Date();
   await contract.save();
@@ -460,6 +512,17 @@ const requestContractMilestoneChanges = async ({
   milestone.revisionRequestedAt = new Date();
   milestone.revisionRequestedBy = clientId;
   milestone.revisionNotes = typeof notes === "string" ? notes.trim() : "";
+  milestone.revisionHistory = [
+    ...(Array.isArray(milestone.revisionHistory)
+      ? milestone.revisionHistory
+      : []),
+    {
+      notes: milestone.revisionNotes,
+      requestedAt: milestone.revisionRequestedAt,
+      requestedBy: clientId,
+      requestedByRole: "CLIENT",
+    },
+  ];
   contract.updatedAt = new Date();
   await contract.save();
   return contract;
@@ -488,6 +551,17 @@ const requestContractDeliveryChanges = async ({ contract, clientId, notes }) => 
   contract.deliverySubmission.revisionRequestedBy = clientId;
   contract.deliverySubmission.revisionNotes =
     typeof notes === "string" ? notes.trim() : "";
+  contract.deliverySubmission.revisionHistory = [
+    ...(Array.isArray(contract.deliverySubmission.revisionHistory)
+      ? contract.deliverySubmission.revisionHistory
+      : []),
+    {
+      notes: contract.deliverySubmission.revisionNotes,
+      requestedAt: contract.deliverySubmission.revisionRequestedAt,
+      requestedBy: clientId,
+      requestedByRole: "CLIENT",
+    },
+  ];
   contract.updatedAt = new Date();
   await contract.save();
   return contract;

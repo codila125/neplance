@@ -1,8 +1,9 @@
 import { listUsersServer } from "@/lib/server/users";
 
 export default async function AdminUsersPage({ searchParams }) {
-  const search = (searchParams?.search || "").toString();
-  const role = (searchParams?.role || "").toString();
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const search = (resolvedSearchParams?.search || "").toString();
+  const role = (resolvedSearchParams?.role || "").toString();
   const q = [];
   if (search) q.push(`search=${encodeURIComponent(search)}`);
   if (role) q.push(`role=${encodeURIComponent(role)}`);

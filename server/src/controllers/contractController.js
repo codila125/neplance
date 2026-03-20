@@ -39,7 +39,7 @@ const populateContract = (query) =>
     .populate("freelancer", "name email avatar bio experienceLevel availabilityStatus skills")
     .populate(
       "job",
-      "title description status budget attachments creatorAddress selectedProposal activeContract hiredFreelancer"
+      "title description status budget attachments category subcategory tags requiredSkills experienceLevel deadline location terms creatorAddress selectedProposal activeContract hiredFreelancer"
     )
     .populate("proposal", "amount deliveryDays status coverLetter attachments");
 
@@ -121,6 +121,21 @@ const getContractById = catchAsync(async (req, res) => {
       $or: [{ client: req.user.id }, { freelancer: req.user.id }],
     })
   );
+
+  if (!contract) {
+    throw new AppError("Contract not found", 404);
+  }
+
+  const data = await attachReviewsToContract(contract);
+
+  res.status(200).json({
+    status: "success",
+    data,
+  });
+});
+
+const getAdminContractById = catchAsync(async (req, res) => {
+  const contract = await populateContract(Contract.findById(req.params.id));
 
   if (!contract) {
     throw new AppError("Contract not found", 404);
@@ -355,6 +370,7 @@ const submitMyMilestone = catchAsync(async (req, res) => {
     freelancerId: req.user.id,
     milestoneIndex,
     evidence: req.body?.evidence,
+    evidenceAttachments: req.body?.evidenceAttachments,
   });
 
   const milestone = updatedContract.milestones?.[milestoneIndex];
@@ -486,6 +502,7 @@ const submitContractWork = catchAsync(async (req, res) => {
     contract,
     freelancerId: req.user.id,
     notes: req.body?.notes,
+    attachments: req.body?.attachments,
   });
 
   const populatedContract = await populateContract(
@@ -773,6 +790,7 @@ module.exports = {
   completeMyContract,
   createContract,
   createMyContractDispute,
+  getAdminContractById,
   getContractById,
   getContractByProposal,
   listMyContracts,

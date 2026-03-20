@@ -78,6 +78,28 @@ export function ContractAttachmentsTimelineSection({
                   </span>
                 </div>
                 <p className="text-secondary mb-0">{event.description}</p>
+                {event.attachments?.length ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "var(--space-2)",
+                      marginTop: "var(--space-3)",
+                    }}
+                  >
+                    {event.attachments.map((attachment, index) => (
+                      <a
+                        key={`${event.key}-${attachment.url}-${index}`}
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-ghost btn-sm"
+                      >
+                        {attachment.name || `Attachment ${index + 1}`}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
