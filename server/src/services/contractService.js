@@ -1,5 +1,6 @@
 const Contract = require("../models/Contract");
 const Proposal = require("../models/Proposal");
+const User = require("../models/User");
 const AppError = require("../utils/appError");
 const {
   CANCELLATION_STATUS,
@@ -18,6 +19,9 @@ const {
   syncPendingContractFunding,
   updateFundingStatus,
 } = require("./walletService");
+const {
+  syncSignedContractToBlockchain,
+} = require("../blockchain/controllers/contractSyncController");
 
 const normalizeContractType = (value) =>
   value === CONTRACT_TYPE.MILESTONE_BASED
@@ -218,6 +222,19 @@ const signContract = async (contract, freelancerId) => {
     throw new AppError("Only the assigned freelancer can sign the contract", 403);
   }
 
+  const [freelancer, client] = await Promise.all([
+    User.findById(freelancerId).select("walletId"),
+    User.findById(contract.client).select("walletId"),
+  ]);
+
+  if (!freelancer?.walletId) {
+    throw new AppError("Freelancer must have a wallet id before signing", 400);
+  }
+
+  if (!client?.walletId) {
+    throw new AppError("Client must have a wallet id before contract signing", 400);
+  }
+
   if (contract.status !== CONTRACT_STATUS.PENDING_FREELANCER_SIGNATURE) {
     throw new AppError("This contract is not awaiting freelancer signature", 400);
   }
@@ -243,6 +260,24 @@ const signContract = async (contract, freelancerId) => {
   contract.status = CONTRACT_STATUS.ACTIVE;
   contract.updatedAt = new Date();
   await contract.save();
+
+  try {
+    await syncSignedContractToBlockchain(contract._id);
+  } catch (error) {
+    contract.freelancerSignature = {
+      ...(contract.freelancerSignature || {}),
+      signedAt: undefined,
+    };
+    contract.status = CONTRACT_STATUS.PENDING_FREELANCER_SIGNATURE;
+    contract.updatedAt = new Date();
+    await contract.save();
+
+    throw new AppError(
+      error?.message || "Contract signing failed due to blockchain sync error",
+      error?.statusCode || 502
+    );
+  }
+
   return contract;
 };
 
