@@ -83,11 +83,13 @@ a:hover {
   color: var(--color-primary-dark);
 }
 
-strong, b {
+strong,
+b {
   font-weight: var(--font-weight-semibold);
 }
 
-small, .text-sm {
+small,
+.text-sm {
   font-size: var(--text-sm);
 }
 

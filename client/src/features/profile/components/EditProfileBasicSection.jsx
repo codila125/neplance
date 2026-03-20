@@ -1,3 +1,5 @@
+import { RemoteAvatar } from "@/shared/components/RemoteAvatar";
+
 export function EditProfileBasicSection({
   actionErrors,
   formData,
@@ -58,16 +60,11 @@ export function EditProfileBasicSection({
                 gap: "var(--space-3)",
               }}
             >
-              <img
+              <RemoteAvatar
                 src={formData.avatar}
                 alt={formData.name || "Profile photo"}
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  borderRadius: "999px",
-                  objectFit: "cover",
-                  border: "1px solid var(--color-border)",
-                }}
+                fallback={formData.name || "Profile photo"}
+                size={56}
               />
               <div>
                 <div style={{ fontWeight: "var(--font-weight-medium)" }}>
