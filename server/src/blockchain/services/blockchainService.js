@@ -1,14 +1,6 @@
 const AppError = require("../../utils/appError");
 const { extractWalletId } = require("../models/walletModel");
-
-const resolveBlockchainBaseUrl = () => {
-  const baseUrl = process.env.BLOCKCHAIN_BASE_URL;
-  if (!baseUrl) {
-    throw new AppError("BLOCKCHAIN_BASE_URL is not configured", 500);
-  }
-
-  return baseUrl.replace(/\/+$/, "");
-};
+const { resolveBlockchainBaseUrl } = require("../../config/blockchain");
 
 const resolveCreateWalletUrl = () => {
   return `${resolveBlockchainBaseUrl()}/blockchain/createwallet`;

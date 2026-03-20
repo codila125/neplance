@@ -50,6 +50,7 @@ BLOCKCHAIN_BASE_URL=http://localhost:3008
 
 ## Troubleshooting
 - **MongoDB refused connection**: Ensure `NEPLANCE_MONGODB_URI` is reachable and Mongo is running locally. For Atlas, whitelist the current IP.
+- **Blockchain connection failed on startup**: Ensure Foedus is running and `BLOCKCHAIN_BASE_URL/health` returns `{ "status": "ok" }`.
 - **JWT verification errors**: Regenerate the secret, restart the server, and login again from the client so the cookie uses the new secret.
 - **CORS blocked**: Confirm `FRONTEND_BASE_URL` matches the origin from which the client is served (include the protocol and port).
 - **Port collision**: Run `lsof -ti:<SERVER_PORT> | xargs kill -9` or change `SERVER_PORT`/`NEXT_PUBLIC_API_BASE_URL` accordingly.
