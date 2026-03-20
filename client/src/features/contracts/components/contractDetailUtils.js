@@ -57,15 +57,18 @@ export const getContractTimelineEvents = (contract) => {
   }
 
   (contract.milestones || []).forEach((milestone, index) => {
-    if (milestone.completedAt) {
-      events.push({
-        key: `milestone-submitted-${index}`,
-        title: `${milestone.title || `Milestone ${index + 1}`} submitted`,
-        description:
-          milestone.evidence || "The freelancer submitted this milestone.",
-        at: milestone.completedAt,
-      });
-    }
+    (milestone.submissionHistory || []).forEach(
+      (submission, submissionIndex) => {
+        events.push({
+          key: `milestone-submitted-${index}-${submission._id || submissionIndex}`,
+          title: `${milestone.title || `Milestone ${index + 1}`} submitted`,
+          description:
+            submission.notes || "The freelancer submitted this milestone.",
+          attachments: submission.attachments || [],
+          at: submission.submittedAt,
+        });
+      },
+    );
 
     if (milestone.approvedAt) {
       events.push({
@@ -76,38 +79,43 @@ export const getContractTimelineEvents = (contract) => {
       });
     }
 
-    if (milestone.revisionRequestedAt) {
+    (milestone.revisionHistory || []).forEach((revision, revisionIndex) => {
       events.push({
-        key: `milestone-revision-${index}`,
+        key: `milestone-revision-${index}-${revision._id || revisionIndex}`,
         title: `${milestone.title || `Milestone ${index + 1}`} changes requested`,
         description:
-          milestone.revisionNotes || "The client requested milestone changes.",
-        at: milestone.revisionRequestedAt,
+          revision.notes || "The client requested milestone changes.",
+        at: revision.requestedAt,
       });
-    }
+    });
   });
 
-  if (contract.deliverySubmission?.submittedAt) {
-    events.push({
-      key: "delivery-submitted",
-      title: "Final delivery submitted",
-      description:
-        contract.deliverySubmission.notes ||
-        "The freelancer submitted the final project work.",
-      at: contract.deliverySubmission.submittedAt,
-    });
-  }
+  (contract.deliverySubmission?.submissionHistory || []).forEach(
+    (submission, index) => {
+      events.push({
+        key: `delivery-submitted-${submission._id || index}`,
+        title: "Final delivery submitted",
+        description:
+          submission.notes ||
+          "The freelancer submitted the final project work.",
+        attachments: submission.attachments || [],
+        at: submission.submittedAt,
+      });
+    },
+  );
 
-  if (contract.deliverySubmission?.revisionRequestedAt) {
-    events.push({
-      key: "delivery-revision-requested",
-      title: "Final delivery changes requested",
-      description:
-        contract.deliverySubmission.revisionNotes ||
-        "The client requested changes to the final delivery.",
-      at: contract.deliverySubmission.revisionRequestedAt,
-    });
-  }
+  (contract.deliverySubmission?.revisionHistory || []).forEach(
+    (revision, index) => {
+      events.push({
+        key: `delivery-revision-requested-${revision._id || index}`,
+        title: "Final delivery changes requested",
+        description:
+          revision.notes ||
+          "The client requested changes to the final delivery.",
+        at: revision.requestedAt,
+      });
+    },
+  );
 
   if (contract.cancellation?.requestedAt) {
     events.push({

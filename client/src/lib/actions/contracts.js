@@ -203,6 +203,7 @@ export async function submitContractMilestoneAction(
   contractId,
   milestoneIndex,
   evidence,
+  evidenceAttachments = [],
 ) {
   await requireSession();
 
@@ -212,6 +213,9 @@ export async function submitContractMilestoneAction(
       method: "PATCH",
       body: JSON.stringify({
         evidence: typeof evidence === "string" ? evidence.trim() : "",
+        evidenceAttachments: Array.isArray(evidenceAttachments)
+          ? evidenceAttachments.filter((attachment) => attachment?.url)
+          : [],
       }),
     },
   );
@@ -271,7 +275,11 @@ export async function requestContractMilestoneChangesAction(
   return successResult(response?.data || response);
 }
 
-export async function submitContractWorkAction(contractId, notes) {
+export async function submitContractWorkAction(
+  contractId,
+  notes,
+  attachments = [],
+) {
   await requireSession();
 
   const response = await apiServerRequest(
@@ -280,6 +288,9 @@ export async function submitContractWorkAction(contractId, notes) {
       method: "PATCH",
       body: JSON.stringify({
         notes: typeof notes === "string" ? notes.trim() : "",
+        attachments: Array.isArray(attachments)
+          ? attachments.filter((attachment) => attachment?.url)
+          : [],
       }),
     },
   );

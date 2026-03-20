@@ -38,8 +38,10 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
   const [currentContract, setCurrentContract] = useState(contract);
   const [error, setError] = useState("");
   const [deliveryNotes, setDeliveryNotes] = useState("");
+  const [deliveryAttachments, setDeliveryAttachments] = useState([]);
   const [cancellationReason, setCancellationReason] = useState("");
   const [milestoneEvidence, setMilestoneEvidence] = useState({});
+  const [milestoneAttachments, setMilestoneAttachments] = useState({});
   const [reviewComment, setReviewComment] = useState("");
   const [reviewRating, setReviewRating] = useState("5");
   const [deliveryRevisionNotes, setDeliveryRevisionNotes] = useState("");
@@ -128,9 +130,11 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
         currentContract._id,
         index,
         milestoneEvidence[index] || "",
+        milestoneAttachments[index] || [],
       ),
     );
     setMilestoneEvidence((previous) => ({ ...previous, [index]: "" }));
+    setMilestoneAttachments((previous) => ({ ...previous, [index]: [] }));
   };
 
   const handleApproveMilestone = (index) => {
@@ -139,9 +143,14 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
 
   const handleSubmitDelivery = () => {
     runAction(() =>
-      submitContractWorkAction(currentContract._id, deliveryNotes),
+      submitContractWorkAction(
+        currentContract._id,
+        deliveryNotes,
+        deliveryAttachments,
+      ),
     );
     setDeliveryNotes("");
+    setDeliveryAttachments([]);
   };
 
   const handleCompleteContract = () => {
@@ -297,6 +306,7 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
             canSubmitDelivery={canSubmitDelivery}
             completedMilestones={completedMilestones}
             contract={currentContract}
+            deliveryAttachments={deliveryAttachments}
             deliveryNotes={deliveryNotes}
             deliveryRevisionNotes={deliveryRevisionNotes}
             handleApproveMilestone={handleApproveMilestone}
@@ -310,10 +320,33 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
             isFreelancer={isFreelancer}
             isMilestoneContract={isMilestoneContract}
             isPending={isPending}
+            milestoneAttachments={milestoneAttachments}
             milestoneEvidence={milestoneEvidence}
             milestoneRevisionNotes={milestoneRevisionNotes}
+            onDeliveryAttachmentRemove={(index) =>
+              setDeliveryAttachments((previous) =>
+                previous.filter((_, itemIndex) => itemIndex !== index),
+              )
+            }
+            onDeliveryAttachmentUploaded={(upload) =>
+              setDeliveryAttachments((previous) => [...previous, upload])
+            }
             onDeliveryNotesChange={setDeliveryNotes}
             onDeliveryRevisionNotesChange={setDeliveryRevisionNotes}
+            onMilestoneAttachmentRemove={(milestoneIndex, attachmentIndex) =>
+              setMilestoneAttachments((previous) => ({
+                ...previous,
+                [milestoneIndex]: (previous[milestoneIndex] || []).filter(
+                  (_, itemIndex) => itemIndex !== attachmentIndex,
+                ),
+              }))
+            }
+            onMilestoneAttachmentUploaded={(milestoneIndex, upload) =>
+              setMilestoneAttachments((previous) => ({
+                ...previous,
+                [milestoneIndex]: [...(previous[milestoneIndex] || []), upload],
+              }))
+            }
             onMilestoneEvidenceChange={(index, value) =>
               setMilestoneEvidence((previous) => ({
                 ...previous,
@@ -342,6 +375,7 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
           <ContractDisputesSection
             activeDispute={activeDispute}
             canOpenDispute={canOpenDispute}
+            contract={currentContract}
             disputeDescription={disputeDescription}
             disputeEvidenceAttachments={disputeEvidenceAttachments}
             disputeReason={disputeReason}

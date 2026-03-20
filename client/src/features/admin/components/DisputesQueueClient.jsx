@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useEffect, useState, useTransition } from "react";
 import { reviewDisputeAction } from "@/lib/actions/admin";
+import { API_BASE_URL } from "@/lib/api/config";
 import { DISPUTE_STATUS } from "@/shared/constants/statuses";
 import { formatStatus } from "@/shared/utils/job";
 
@@ -10,6 +12,50 @@ export function DisputesQueueClient({ initialDisputes }) {
   const [notesByDispute, setNotesByDispute] = useState({});
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncDisputes = async () => {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/admin/disputes?status=all`,
+          {
+            credentials: "include",
+          },
+        );
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok || !isMounted) {
+          return;
+        }
+
+        setDisputes(Array.isArray(payload?.data) ? payload.data : []);
+      } catch {
+        // Ignore background refresh errors to keep the admin queue usable.
+      }
+    };
+
+    const intervalId = window.setInterval(syncDisputes, 5000);
+    const handleFocus = () => {
+      void syncDisputes();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void syncDisputes();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   const handleReview = (disputeId, decision) => {
     setError("");
@@ -90,9 +136,26 @@ export function DisputesQueueClient({ initialDisputes }) {
                       {dispute.freelancer?.name || "Unknown"}
                     </div>
                   </div>
-                  <span className="badge badge-primary">
-                    {formatStatus(dispute.status)}
-                  </span>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "var(--space-2)",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {dispute.contract?._id ? (
+                      <Link
+                        href={`/admin/contracts/${dispute.contract._id}`}
+                        className="btn btn-ghost btn-sm"
+                      >
+                        View Contract
+                      </Link>
+                    ) : null}
+                    <span className="badge badge-primary">
+                      {formatStatus(dispute.status)}
+                    </span>
+                  </div>
                 </div>
 
                 <p style={{ marginBottom: "var(--space-2)" }}>
