@@ -557,6 +557,32 @@ export function Navbar({
                   </svg>
                   My Profile
                 </Link>
+                <Link
+                  href="/chain"
+                  className="dropdown-item"
+                  onClick={() => setShowDropdown(false)}
+                >
+                  <svg
+                    className="dropdown-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <title>Blockchain</title>
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <path d="M10 6h4" />
+                    <path d="M17.5 10v4" />
+                    <path d="M14 17.5h-4" />
+                    <path d="M6.5 14v-4" />
+                  </svg>
+                  Blockchain
+                </Link>
                 {hasBothRoles && (
                   <form action={switchRoleAction}>
                     <input

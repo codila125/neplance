@@ -87,7 +87,7 @@ export async function requireDashboardRole(role) {
   const session = await requireSession();
 
   if (session.activeRole !== role) {
-    redirect(DASHBOARD_ROLE_REDIRECTS[role] || "/dashboard");
+    redirect(DASHBOARD_ROLE_REDIRECTS[session.activeRole] || "/dashboard");
   }
 
   return session;

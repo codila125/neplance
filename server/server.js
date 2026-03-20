@@ -38,6 +38,7 @@ const notificationRouter = require("./src/routes/notificationRoutes");
 const chatRouter = require("./src/routes/chatRoutes");
 const contractRouter = require("./src/routes/contractRoutes");
 const walletRouter = require("./src/routes/walletRoutes");
+const blockchainRouter = require("./src/routes/blockchainRoutes");
 const errorController = require("./src/controllers/errorController");
 
 app.use("/api", indexRouter);
@@ -51,6 +52,7 @@ app.use("/api/notifications", notificationRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/contracts", contractRouter);
 app.use("/api/wallet", walletRouter);
+app.use("/api/blockchain", blockchainRouter);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", db: mongoose.connection.readyState });
