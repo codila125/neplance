@@ -47,6 +47,7 @@ function Avatar({ person, fallback }) {
 }
 
 export const JobCard = ({
+  existingProposalId = null,
   job,
   variant = "default",
   onSubmitProposal,
@@ -558,13 +559,22 @@ export const JobCard = ({
           ) : null}
 
           {variant === "find" && !isDraft ? (
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => onSubmitProposal?.(job)}
-            >
-              Apply Now
-            </button>
+            existingProposalId ? (
+              <Link
+                href={`/proposals/${existingProposalId}`}
+                className="btn btn-primary btn-sm"
+              >
+                Edit Proposal
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => onSubmitProposal?.(job)}
+              >
+                Apply Now
+              </button>
+            )
           ) : null}
         </div>
       </div>

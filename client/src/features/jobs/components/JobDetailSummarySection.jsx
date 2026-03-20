@@ -200,6 +200,33 @@ export function JobDetailSummarySection({
           </div>
         </div>
       )}
+
+      {job.attachments?.length > 0 && (
+        <div style={{ marginTop: "var(--space-6)" }}>
+          <h3
+            style={{
+              fontSize: "var(--text-base)",
+              fontWeight: "var(--font-weight-semibold)",
+              marginBottom: "var(--space-2)",
+            }}
+          >
+            Job Attachments
+          </h3>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+            {job.attachments.map((attachment, index) => (
+              <a
+                key={attachment}
+                href={attachment}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-ghost btn-sm"
+              >
+                Attachment {index + 1}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }

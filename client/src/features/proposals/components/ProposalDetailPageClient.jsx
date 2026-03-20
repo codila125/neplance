@@ -10,6 +10,7 @@ import { createConversationFromProposalAction } from "@/lib/actions/chat";
 import {
   createProposalMutationAction,
   rejectProposalAction,
+  updateProposalMutationAction,
 } from "@/lib/actions/proposals";
 import { Button } from "@/shared/components/UI";
 import { PROPOSAL_STATUS } from "@/shared/constants/statuses";
@@ -38,6 +39,7 @@ export function ProposalDetailPageClient({
       : [],
   });
   const [resubmitError, setResubmitError] = useState("");
+  const [isEditing, startEditTransition] = useTransition();
   const [isRejecting, startRejectTransition] = useTransition();
   const [isResubmitting, startResubmitTransition] = useTransition();
   const [isStartingChat, startChatTransition] = useTransition();
@@ -108,6 +110,55 @@ export function ProposalDetailPageClient({
     });
   };
 
+  const handleEdit = async (event) => {
+    event.preventDefault();
+    setResubmitError("");
+
+    if (!resubmitData.amount || Number(resubmitData.amount) <= 0) {
+      setResubmitError("Please enter a valid amount");
+      return;
+    }
+    if (resubmitData.coverLetter.trim().length < 5) {
+      setResubmitError("Cover letter must be at least 5 characters");
+      return;
+    }
+    if (!resubmitData.deliveryDays || Number(resubmitData.deliveryDays) <= 0) {
+      setResubmitError("Please enter valid delivery days");
+      return;
+    }
+
+    const attachmentsArray = Array.isArray(resubmitData.attachments)
+      ? resubmitData.attachments
+      : [];
+    const invalidUrl = attachmentsArray.find(
+      (item) => !/^https?:\/\//i.test(item),
+    );
+    if (invalidUrl) {
+      setResubmitError("Attachments must be valid URLs");
+      return;
+    }
+
+    startEditTransition(async () => {
+      try {
+        const result = await updateProposalMutationAction(proposal._id, {
+          job: proposal.job?._id || proposal.job,
+          amount: Number(resubmitData.amount),
+          coverLetter: resubmitData.coverLetter.trim(),
+          deliveryDays: Number(resubmitData.deliveryDays),
+          revisionsIncluded: Number(resubmitData.revisionsIncluded) || 0,
+          attachments: attachmentsArray,
+        });
+
+        setProposal((previous) => ({
+          ...previous,
+          ...result.data,
+        }));
+      } catch (error) {
+        setResubmitError(error.message || "Failed to update proposal");
+      }
+    });
+  };
+
   const handleStartChat = async () => {
     setChatError("");
     startChatTransition(async () => {
@@ -144,6 +195,7 @@ export function ProposalDetailPageClient({
   const isFreelancer =
     currentUserId && String(freelancerId) === String(currentUserId);
   const canReject = isClient && proposal?.status === PROPOSAL_STATUS.PENDING;
+  const canEdit = isFreelancer && proposal?.status === PROPOSAL_STATUS.PENDING;
   const canResubmit =
     isFreelancer && proposal?.status === PROPOSAL_STATUS.REJECTED;
   const canStartChat = isClient && !conversationId;
@@ -206,8 +258,22 @@ export function ProposalDetailPageClient({
         <div className="card">
           <ProposalSummarySection proposal={proposal} />
 
+          {canEdit && (
+            <ProposalResubmitSection
+              title="Edit Proposal"
+              buttonLabel="Save Proposal"
+              handleResubmit={handleEdit}
+              handleResubmitChange={handleResubmitChange}
+              isResubmitting={isEditing}
+              resubmitData={resubmitData}
+              resubmitError={resubmitError}
+            />
+          )}
+
           {canResubmit && (
             <ProposalResubmitSection
+              title="Resubmit Proposal"
+              buttonLabel="Resubmit Proposal"
               handleResubmit={handleResubmit}
               handleResubmitChange={handleResubmitChange}
               isResubmitting={isResubmitting}

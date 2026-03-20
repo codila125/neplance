@@ -12,6 +12,7 @@ import {
 } from "@/shared/constants/jobCategories";
 
 export function JobsPageClient({
+  existingProposalByJobId = {},
   initialJobs = [],
   initialSearchParams = {},
   initialUser,
@@ -372,6 +373,9 @@ export function JobsPageClient({
                 {matchedJobs.map((job) => (
                   <JobCard
                     key={`for-you-${job._id}`}
+                    existingProposalId={
+                      existingProposalByJobId[job._id] || null
+                    }
                     job={job}
                     variant="find"
                     onSubmitProposal={handleOpenProposalModal}
@@ -387,6 +391,7 @@ export function JobsPageClient({
               {visibleJobs.map((job) => (
                 <JobCard
                   key={job._id}
+                  existingProposalId={existingProposalByJobId[job._id] || null}
                   job={job}
                   variant="find"
                   onSubmitProposal={handleOpenProposalModal}

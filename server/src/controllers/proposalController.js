@@ -12,6 +12,7 @@ const { PROPOSAL_STATUS } = require("../constants/statuses");
 const {
   createProposal: createProposalService,
   rejectProposal: rejectProposalService,
+  updateProposal: updateProposalService,
   withdrawProposal: withdrawProposalService,
 } = require("../services/proposalService");
 const { createNotification } = require("../services/notificationService");
@@ -371,11 +372,38 @@ const withdrawProposal = catchAsync(async (req, res, next) => {
   });
 });
 
+const updateProposal = catchAsync(async (req, res, next) => {
+  const proposal = await Proposal.findById(req.params.id);
+
+  if (!proposal) {
+    return next(new AppError("Proposal not found", 404));
+  }
+
+  if (proposal.freelancer.toString() !== req.user.id.toString()) {
+    return next(new AppError("You can only edit your own proposals", 403));
+  }
+
+  const updatedProposal = await updateProposalService(proposal, {
+    amount: req.body?.amount,
+    coverLetter: req.body?.coverLetter,
+    deliveryDays: req.body?.deliveryDays,
+    revisionsIncluded: req.body?.revisionsIncluded,
+    attachments: req.body?.attachments,
+  });
+
+  res.status(200).json({
+    status: "success",
+    message: "Proposal updated successfully",
+    data: updatedProposal,
+  });
+});
+
 module.exports = {
   createProposal,
   getProposalForJob,
   rejectProposal,
   getMyProposals,
   getProposalById,
+  updateProposal,
   withdrawProposal,
 };

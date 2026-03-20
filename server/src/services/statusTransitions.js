@@ -128,6 +128,12 @@ const assertProposalCanWithdraw = (proposal) => {
   }
 };
 
+const assertProposalCanUpdate = (proposal) => {
+  if (proposal.status !== PROPOSAL_STATUS.PENDING) {
+    throw new AppError("You can only edit pending proposals", 400);
+  }
+};
+
 module.exports = {
   normalizeJobCreateStatus,
   assertJobCanUpdate,
@@ -141,5 +147,6 @@ module.exports = {
   assertJobCanRespondCancellation,
   assertProposalCanCreate,
   assertProposalCanReject,
+  assertProposalCanUpdate,
   assertProposalCanWithdraw,
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { createJobAction } from "@/lib/actions/jobs";
 import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 import { Input } from "@/shared/components/UI";
@@ -8,10 +8,8 @@ import {
   JOB_CATEGORIES,
   NEPAL_PROVINCES,
 } from "@/shared/constants/jobCategories";
-import { JOB_STATUS } from "@/shared/constants/statuses";
 
 export function ClientPostJobSection() {
-  const [submitIntent, setSubmitIntent] = useState("open");
   const [formState, setFormState] = useState({
     title: "",
     description: "",
@@ -65,7 +63,7 @@ export function ClientPostJobSection() {
     }));
   };
 
-  const buildJobPayload = (status) => {
+  const jobPayload = useMemo(() => {
     const tags = formState.tags
       .split(",")
       .map((t) => t.trim())
@@ -103,23 +101,13 @@ export function ClientPostJobSection() {
       isUrgent: formState.isUrgent,
       location,
       attachments: formState.attachments.map((attachment) => attachment.url),
-      status,
       isPublic: true,
     };
-  };
+  }, [formState]);
 
   return (
     <form className="card" action={formAction}>
-      <input
-        type="hidden"
-        name="payload"
-        value={JSON.stringify(
-          buildJobPayload(
-            submitIntent === "draft" ? JOB_STATUS.DRAFT : JOB_STATUS.OPEN,
-          ),
-        )}
-      />
-      <input type="hidden" name="intent" value={submitIntent} />
+      <input type="hidden" name="payload" value={JSON.stringify(jobPayload)} />
       {actionState?.message && (
         <div className="card-error" style={{ marginBottom: "var(--space-4)" }}>
           <p style={{ margin: 0 }}>{actionState.message}</p>
@@ -512,22 +500,22 @@ export function ClientPostJobSection() {
         }}
       >
         <button
-          type="button"
+          type="submit"
           className="btn btn-ghost"
-          onClick={() => setSubmitIntent("draft")}
+          name="intent"
+          value="draft"
           disabled={isPending}
         >
-          {isPending && submitIntent === "draft"
-            ? "Saving..."
-            : "Save as Draft"}
+          {isPending ? "Saving..." : "Save as Draft"}
         </button>
         <button
           type="submit"
           className="btn btn-primary"
+          name="intent"
+          value="open"
           disabled={isPending}
-          onClick={() => setSubmitIntent("open")}
         >
-          {isPending && submitIntent === "open" ? "Posting..." : "Post Job"}
+          {isPending ? "Posting..." : "Post Job"}
         </button>
       </div>
     </form>

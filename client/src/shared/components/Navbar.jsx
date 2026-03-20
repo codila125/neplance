@@ -8,6 +8,63 @@ import {
   markNotificationReadAction,
 } from "@/lib/actions/notifications";
 import { logoutAction, switchRoleAction } from "@/lib/actions/session";
+import { API_BASE_URL } from "@/lib/api/config";
+
+const NAVBAR_POLL_INTERVAL_MS = 4000;
+const NAVBAR_NOTIFICATION_LIMIT = 3;
+
+async function parseApiResponse(response) {
+  const data = await response.json().catch(() => null);
+  return { ok: response.ok, status: response.status, data };
+}
+
+async function refreshAccessToken() {
+  const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  return response.ok;
+}
+
+async function fetchWithSessionRefresh(endpoint) {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  const parsed = await parseApiResponse(response);
+  const errorCode = parsed.data?.errorCode;
+
+  if (parsed.ok) {
+    return parsed.data;
+  }
+
+  if (parsed.status === 401 && errorCode === "TOKEN_EXPIRED") {
+    const refreshed = await refreshAccessToken();
+    if (!refreshed) {
+      throw new Error("Session expired");
+    }
+
+    const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const retried = await parseApiResponse(retryResponse);
+
+    if (retried.ok) {
+      return retried.data;
+    }
+  }
+
+  throw new Error(parsed.data?.message || "Failed to fetch latest data.");
+}
 
 /**
  * Inline logo SVG - consistent 32x32 green circle with mountain icon.
@@ -41,6 +98,7 @@ const Logo = () => (
  */
 export function Navbar({
   activeRole: activeRoleProp,
+  initialChatUnreadCount = 0,
   notifications = [],
   unreadCount = 0,
   user,
@@ -48,6 +106,12 @@ export function Navbar({
   const pathname = usePathname();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [liveNotifications, setLiveNotifications] = useState(notifications);
+  const [liveNotificationUnreadCount, setLiveNotificationUnreadCount] =
+    useState(unreadCount);
+  const [liveMessageUnreadCount, setLiveMessageUnreadCount] = useState(
+    initialChatUnreadCount,
+  );
   const dropdownRef = useRef(null);
   const notificationsRef = useRef(null);
 
@@ -85,6 +149,78 @@ export function Navbar({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    setLiveNotifications(notifications);
+  }, [notifications]);
+
+  useEffect(() => {
+    setLiveNotificationUnreadCount(unreadCount);
+  }, [unreadCount]);
+
+  useEffect(() => {
+    setLiveMessageUnreadCount(initialChatUnreadCount);
+  }, [initialChatUnreadCount]);
+
+  useEffect(() => {
+    if (!user) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const syncNavbarData = async () => {
+      if (typeof document !== "undefined" && document.hidden) {
+        return;
+      }
+
+      try {
+        const [
+          notificationListResponse,
+          notificationSummaryResponse,
+          chatSummaryResponse,
+        ] = await Promise.all([
+          fetchWithSessionRefresh(
+            `/api/notifications?limit=${NAVBAR_NOTIFICATION_LIMIT}`,
+          ),
+          fetchWithSessionRefresh("/api/notifications/summary"),
+          fetchWithSessionRefresh("/api/chat/summary"),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        setLiveNotifications(notificationListResponse?.data || []);
+        setLiveNotificationUnreadCount(
+          notificationSummaryResponse?.data?.unreadCount || 0,
+        );
+        setLiveMessageUnreadCount(chatSummaryResponse?.data?.unreadCount || 0);
+      } catch {
+        // Keep the last known navbar state if background refresh fails.
+      }
+    };
+
+    syncNavbarData();
+
+    const intervalId = window.setInterval(
+      syncNavbarData,
+      NAVBAR_POLL_INTERVAL_MS,
+    );
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        syncNavbarData();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user]);
 
   // ----- Guest (logged out) -----
   if (!user) {
@@ -172,6 +308,14 @@ export function Navbar({
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
               Messages
+              {liveMessageUnreadCount > 0 ? (
+                <>
+                  <span className="navbar-dot" aria-hidden="true" />
+                  <span className="sr-only">
+                    {liveMessageUnreadCount} unread messages
+                  </span>
+                </>
+              ) : null}
             </Link>
           </li>
         </ul>
@@ -184,8 +328,10 @@ export function Navbar({
               onClick={() => setShowNotifications((previous) => !previous)}
             >
               <span>Notifications</span>
-              {unreadCount > 0 ? (
-                <span className="navbar-badge">{unreadCount}</span>
+              {liveNotificationUnreadCount > 0 ? (
+                <span className="navbar-badge">
+                  {liveNotificationUnreadCount}
+                </span>
               ) : null}
             </button>
 
@@ -200,9 +346,9 @@ export function Navbar({
                     Recent updates across proposals, contracts, and chat.
                   </div>
                 </div>
-                {notifications.length > 0 ? (
+                {liveNotifications.length > 0 ? (
                   <>
-                    {notifications.map((notification) => (
+                    {liveNotifications.map((notification) => (
                       <div
                         key={notification._id}
                         className="dropdown-item"
@@ -289,7 +435,7 @@ export function Navbar({
                       >
                         View all
                       </Link>
-                      {unreadCount > 0 ? (
+                      {liveNotificationUnreadCount > 0 ? (
                         <form action={markAllNotificationsReadAction}>
                           <button
                             type="submit"
@@ -368,8 +514,10 @@ export function Navbar({
                     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                   </svg>
                   Notifications
-                  {unreadCount > 0 ? (
-                    <span className="dropdown-badge">{unreadCount}</span>
+                  {liveNotificationUnreadCount > 0 ? (
+                    <span className="dropdown-badge">
+                      {liveNotificationUnreadCount}
+                    </span>
                   ) : null}
                 </Link>
                 <Link
