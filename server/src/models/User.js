@@ -124,6 +124,12 @@ const userSchema = new mongoose.Schema({
     trim: true,
     maxlength: 2000,
   },
+  walletId: {
+    type: String,
+    trim: true,
+    unique: true,
+    sparse: true,
+  },
   password: {
     type: String,
     required: [true, "Please provide a password"],

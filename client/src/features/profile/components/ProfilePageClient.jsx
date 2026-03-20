@@ -185,6 +185,18 @@ export function ProfilePageClient({
                         marginBottom: "var(--space-1)",
                       }}
                     >
+                      Wallet ID
+                    </div>
+                    <div>{user?.walletId || "Not assigned yet"}</div>
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        color: "var(--color-text-light)",
+                        marginBottom: "var(--space-1)",
+                      }}
+                    >
                       Completed Projects
                     </div>
                     <div
