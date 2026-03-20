@@ -2,17 +2,6 @@ import Link from "next/link";
 import { requireSession } from "@/lib/server/auth";
 import { getChainBlocksServer } from "@/lib/server/blockchain";
 
-const formatDate = (value) => {
-  if (!value) {
-    return "Unknown";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-};
-
 const trimHash = (value = "") => {
   if (!value || value.length <= 16) {
     return value || "-";
@@ -62,9 +51,6 @@ export default async function ChainPage({ searchParams }) {
                 <div className="chain-block-top">
                   <span className="badge badge-primary">
                     Block #{block.blockIndex}
-                  </span>
-                  <span className="chain-time text-muted">
-                    Synced {formatDate(block.sourceFetchedAt)}
                   </span>
                 </div>
 

@@ -6,7 +6,9 @@ const includesAddress = (approvedBy = [], address = "") => {
     return false;
   }
 
-  return approvedBy.some(
+  const list = Array.isArray(approvedBy) ? approvedBy : [];
+
+  return list.some(
     (value) => String(value || "").trim().toLowerCase() === normalizedAddress
   );
 };
