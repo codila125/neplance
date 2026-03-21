@@ -372,7 +372,9 @@ export function SignupPageForm({ error }) {
                   className={`btn ${isActive ? "btn-primary" : ""}`}
                   style={{
                     width: "100%",
-                    border: isActive ? "none" : "1px solid var(--color-border-light)",
+                    border: isActive
+                      ? "none"
+                      : "1px solid var(--color-border-light)",
                     background: isActive ? undefined : "white",
                     color: isActive ? "white" : "var(--color-text)",
                     boxShadow: isActive ? undefined : "none",
@@ -627,7 +629,9 @@ export function SignupPageForm({ error }) {
               disabled={!selectedDistrict}
             />
             {(fieldErrors.locality || fieldErrors.city) && (
-              <p className="form-error">{fieldErrors.locality || fieldErrors.city}</p>
+              <p className="form-error">
+                {fieldErrors.locality || fieldErrors.city}
+              </p>
             )}
           </div>
         </div>

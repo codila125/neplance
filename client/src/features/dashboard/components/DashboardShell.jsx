@@ -10,7 +10,6 @@ export function DashboardShell({ activeRole, children }) {
             { href: "/dashboard/client/my-contracts", label: "My Contracts" },
             { href: "/dashboard/client/my-jobs", label: "My Jobs" },
             { href: "/dashboard/client/proposals", label: "Review Proposals" },
-            { href: "/dashboard/client/wallet", label: "Wallet" },
             { href: "/dashboard/client/post-job", label: "Post Job" },
           ],
         }
@@ -29,10 +28,6 @@ export function DashboardShell({ activeRole, children }) {
             {
               href: "/dashboard/freelancer/ongoing-jobs",
               label: "Active Contracts",
-            },
-            {
-              href: "/dashboard/freelancer/earnings",
-              label: "Earnings",
             },
           ],
         };

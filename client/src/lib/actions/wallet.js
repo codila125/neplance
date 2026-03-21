@@ -21,8 +21,7 @@ export async function loadWalletFundsAction(amount) {
   });
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/client/wallet");
-  revalidatePath("/dashboard/freelancer/earnings");
+  revalidatePath("/wallet");
 
   return successResult(response?.data || response);
 }

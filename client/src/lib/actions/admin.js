@@ -46,8 +46,7 @@ export async function reviewDisputeAction(
   revalidatePath("/admin/disputes");
   revalidatePath("/dashboard");
   revalidatePath("/contracts");
-  revalidatePath("/dashboard/client/wallet");
-  revalidatePath("/dashboard/freelancer/earnings");
+  revalidatePath("/wallet");
 
   return successResult(response?.data || response);
 }
