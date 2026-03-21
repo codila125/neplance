@@ -438,3 +438,43 @@ export async function createContractDisputeAction(contractId, payload) {
 
   return successResult(response?.data || response);
 }
+
+export async function raiseTransactionDisputeAction(
+  contractId,
+  transactionId,
+  payload,
+) {
+  await requireSession();
+
+  const reason =
+    typeof payload.reason === "string" ? payload.reason.trim() : "";
+  const descriptionBase =
+    typeof payload.description === "string" ? payload.description.trim() : "";
+  const description = descriptionBase
+    ? `${descriptionBase}\n\nWallet transaction reference: ${transactionId}`
+    : `Wallet transaction reference: ${transactionId}`;
+
+  if (!reason) {
+    throw new Error("Please provide a dispute reason.");
+  }
+
+  const response = await apiServerRequest(
+    `/api/contracts/${contractId}/disputes`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        reason,
+        description,
+        evidenceAttachments: [],
+      }),
+    },
+  );
+
+  revalidatePath("/dashboard");
+  revalidatePath("/wallet");
+  revalidatePath(`/contracts/${contractId}`);
+  revalidatePath("/admin/disputes");
+  revalidatePath("/notifications");
+
+  return successResult(response?.data || response);
+}

@@ -17,6 +17,7 @@ const {
   releaseContractFunds,
   reserveContractFunds,
   syncPendingContractFunding,
+  linkLatestFundingTransactionToContract,
   updateFundingStatus,
 } = require("./walletService");
 const {
@@ -200,6 +201,13 @@ const createContractFromProposal = async ({
         },
       }
     );
+
+    await linkLatestFundingTransactionToContract({
+      clientId,
+      contractId: contract._id,
+      contractTitle,
+      amount: totalAmount,
+    });
   } catch (error) {
     const rollbackContract = new Contract({
       client: clientId,
