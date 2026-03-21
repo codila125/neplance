@@ -344,8 +344,15 @@ export function SignupPageForm({ error }) {
         </div>
       )}
 
-      <form action={formAction}>
-        <fieldset className="form-group">
+      <form
+        action={formAction}
+        className="signup-form"
+        style={{ display: "grid", gap: "var(--space-4)" }}
+      >
+        <fieldset
+          className="form-group"
+          style={{ border: "none", padding: 0, margin: 0 }}
+        >
           <legend className="form-label" style={{ marginBottom: "0.75rem" }}>
             I want to:
           </legend>
@@ -362,19 +369,22 @@ export function SignupPageForm({ error }) {
               return (
                 <label
                   key={role.value}
+                  className={`btn ${isActive ? "btn-primary" : ""}`}
                   style={{
-                    border: isActive
-                      ? "1px solid var(--color-primary)"
-                      : "1px solid var(--color-border-light)",
-                    backgroundColor: isActive
-                      ? "var(--color-primary-lightest)"
-                      : "white",
+                    width: "100%",
+                    border: isActive ? "none" : "1px solid var(--color-border-light)",
+                    background: isActive ? undefined : "white",
+                    color: isActive ? "white" : "var(--color-text)",
+                    boxShadow: isActive ? undefined : "none",
                     borderRadius: "var(--radius-lg)",
                     padding: "var(--space-4)",
                     display: "flex",
                     gap: "var(--space-3)",
                     cursor: "pointer",
                     alignItems: "flex-start",
+                    justifyContent: "flex-start",
+                    textAlign: "left",
+                    whiteSpace: "normal",
                   }}
                 >
                   <input
@@ -383,21 +393,24 @@ export function SignupPageForm({ error }) {
                     value={role.value}
                     checked={isActive}
                     onChange={() => handleRoleToggle(role.value)}
-                    style={{ marginTop: "0.2rem" }}
+                    className="sr-only"
                   />
                   <span>
                     <strong
                       style={{
                         display: "block",
                         marginBottom: "0.2rem",
-                        color: "var(--color-text)",
+                        color: isActive ? "white" : "var(--color-text)",
                       }}
                     >
                       {role.label}
                     </strong>
                     <span
-                      className="text-light"
-                      style={{ fontSize: "var(--text-sm)" }}
+                      className={isActive ? "" : "text-light"}
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        color: isActive ? "white" : undefined,
+                      }}
                     >
                       {role.description}
                     </span>

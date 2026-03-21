@@ -81,7 +81,12 @@ export function LoginPageForm({ error }) {
           )}
         </div>
 
-        <button type="submit" className="btn btn-primary" disabled={isPending}>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          style={{ width: "100%" }}
+          disabled={isPending}
+        >
           {isPending ? "Logging In..." : "Log In"}
         </button>
       </form>

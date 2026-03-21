@@ -140,6 +140,10 @@
   margin-bottom: var(--space-6);
 }
 
+.signup-form .form-group {
+  margin-bottom: 0;
+}
+
 /* ===================================
    FORM ELEMENTS
    =================================== */
