@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/server/auth";
 import { getChainBlocksServer } from "@/lib/server/blockchain";
+import { formatStatus } from "@/shared/utils/job";
 
 const trimHash = (value = "") => {
   if (!value || value.length <= 16) {
@@ -8,6 +9,49 @@ const trimHash = (value = "") => {
   }
 
   return `${value.slice(0, 10)}...${value.slice(-8)}`;
+};
+
+const formatContractAmount = (total, currency = "NPR") => {
+  const safeTotal = Number.isFinite(total) ? total : 0;
+  const safeCurrency = currency || "NPR";
+  return `${safeCurrency} ${safeTotal.toLocaleString()}`;
+};
+
+const getBlockContracts = (block) => {
+  if (Array.isArray(block?.contracts)) {
+    return block.contracts;
+  }
+  if (Array.isArray(block?.contract)) {
+    return block.contract;
+  }
+  return [];
+};
+
+const getContractId = (contract) =>
+  String(contract?.id || contract?._id || "").trim();
+
+const getBackendContractAmountLabel = (contract) => {
+  const candidates = [
+    contract?.calculatedTotal,
+    contract?.calculated_total,
+    contract?.totalMilestoneValue,
+    contract?.total_milestone_value,
+    contract?.contractValue,
+    contract?.contract_value,
+    contract?.totalAmount,
+    contract?.total_amount,
+  ];
+
+  const rawAmount = candidates.find(
+    (value) => value !== null && value !== undefined,
+  );
+  const amount = Number(rawAmount);
+
+  if (!Number.isFinite(amount)) {
+    return "N/A";
+  }
+
+  return formatContractAmount(amount, contract?.currency || "NPR");
 };
 
 export default async function ChainPage({ searchParams }) {
@@ -61,48 +105,68 @@ export default async function ChainPage({ searchParams }) {
                   </div>
                   <div className="chain-hash-line">
                     <span className="chain-hash-label">Prev</span>
-                    <code>{trimHash(block.prevHash)}</code>
+                    <code>{trimHash(block.prevHash || block.prev_hash)}</code>
                   </div>
                 </div>
 
                 <div className="chain-stats-row">
                   <div className="chain-stat-pill">
                     <span className="text-muted">Contracts</span>
-                    <strong>{block.contracts?.length || 0}</strong>
+                    <strong>{getBlockContracts(block).length}</strong>
                   </div>
                 </div>
 
-                {block.contracts?.length > 0 && (
+                {getBlockContracts(block).length > 0 && (
                   <div className="chain-id-grid">
                     <div className="chain-id-section">
                       <div className="chain-id-title">Contract IDs</div>
-                      {block.contracts?.length > 0 ? (
-                        block.contracts.map((contract) => (
-                          <div
-                            key={contract.id || `${block.hash}-contract`}
-                            className="chain-id-chip"
-                          >
-                            <code>{contract.id || "Unknown contract id"}</code>
-                            <div className="chain-id-subtitle">
-                              {contract.title || "Untitled contract"}
-                            </div>
-                            {Array.isArray(contract.milestoneTitles) &&
-                            contract.milestoneTitles.length > 0 ? (
-                              <div className="chain-milestone-list">
-                                {contract.milestoneTitles.map(
-                                  (milestoneTitle, index) => (
-                                    <span
-                                      key={`${contract.id || block.hash}-milestone-${index}`}
-                                      className="chain-milestone-chip"
-                                    >
-                                      {milestoneTitle}
-                                    </span>
-                                  ),
-                                )}
+                      {getBlockContracts(block).length > 0 ? (
+                        getBlockContracts(block).map((contract) => {
+                          const contractId = getContractId(contract);
+                          const amountLabel = getBackendContractAmountLabel(contract);
+
+                          return (
+                            <div
+                              key={contractId || `${block.hash}-contract`}
+                              className="chain-id-chip"
+                            >
+                              <code>{contractId || "Unknown contract id"}</code>
+                              <div className="chain-id-subtitle">
+                                {contract.title || "Untitled contract"}
                               </div>
-                            ) : null}
-                          </div>
-                        ))
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: "var(--space-2)",
+                                  marginTop: "var(--space-2)",
+                                }}
+                              >
+                                <span className="badge badge-success">
+                                  Total: {amountLabel}
+                                </span>
+                                <span className="badge badge-primary">
+                                  State: {formatStatus(contract.status)}
+                                </span>
+                              </div>
+                              {Array.isArray(contract.milestoneTitles) &&
+                              contract.milestoneTitles.length > 0 ? (
+                                <div className="chain-milestone-list">
+                                  {contract.milestoneTitles.map(
+                                    (milestoneTitle, index) => (
+                                      <span
+                                        key={`${contractId || block.hash}-milestone-${index}`}
+                                        className="chain-milestone-chip"
+                                      >
+                                        {milestoneTitle}
+                                      </span>
+                                    ),
+                                  )}
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })
                       ) : (
                         <p className="text-muted mb-0">
                           No contracts in this block.

@@ -13,6 +13,10 @@ const resolvePrintChainUrl = () => {
   return `${resolveBlockchainBaseUrl()}/blockchain/printchain`;
 };
 
+const resolveGetContractUrl = (contractId) => {
+  return `${resolveBlockchainBaseUrl()}/blockchain/getcontract/${encodeURIComponent(contractId)}`;
+};
+
 const fetchFoedusChain = async () => {
   const payload = await getJson(
     resolvePrintChainUrl(),
@@ -55,6 +59,30 @@ const upsertBlocks = async (normalizedBlocks) => {
   await BlockchainBlock.bulkWrite(operations, { ordered: false });
 };
 
+const sumMilestoneValues = (milestones) => {
+  if (!Array.isArray(milestones) || milestones.length === 0) {
+    return null;
+  }
+
+  return milestones.reduce((total, milestone) => {
+    const value = Number(milestone?.value ?? 0);
+    return Number.isFinite(value) ? total + value : total;
+  }, 0);
+};
+
+const getCalculatedContractTotal = (chainContract) => {
+  const milestoneTotal = sumMilestoneValues(chainContract?.milestones);
+  if (milestoneTotal !== null) {
+    return milestoneTotal;
+  }
+
+  const fallback = Number(
+    chainContract?.total_amount ?? chainContract?.totalAmount ?? 0
+  );
+
+  return Number.isFinite(fallback) ? fallback : 0;
+};
+
 const enrichBlocksWithContractMetadata = async (blocks) => {
   if (!Array.isArray(blocks) || blocks.length === 0) {
     return [];
@@ -75,11 +103,30 @@ const enrichBlocksWithContractMetadata = async (blocks) => {
   }
 
   const uniqueContractIds = [...new Set(contractIds)];
-  const neplanceContracts = await Contract.find({
-    "blockchain.contractAddress": { $in: uniqueContractIds },
-  })
-    .select("title milestones blockchain.contractAddress")
-    .lean();
+
+  const [neplanceContracts, chainContractResults] = await Promise.all([
+    Contract.find({
+      "blockchain.contractAddress": { $in: uniqueContractIds },
+    })
+      .select("title milestones currency blockchain.contractAddress")
+      .lean(),
+    Promise.allSettled(
+      uniqueContractIds.map(async (contractId) => ({
+        contractId,
+        data: await getJson(
+          resolveGetContractUrl(contractId),
+          "Invalid contract response from Foedus blockchain"
+        ),
+      }))
+    ),
+  ]);
+
+  const chainContractMap = new Map();
+  chainContractResults.forEach((result) => {
+    if (result.status === "fulfilled" && result.value?.data) {
+      chainContractMap.set(result.value.contractId, result.value.data);
+    }
+  });
 
   const contractMetaMap = new Map(
     neplanceContracts.map((contract) => {
@@ -104,11 +151,17 @@ const enrichBlocksWithContractMetadata = async (blocks) => {
       ? block.contracts.map((contract) => {
           const contractId = typeof contract?.id === "string" ? contract.id.trim() : "";
           const metadata = contractMetaMap.get(contractId);
+          const chainContract = chainContractMap.get(contractId);
+          const calculatedTotal = chainContract
+            ? getCalculatedContractTotal(chainContract)
+            : null;
 
           return {
             ...contract,
             title: metadata?.title || contract?.title || "Untitled contract",
             milestoneTitles: metadata?.milestoneTitles || [],
+            ...(calculatedTotal !== null ? { calculatedTotal } : {}),
+            ...(metadata?.currency ? { currency: metadata.currency } : {}),
           };
         })
       : [],
