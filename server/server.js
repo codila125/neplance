@@ -6,6 +6,7 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const AppError = require("./src/utils/appError");
+const logger = require("./src/utils/logger");
 const connectDB = require("./src/config/db");
 const { checkBlockchainConnection } = require("./src/config/blockchain");
 
@@ -42,6 +43,9 @@ const walletRouter = require("./src/routes/walletRoutes");
 const blockchainRouter = require("./src/routes/blockchainRoutes");
 const errorController = require("./src/controllers/errorController");
 
+let serverInstance;
+let isShuttingDown = false;
+
 app.use("/api", indexRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/auth", authRouter);
@@ -68,12 +72,55 @@ app.use(errorController);
 
 const PORT = process.env.SERVER_PORT || 5000;
 
+const shutdown = (reason, error = null) => {
+  if (isShuttingDown) {
+    return;
+  }
+
+  isShuttingDown = true;
+
+  if (error) {
+    logger.error(`Shutting down server due to ${reason}.`, error);
+  } else {
+    logger.warn(`Shutting down server due to ${reason}.`);
+  }
+
+  const exitCode = error ? 1 : 0;
+
+  if (!serverInstance) {
+    process.exit(exitCode);
+  }
+
+  serverInstance.close(() => {
+    process.exit(exitCode);
+  });
+
+  setTimeout(() => {
+    logger.error("Forced shutdown after timeout.");
+    process.exit(1);
+  }, 10000).unref();
+};
+
 const startServer = async () => {
   await connectDB();
   await checkBlockchainConnection();
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  serverInstance = app.listen(PORT, () =>
+    logger.info(`Server running on port ${PORT}`)
+  );
 };
 
-startServer();
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("unhandledRejection", (reason) =>
+  shutdown("unhandledRejection", reason)
+);
+process.on("uncaughtException", (error) =>
+  shutdown("uncaughtException", error)
+);
+
+startServer().catch((error) => {
+  logger.error("Failed to start the server.", error);
+  process.exit(1);
+});
 
 module.exports = app;

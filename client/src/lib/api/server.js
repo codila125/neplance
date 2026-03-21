@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { ACCESS_TOKEN_COOKIE, API_BASE_URL } from "@/lib/api/config";
 
+const REQUEST_TIMEOUT_MS = 15000;
+
 const parseJsonResponse = async (response) => {
   if (response.status === 204) {
     return null;
@@ -13,6 +15,30 @@ const parseJsonResponse = async (response) => {
 
   const text = await response.text();
   return text || null;
+};
+
+const buildRequestOptions = (options, headers) => {
+  const requestOptions = {
+    ...options,
+    headers,
+    cache: "no-store",
+  };
+
+  if (!requestOptions.signal && typeof AbortSignal?.timeout === "function") {
+    requestOptions.signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  }
+
+  return requestOptions;
+};
+
+const toRequestError = (error) => {
+  if (error?.name === "TimeoutError" || error?.name === "AbortError") {
+    return new Error("The server took too long to respond. Please try again.");
+  }
+
+  return new Error(
+    "We couldn't reach the server right now. Please try again in a moment.",
+  );
 };
 
 export async function apiServerCall(endpoint, options = {}) {
@@ -29,11 +55,16 @@ export async function apiServerCall(endpoint, options = {}) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-    cache: "no-store",
-  });
+  let response;
+
+  try {
+    response = await fetch(
+      `${API_BASE_URL}${endpoint}`,
+      buildRequestOptions(options, headers),
+    );
+  } catch {
+    return null;
+  }
 
   const data = await parseJsonResponse(response);
 
@@ -58,11 +89,16 @@ export async function apiServerRequest(endpoint, options = {}) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-    cache: "no-store",
-  });
+  let response;
+
+  try {
+    response = await fetch(
+      `${API_BASE_URL}${endpoint}`,
+      buildRequestOptions(options, headers),
+    );
+  } catch (error) {
+    throw toRequestError(error);
+  }
 
   const data = await parseJsonResponse(response);
 
