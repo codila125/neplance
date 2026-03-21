@@ -4,6 +4,7 @@ const AppError = require("../utils/appError");
 const jwt = require("jsonwebtoken");
 const { promisify } = require("util");
 const { freelancerOnlyFields } = require("../utils/userFields");
+const { createAdminNotifications } = require("../services/notificationService");
 
 const profileFields = [
   "phone",
@@ -97,6 +98,17 @@ const register = catchAsync(async (req, res, next) => {
     passwordConfirm,
     role,
     ...profilePayload,
+  });
+
+  await createAdminNotifications({
+    actor: freshUser._id,
+    type: "admin.user_registered",
+    title: "New user registered",
+    message: `${freshUser.name} created a new Neplance account.`,
+    link: "/admin/users",
+    metadata: {
+      user: freshUser._id,
+    },
   });
 
   createSendTokens(freshUser, 201, res);

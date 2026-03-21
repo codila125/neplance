@@ -20,7 +20,13 @@ const conversationSchema = new mongoose.Schema({
   proposal: {
     type: mongoose.Schema.ObjectId,
     ref: "Proposal",
-    required: true,
+    sparse: true,
+    unique: true,
+  },
+  dispute: {
+    type: mongoose.Schema.ObjectId,
+    ref: "Dispute",
+    sparse: true,
     unique: true,
   },
   job: {
@@ -42,6 +48,11 @@ const conversationSchema = new mongoose.Schema({
     type: mongoose.Schema.ObjectId,
     ref: "User",
     required: true,
+  },
+  kind: {
+    type: String,
+    enum: ["proposal", "dispute_support"],
+    default: "proposal",
   },
   lastMessagePreview: {
     type: String,

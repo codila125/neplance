@@ -1,14 +1,23 @@
 import Link from "next/link";
-import { listVerificationQueueServer } from "@/lib/server/admin";
+import {
+  getFinanceManagementServer,
+  listDisputesQueueServer,
+  listPaymentVerificationQueueServer,
+  listVerificationQueueServer,
+} from "@/lib/server/admin";
 import { listAllJobsServer } from "@/lib/server/jobs";
 import { listUsersServer } from "@/lib/server/users";
 
 export default async function AdminPage() {
-  const [pendingVerification, users, jobs] = await Promise.all([
-    listVerificationQueueServer("pending"),
-    listUsersServer(),
-    listAllJobsServer(),
-  ]);
+  const [finance, pendingVerification, pendingPayments, disputes, users, jobs] =
+    await Promise.all([
+      getFinanceManagementServer(),
+      listVerificationQueueServer("pending"),
+      listPaymentVerificationQueueServer("pending"),
+      listDisputesQueueServer("all"),
+      listUsersServer(),
+      listAllJobsServer(),
+    ]);
 
   const cards = [
     {
@@ -17,9 +26,19 @@ export default async function AdminPage() {
       value: pendingVerification.length,
     },
     {
+      href: "/admin/finance",
+      label: "Finance",
+      value: `NPR ${Number(finance.summary?.platformBalance || 0).toLocaleString()}`,
+    },
+    {
       href: "/admin/users",
       label: "Users",
       value: users.length,
+    },
+    {
+      href: "/admin/pending-payments",
+      label: "Pending Payments",
+      value: pendingPayments.length,
     },
     {
       href: "/admin/jobs",
@@ -29,7 +48,7 @@ export default async function AdminPage() {
     {
       href: "/admin/disputes",
       label: "Disputes",
-      value: "Soon",
+      value: disputes.length,
     },
     {
       href: "/admin/problems",

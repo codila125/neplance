@@ -1,6 +1,9 @@
 const Contract = require("../models/Contract");
+const PaymentLoadRequest = require("../models/PaymentLoadRequest");
+const WithdrawalRequest = require("../models/WithdrawalRequest");
 const Wallet = require("../models/Wallet");
 const AppError = require("../utils/appError");
+const { createAdminNotifications } = require("./notificationService");
 const {
   CONTRACT_FUNDING_STATUS,
   CONTRACT_STATUS,
@@ -30,26 +33,343 @@ const pushTransaction = (wallet, transaction) => {
   });
 };
 
-const loadWalletFunds = async ({ userId, amount }) => {
+const creditWalletLoad = async ({
+  wallet,
+  amount,
+  description,
+  status = "completed",
+}) => {
   const normalizedAmount = Number(amount);
 
   if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
     throw new AppError("Wallet load amount must be greater than zero", 400);
   }
 
-  const wallet = await getOrCreateWallet(userId);
   wallet.balance += normalizedAmount;
   wallet.totalLoaded += normalizedAmount;
   pushTransaction(wallet, {
     type: "wallet_load",
     amount: normalizedAmount,
     direction: "credit",
-    description: "Dummy wallet load",
+    description,
+    status,
   });
   wallet.updatedAt = new Date();
   await wallet.save();
 
   return wallet;
+};
+
+const requestWalletLoad = async ({
+  userId,
+  amount,
+  paymentMethod,
+  transactionId,
+  screenshot,
+}) => {
+  const normalizedAmount = Number(amount);
+
+  if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+    throw new AppError("Wallet load amount must be greater than zero", 400);
+  }
+
+  if (!["esewa", "khalti", "bank"].includes(paymentMethod)) {
+    throw new AppError("Please choose a valid payment method", 400);
+  }
+
+  if (!String(transactionId || "").trim()) {
+    throw new AppError("Transaction ID is required", 400);
+  }
+
+  if (!screenshot?.url) {
+    throw new AppError("Please upload your payment screenshot", 400);
+  }
+
+  const wallet = await getOrCreateWallet(userId);
+  const request = await PaymentLoadRequest.create({
+    user: userId,
+    wallet: wallet._id,
+    requestedAmount: normalizedAmount,
+    paymentMethod,
+    transactionId: String(transactionId).trim(),
+    screenshot,
+    status: "pending",
+    updatedAt: new Date(),
+  });
+
+  pushTransaction(wallet, {
+    type: "wallet_load_request",
+    amount: normalizedAmount,
+    direction: "credit",
+    description: `Wallet load request via ${paymentMethod}`,
+    status: "pending",
+    createdAt: request.createdAt,
+  });
+  wallet.updatedAt = new Date();
+  await wallet.save();
+
+  await createAdminNotifications({
+    actor: userId,
+    type: "admin.payment_load_requested",
+    title: "Wallet load pending verification",
+    message: `A user requested NPR ${normalizedAmount.toLocaleString()} wallet load via ${paymentMethod}.`,
+    link: "/admin/pending-payments",
+    metadata: {},
+  });
+
+  return request;
+};
+
+const listPendingPaymentLoadRequests = async (status = "pending") => {
+  const query = status === "all" ? {} : { status };
+
+  return PaymentLoadRequest.find(query)
+    .populate("user", "name email avatar role")
+    .populate("reviewedBy", "name email avatar role")
+    .sort({ createdAt: -1 });
+};
+
+const reviewPaymentLoadRequest = async ({
+  requestId,
+  adminId,
+  decision,
+  approvedAmount,
+  notes,
+}) => {
+  const request = await PaymentLoadRequest.findById(requestId);
+
+  if (!request) {
+    throw new AppError("Payment request not found", 404);
+  }
+
+  if (request.status !== "pending") {
+    throw new AppError("This payment request has already been reviewed", 400);
+  }
+
+  if (!["approve", "reject", "partial"].includes(decision)) {
+    throw new AppError("Decision must be approve, reject, or partial", 400);
+  }
+
+  const wallet = await getOrCreateWallet(request.user);
+  const normalizedApprovedAmount =
+    decision === "reject"
+      ? 0
+      : Number(approvedAmount ?? request.requestedAmount);
+
+  if (decision !== "reject") {
+    if (
+      !Number.isFinite(normalizedApprovedAmount) ||
+      normalizedApprovedAmount <= 0
+    ) {
+      throw new AppError("Approved amount must be greater than zero", 400);
+    }
+
+    if (normalizedApprovedAmount > Number(request.requestedAmount || 0)) {
+      throw new AppError("Approved amount cannot exceed the requested amount", 400);
+    }
+
+    await creditWalletLoad({
+      wallet,
+      amount: normalizedApprovedAmount,
+      description:
+        decision === "partial"
+          ? "Partially approved wallet load"
+          : "Approved wallet load",
+    });
+  }
+
+  request.status =
+    decision === "approve"
+      ? "approved"
+      : decision === "partial"
+        ? "partial"
+        : "rejected";
+  request.approvedAmount =
+    decision === "reject" ? 0 : normalizedApprovedAmount;
+  request.reviewedBy = adminId;
+  request.reviewedAt = new Date();
+  request.reviewNotes = String(notes || "").trim();
+  request.updatedAt = new Date();
+  await request.save();
+
+  return request.populate("user", "name email avatar role");
+};
+
+const requestWalletWithdrawalWithProof = async ({
+  userId,
+  amount,
+  qrAttachment,
+}) => {
+  const normalizedAmount = Number(amount);
+
+  if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+    throw new AppError("Withdrawal amount must be greater than zero", 400);
+  }
+
+  if (!qrAttachment?.url) {
+    throw new AppError("Please upload your QR image", 400);
+  }
+
+  const wallet = await getOrCreateWallet(userId);
+
+  if (Number(wallet.balance || 0) < normalizedAmount) {
+    throw new AppError("You do not have enough available balance to withdraw", 400);
+  }
+
+  const completedContracts = await Contract.find({
+    freelancer: userId,
+    status: CONTRACT_STATUS.COMPLETED,
+  })
+    .populate("client", "name")
+    .populate("freelancer", "name")
+    .sort({ completedAt: -1 })
+    .limit(5);
+
+  wallet.balance -= normalizedAmount;
+  wallet.pendingWithdrawalBalance =
+    Number(wallet.pendingWithdrawalBalance || 0) + normalizedAmount;
+  pushTransaction(wallet, {
+    type: "wallet_withdraw_request",
+    amount: normalizedAmount,
+    direction: "debit",
+    description: "Withdrawal request submitted",
+    status: "pending",
+  });
+  wallet.updatedAt = new Date();
+  await wallet.save();
+
+  const request = await WithdrawalRequest.create({
+    user: userId,
+    wallet: wallet._id,
+    requestedAmount: normalizedAmount,
+    qrAttachment,
+    contractSnapshots: completedContracts.map((contract) => ({
+      contract: contract._id,
+      title: contract.title,
+      amount: Number(contract.totalAmount || contract.releasedAmount || 0),
+      clientName: contract.client?.name || "Client",
+      freelancerName: contract.freelancer?.name || "Freelancer",
+      completedAt: contract.completedAt,
+    })),
+    updatedAt: new Date(),
+  });
+
+  await createAdminNotifications({
+    actor: userId,
+    type: "admin.withdrawal_requested",
+    title: "Withdrawal request pending release",
+    message: `A freelancer requested NPR ${normalizedAmount.toLocaleString()} withdrawal release.`,
+    link: "/admin/finance",
+    metadata: {},
+  });
+
+  return request;
+};
+
+const listWithdrawalRequests = async (status = "pending") => {
+  const query = status === "all" ? {} : { status };
+
+  return WithdrawalRequest.find(query)
+    .populate("user", "name email avatar role")
+    .populate("reviewedBy", "name email avatar role")
+    .sort({ createdAt: -1 });
+};
+
+const reviewWithdrawalRequest = async ({
+  requestId,
+  adminId,
+  decision,
+  notes,
+}) => {
+  if (!["release", "reject"].includes(decision)) {
+    throw new AppError("Decision must be release or reject", 400);
+  }
+
+  const request = await WithdrawalRequest.findById(requestId);
+  if (!request) {
+    throw new AppError("Withdrawal request not found", 404);
+  }
+
+  if (request.status !== "pending") {
+    throw new AppError("This withdrawal request has already been reviewed", 400);
+  }
+
+  const wallet = await getOrCreateWallet(request.user);
+  const amount = Number(request.requestedAmount || 0);
+
+  if (decision === "release") {
+    if (Number(wallet.pendingWithdrawalBalance || 0) < amount) {
+      throw new AppError("Wallet pending withdrawal balance is insufficient", 400);
+    }
+
+    wallet.pendingWithdrawalBalance -= amount;
+    pushTransaction(wallet, {
+      type: "wallet_withdraw_release",
+      amount,
+      direction: "debit",
+      description: "Withdrawal released by admin",
+      status: "completed",
+    });
+    request.status = "released";
+  } else {
+    wallet.pendingWithdrawalBalance -= amount;
+    wallet.balance += amount;
+    pushTransaction(wallet, {
+      type: "wallet_withdraw_rejected",
+      amount,
+      direction: "credit",
+      description: "Withdrawal request rejected and funds restored",
+      status: "completed",
+    });
+    request.status = "rejected";
+  }
+
+  wallet.updatedAt = new Date();
+  await wallet.save();
+
+  request.reviewedBy = adminId;
+  request.reviewedAt = new Date();
+  request.reviewNotes = String(notes || "").trim();
+  request.updatedAt = new Date();
+  await request.save();
+
+  return request.populate("user", "name email avatar role");
+};
+
+const getFinanceSummary = async () => {
+  const [wallets, pendingTopups, pendingWithdrawals] = await Promise.all([
+    Wallet.find({}).select(
+      "balance heldBalance pendingWithdrawalBalance totalLoaded totalSpent totalEarned"
+    ),
+    PaymentLoadRequest.countDocuments({ status: "pending" }),
+    WithdrawalRequest.countDocuments({ status: "pending" }),
+  ]);
+
+  return wallets.reduce(
+    (summary, wallet) => {
+      summary.platformBalance += Number(wallet.balance || 0);
+      summary.heldBalance += Number(wallet.heldBalance || 0);
+      summary.pendingWithdrawalBalance += Number(
+        wallet.pendingWithdrawalBalance || 0,
+      );
+      summary.totalLoaded += Number(wallet.totalLoaded || 0);
+      summary.totalSpent += Number(wallet.totalSpent || 0);
+      summary.totalEarned += Number(wallet.totalEarned || 0);
+      summary.pendingTopups = pendingTopups;
+      summary.pendingWithdrawals = pendingWithdrawals;
+      return summary;
+    },
+    {
+      platformBalance: 0,
+      heldBalance: 0,
+      pendingWithdrawalBalance: 0,
+      totalLoaded: 0,
+      totalSpent: 0,
+      totalEarned: 0,
+      pendingTopups,
+      pendingWithdrawals,
+    },
+  );
 };
 
 const updateFundingStatus = (contract) => {
@@ -365,7 +685,8 @@ const getWalletSummary = async (user) => {
   const wallet = await getOrCreateWallet(user._id);
   const roles = Array.isArray(user.role) ? user.role : [user.role];
 
-  const [completedContracts, activeContracts] = await Promise.all([
+  const [completedContracts, activeContracts, pendingLoadRequests] =
+    await Promise.all([
     Contract.find({
       $or: [{ client: user._id }, { freelancer: user._id }],
       status: CONTRACT_STATUS.COMPLETED,
@@ -381,6 +702,9 @@ const getWalletSummary = async (user) => {
         ],
       },
     }).select("title totalAmount fundedAmount releasedAmount currency status createdAt"),
+    PaymentLoadRequest.find({ user: user._id, status: "pending" }).sort({
+      createdAt: -1,
+    }),
   ]);
 
   const completedEarnings = completedContracts.reduce(
@@ -403,11 +727,17 @@ const getWalletSummary = async (user) => {
     summary: {
       completedContractEarnings: completedEarnings,
       activeContractValue: activeValue,
-      completedContracts: completedContracts.length,
-      activeContracts: activeContracts.length,
-      canLoadFunds: roles.includes("client"),
+    completedContracts: completedContracts.length,
+    activeContracts: activeContracts.length,
+    canLoadFunds: roles.includes("client"),
+      canWithdrawFunds: roles.includes("freelancer"),
     },
     completedContracts,
+    pendingLoadRequests,
+    pendingWithdrawalRequests: await WithdrawalRequest.find({
+      user: user._id,
+      status: "pending",
+    }).sort({ createdAt: -1 }),
     monthlyFlow: Object.values(
       wallet.transactions.reduce((accumulator, transaction) => {
       const dateValue = transaction.createdAt || new Date();
@@ -437,11 +767,17 @@ const getWalletSummary = async (user) => {
 module.exports = {
   getOrCreateWallet,
   getWalletSummary,
+  getFinanceSummary,
   linkLatestFundingTransactionToContract,
-  loadWalletFunds,
+  listPendingPaymentLoadRequests,
   releasePendingContractFunding,
   refundContractFunds,
+  requestWalletLoad,
+  requestWalletWithdrawalWithProof,
+  listWithdrawalRequests,
   releaseContractFunds,
+  reviewPaymentLoadRequest,
+  reviewWithdrawalRequest,
   reserveContractFunds,
   syncPendingContractFunding,
   updateFundingStatus,

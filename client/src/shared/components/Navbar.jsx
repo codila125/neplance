@@ -122,13 +122,19 @@ export function Navbar({
     : user?.role
       ? [user.role]
       : [];
+  const isAdminUser = roleList.includes("admin") && roleList.length === 1;
   const activeRole =
     activeRoleProp && roleList.includes(activeRoleProp)
       ? activeRoleProp
       : roleList[0] || "freelancer";
   const isFreelancer = activeRole === "freelancer";
   const nextRole = isFreelancer ? "client" : "freelancer";
-  const workLink = isFreelancer ? "/jobs" : "/talent";
+  const workLink = isAdminUser
+    ? "/admin/disputes"
+    : isFreelancer
+      ? "/jobs"
+      : "/talent";
+  const dashboardLink = isAdminUser ? "/admin" : "/dashboard";
   const hasBothRoles =
     roleList.includes("freelancer") && roleList.includes("client");
 
@@ -273,7 +279,7 @@ export function Navbar({
   return (
     <nav className="navbar">
       <div className="navbar-inner">
-        <Link href="/dashboard" className="navbar-brand">
+        <Link href={dashboardLink} className="navbar-brand">
           <Logo />
           <span>Neplance</span>
         </Link>
@@ -281,12 +287,12 @@ export function Navbar({
         <ul className="navbar-links">
           <li>
             <Link
-              href="/dashboard"
+              href={dashboardLink}
               className={`navbar-link ${
-                isActive("/dashboard") ? "active" : ""
+                isActive(dashboardLink) ? "active" : ""
               }`}
             >
-              Dashboard
+              {isAdminUser ? "Admin" : "Dashboard"}
             </Link>
           </li>
           <li>
@@ -294,7 +300,11 @@ export function Navbar({
               href={workLink}
               className={`navbar-link ${isActive(workLink) ? "active" : ""}`}
             >
-              {isFreelancer ? "Find Work" : "Find Talent"}
+              {isAdminUser
+                ? "Disputes"
+                : isFreelancer
+                  ? "Find Work"
+                  : "Find Talent"}
             </Link>
           </li>
         </ul>
@@ -329,14 +339,16 @@ export function Navbar({
             ) : null}
           </Link>
 
-          <Link
-            href="/wallet"
-            className={`navbar-icon-link ${isWalletActive ? "active" : ""}`}
-            aria-label="Wallet"
-            title="Wallet"
-          >
-            <WalletCoinIcon />
-          </Link>
+          {!isAdminUser ? (
+            <Link
+              href="/wallet"
+              className={`navbar-icon-link ${isWalletActive ? "active" : ""}`}
+              aria-label="Wallet"
+              title="Wallet"
+            >
+              <WalletCoinIcon />
+            </Link>
+          ) : null}
 
           <div className="profile-menu" ref={notificationsRef}>
             <button
@@ -377,7 +389,9 @@ export function Navbar({
                 <div className="dropdown-header">
                   <div className="dropdown-header-name">Notifications</div>
                   <div className="dropdown-header-email">
-                    Recent updates across proposals, contracts, and chat.
+                    {isAdminUser
+                      ? "Realtime admin alerts for disputes, verification, and support chat."
+                      : "Recent updates across proposals, contracts, and chat."}
                   </div>
                 </div>
                 {liveNotifications.length > 0 ? (
@@ -529,14 +543,38 @@ export function Navbar({
                   </svg>
                   Messages
                 </Link>
-                <Link
-                  href="/wallet"
-                  className="dropdown-item"
-                  onClick={() => setShowDropdown(false)}
-                >
-                  <WalletCoinIcon className="dropdown-icon" />
-                  Wallet
-                </Link>
+                {isAdminUser ? (
+                  <Link
+                    href="/admin"
+                    className="dropdown-item"
+                    onClick={() => setShowDropdown(false)}
+                  >
+                    <svg
+                      className="dropdown-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <title>Admin console</title>
+                      <path d="M3 3h18v18H3z" />
+                      <path d="M9 3v18" />
+                      <path d="M3 9h18" />
+                    </svg>
+                    Admin Console
+                  </Link>
+                ) : (
+                  <Link
+                    href="/wallet"
+                    className="dropdown-item"
+                    onClick={() => setShowDropdown(false)}
+                  >
+                    <WalletCoinIcon className="dropdown-icon" />
+                    Wallet
+                  </Link>
+                )}
                 <Link
                   href="/notifications"
                   className="dropdown-item"
@@ -562,52 +600,56 @@ export function Navbar({
                     </span>
                   ) : null}
                 </Link>
-                <Link
-                  href="/profile"
-                  className="dropdown-item"
-                  onClick={() => setShowDropdown(false)}
-                >
-                  <svg
-                    className="dropdown-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <title>Profile</title>
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  My Profile
-                </Link>
-                <Link
-                  href="/chain"
-                  className="dropdown-item"
-                  onClick={() => setShowDropdown(false)}
-                >
-                  <svg
-                    className="dropdown-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <title>Blockchain</title>
-                    <rect x="3" y="3" width="7" height="7" rx="1" />
-                    <rect x="14" y="3" width="7" height="7" rx="1" />
-                    <rect x="14" y="14" width="7" height="7" rx="1" />
-                    <rect x="3" y="14" width="7" height="7" rx="1" />
-                    <path d="M10 6h4" />
-                    <path d="M17.5 10v4" />
-                    <path d="M14 17.5h-4" />
-                    <path d="M6.5 14v-4" />
-                  </svg>
-                  Blockchain
-                </Link>
+                {!isAdminUser ? (
+                  <>
+                    <Link
+                      href="/profile"
+                      className="dropdown-item"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <svg
+                        className="dropdown-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <title>Profile</title>
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                      My Profile
+                    </Link>
+                    <Link
+                      href="/chain"
+                      className="dropdown-item"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <svg
+                        className="dropdown-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <title>Blockchain</title>
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="14" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                        <path d="M10 6h4" />
+                        <path d="M17.5 10v4" />
+                        <path d="M14 17.5h-4" />
+                        <path d="M6.5 14v-4" />
+                      </svg>
+                      Blockchain
+                    </Link>
+                  </>
+                ) : null}
                 {hasBothRoles && (
                   <form action={switchRoleAction}>
                     <input

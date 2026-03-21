@@ -3,7 +3,9 @@ import { requireAdminSession } from "@/lib/server/auth";
 
 const ADMIN_NAV_ITEMS = [
   { href: "/admin", label: "Overview" },
+  { href: "/admin/finance", label: "Finance" },
   { href: "/admin/pending-verification", label: "Verification" },
+  { href: "/admin/pending-payments", label: "Payments" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/jobs", label: "Jobs" },
   { href: "/admin/disputes", label: "Disputes" },

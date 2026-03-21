@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Notification = require("../models/Notification");
+const User = require("../models/User");
 
 const normalizeObjectId = (value) => {
   if (!value) {
@@ -50,6 +51,35 @@ const createNotification = async ({
   });
 };
 
+const createAdminNotifications = async ({
+  actor,
+  type,
+  title,
+  message,
+  link,
+  metadata,
+}) => {
+  const admins = await User.find({ role: "admin" }).select("_id");
+
+  if (!admins.length) {
+    return [];
+  }
+
+  return Promise.all(
+    admins.map((admin) =>
+      createNotification({
+        recipient: admin._id,
+        actor,
+        type,
+        title,
+        message,
+        link,
+        metadata,
+      }),
+    ),
+  );
+};
+
 const listNotificationsForUser = async (userId, limit = 20) =>
   Notification.find({ recipient: userId })
     .sort({ createdAt: -1 })
@@ -93,6 +123,7 @@ const markAllNotificationsRead = async (userId) =>
   );
 
 module.exports = {
+  createAdminNotifications,
   createNotification,
   getNotificationSummaryForUser,
   listNotificationsForUser,

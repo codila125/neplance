@@ -8,7 +8,11 @@ const {
 } = require("../constants/statuses");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
-const { createNotification } = require("../services/notificationService");
+const {
+  createAdminNotifications,
+  createNotification,
+} = require("../services/notificationService");
+const { createAdminConversationForDispute } = require("../services/chatService");
 const {
   createContractReview,
   listContractReviews,
@@ -754,6 +758,10 @@ const createMyContractDispute = catchAsync(async (req, res) => {
     userId: req.user.id,
     payload: req.body,
   });
+  const adminConversation = await createAdminConversationForDispute(
+    dispute,
+    req.user.id
+  );
 
   const otherParty =
     String(contract.client) === String(req.user.id)
@@ -767,6 +775,22 @@ const createMyContractDispute = catchAsync(async (req, res) => {
     title: "Contract dispute opened",
     message: `${req.user.name || "A user"} opened a dispute for "${contract.title}".`,
     link: `/contracts/${contract._id}`,
+    metadata: {
+      contract: contract._id,
+      job: contract.job,
+      proposal: contract.proposal,
+      dispute: dispute._id,
+    },
+  });
+
+  await createAdminNotifications({
+    actor: req.user.id,
+    type: "admin.dispute_created",
+    title: "New dispute opened",
+    message: `${req.user.name || "A user"} opened a dispute for "${contract.title}".`,
+    link: adminConversation
+      ? `/messages/${adminConversation._id}`
+      : "/admin/disputes",
     metadata: {
       contract: contract._id,
       job: contract.job,

@@ -50,3 +50,57 @@ export async function reviewDisputeAction(
 
   return successResult(response?.data || response);
 }
+
+export async function reviewPaymentVerificationAction(
+  requestId,
+  decision,
+  approvedAmount = "",
+  notes = "",
+) {
+  await requireAdminSession();
+
+  const response = await apiServerRequest(
+    `/api/admin/payment-verification/${requestId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        decision,
+        approvedAmount:
+          decision === "partial" ? Number(approvedAmount || 0) : undefined,
+        notes: typeof notes === "string" ? notes.trim() : "",
+      }),
+    },
+  );
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/pending-payments");
+  revalidatePath("/wallet");
+  revalidatePath("/dashboard/client/wallet");
+
+  return successResult(response?.data || response);
+}
+
+export async function reviewWithdrawalReleaseAction(
+  requestId,
+  decision,
+  notes = "",
+) {
+  await requireAdminSession();
+
+  const response = await apiServerRequest(
+    `/api/admin/withdrawals/${requestId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        decision,
+        notes: typeof notes === "string" ? notes.trim() : "",
+      }),
+    },
+  );
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/finance");
+  revalidatePath("/wallet");
+
+  return successResult(response?.data || response);
+}

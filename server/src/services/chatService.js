@@ -1,6 +1,7 @@
 const AppError = require("../utils/appError");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
+const User = require("../models/User");
 
 const getParticipantRole = (conversation, userId) => {
   const normalizedUserId = userId.toString();
@@ -26,7 +27,8 @@ const getConversationForParticipant = async (conversationId, userId) =>
     .populate("client", "name email")
     .populate("freelancer", "name email")
     .populate("job", "title status category budget deadline")
-    .populate("proposal", "amount deliveryDays status");
+    .populate("proposal", "amount deliveryDays status")
+    .populate("dispute", "reason status");
 
 const getConversationByProposalForParticipant = async (proposalId, userId) =>
   Conversation.findOne({
@@ -36,7 +38,8 @@ const getConversationByProposalForParticipant = async (proposalId, userId) =>
     .populate("client", "name email")
     .populate("freelancer", "name email")
     .populate("job", "title status category budget deadline")
-    .populate("proposal", "amount deliveryDays status");
+    .populate("proposal", "amount deliveryDays status")
+    .populate("dispute", "reason status");
 
 const listConversationsForUser = async (userId) =>
   Conversation.find({
@@ -46,7 +49,8 @@ const listConversationsForUser = async (userId) =>
     .populate("client", "name email")
     .populate("freelancer", "name email")
     .populate("job", "title status")
-    .populate("proposal", "status amount");
+    .populate("proposal", "status amount")
+    .populate("dispute", "reason status");
 
 const listMessagesForConversation = async (conversationId) =>
   Message.find({ conversation: conversationId })
@@ -75,6 +79,33 @@ const createConversationFromProposal = async (proposal, initiatorId) => {
     client: clientId,
     freelancer: freelancerId,
     initiatedBy: initiatorId,
+    kind: "proposal",
+  });
+};
+
+const createAdminConversationForDispute = async (dispute, initiatorId) => {
+  const existingConversation = await Conversation.findOne({
+    dispute: dispute._id,
+  });
+
+  if (existingConversation) {
+    return existingConversation;
+  }
+
+  const adminUser = await User.findOne({ role: "admin" }).select("_id");
+
+  if (!adminUser) {
+    return null;
+  }
+
+  return Conversation.create({
+    dispute: dispute._id,
+    proposal: dispute.proposal || undefined,
+    job: dispute.job,
+    client: dispute.openedBy,
+    freelancer: adminUser._id,
+    initiatedBy: initiatorId,
+    kind: "dispute_support",
   });
 };
 
@@ -139,6 +170,7 @@ const getUnreadConversationCountForUser = async (userId) => {
 };
 
 module.exports = {
+  createAdminConversationForDispute,
   createConversationFromProposal,
   getConversationByProposalForParticipant,
   getConversationForParticipant,

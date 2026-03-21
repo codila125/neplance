@@ -161,12 +161,18 @@ export function MessageThreadView({
         <div>
           <h2 className="mb-2">{otherParticipant?.name || "Conversation"}</h2>
           <p className="text-muted mb-2">
-            {conversation.job?.title || "Job conversation"}
+            {conversation.kind === "dispute_support"
+              ? `Admin support${conversation.job?.title ? ` · ${conversation.job.title}` : ""}`
+              : conversation.job?.title || "Job conversation"}
           </p>
           <div className="flex gap-3 flex-wrap text-sm text-muted">
-            <span>
-              Proposal status: {conversation.proposal?.status || "pending"}
-            </span>
+            {conversation.dispute ? (
+              <span>Dispute: {conversation.dispute.reason}</span>
+            ) : (
+              <span>
+                Proposal status: {conversation.proposal?.status || "pending"}
+              </span>
+            )}
             {conversation.proposal?.amount ? (
               <span>Budget offer: NPR {conversation.proposal.amount}</span>
             ) : null}

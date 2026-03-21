@@ -10,6 +10,7 @@ const { getReviewSummaryForUser } = require("../services/reviewService");
 const {
   provisionWalletId,
 } = require("../blockchain/controllers/walletProvisionController");
+const { createAdminNotifications } = require("../services/notificationService");
 
 const attachReviewSummaryToUser = async (user) => {
   if (!user) {
@@ -88,6 +89,19 @@ const updateMyProfile = catchAsync(async (req, res, next) => {
     new: true,
     runValidators: true,
   });
+
+  if (updates.verificationStatus === "pending") {
+    await createAdminNotifications({
+      actor: updatedUser._id,
+      type: "admin.verification_submitted",
+      title: "Verification submitted",
+      message: `${updatedUser.name} uploaded verification documents for review.`,
+      link: "/admin/pending-verification",
+      metadata: {
+        user: updatedUser._id,
+      },
+    });
+  }
 
   res.status(200).json({
     status: "success",

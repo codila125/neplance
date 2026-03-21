@@ -31,7 +31,7 @@ export function MessagesLayoutShell({
             <div className="messages-sidebar-header">
               <h1 className="messages-sidebar-title">Messages</h1>
               <p className="text-muted mb-0">
-                Conversations started from client-reviewed proposals.
+                Proposal chats and admin support conversations.
               </p>
             </div>
 
@@ -71,7 +71,9 @@ export function MessagesLayoutShell({
                         </span>
                       </div>
                       <div className="messages-conversation-job">
-                        {conversation.job?.title || "Job"}
+                        {conversation.kind === "dispute_support"
+                          ? `Dispute support${conversation.job?.title ? ` · ${conversation.job.title}` : ""}`
+                          : conversation.job?.title || "Job"}
                       </div>
                       <div className="messages-conversation-preview">
                         {conversation.lastMessagePreview ||
