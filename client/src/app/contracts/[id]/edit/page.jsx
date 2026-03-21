@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { ContractCreatePageClient } from "@/features/contracts/components/ContractCreatePageClient";
 import { requireSession } from "@/lib/server/auth";
+import { getBookingByIdServer } from "@/lib/server/bookings";
 import { getContractByIdServer } from "@/lib/server/contracts";
 import { getProposalByIdServer } from "@/lib/server/proposals";
 import { getMyWalletServer } from "@/lib/server/wallet";
@@ -31,11 +32,14 @@ export default async function EditContractPage({ params }) {
   }
 
   const proposalId = contract.proposal?._id || contract.proposal;
-  const [proposal, walletData] = await Promise.all([
+  const [proposal, walletData, booking] = await Promise.all([
     contract.proposal?.job
       ? contract.proposal
       : getProposalByIdServer(proposalId),
     getMyWalletServer(),
+    contract.booking?._id || contract.booking
+      ? getBookingByIdServer(contract.booking?._id || contract.booking)
+      : Promise.resolve(null),
   ]);
 
   if (!proposal) {
@@ -47,6 +51,7 @@ export default async function EditContractPage({ params }) {
       proposal={proposal}
       walletData={walletData}
       contract={contract}
+      booking={booking}
     />
   );
 }

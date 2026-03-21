@@ -395,6 +395,7 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
                 [index]: value,
               }))
             }
+            isPhysicalContract={currentContract.serviceMode === "physical"}
           />
 
           <ContractReviewsSection

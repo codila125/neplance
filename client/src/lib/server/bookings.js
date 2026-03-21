@@ -9,3 +9,8 @@ export async function getBookingByProposalServer(proposalId) {
   const data = await apiServerCall(`/api/bookings/proposal/${proposalId}`);
   return data?.data || null;
 }
+
+export async function listMyBookingsServer() {
+  const data = await apiServerCall("/api/bookings");
+  return data?.data || [];
+}

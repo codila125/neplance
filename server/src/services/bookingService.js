@@ -127,6 +127,10 @@ const generateBookingVisitOtp = async ({ booking, clientId }) => {
     throw new AppError("This booking has already moved to contract creation", 400);
   }
 
+  if (booking.visitVerification?.status === "VERIFIED") {
+    throw new AppError("This booking visit has already been verified", 400);
+  }
+
   booking.visitVerification = {
     ...(booking.visitVerification || {}),
     status: "PENDING",

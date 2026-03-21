@@ -30,8 +30,11 @@ const mapContractMilestone = (milestone, index) => ({
 
 const buildInitialState = (proposal, contract, booking = null) => {
   const source = contract || {};
-  const initialContractType = source.contractType || CONTRACT_TYPE.FULL_PROJECT;
+  const initialContractType = booking?._id
+    ? CONTRACT_TYPE.FULL_PROJECT
+    : source.contractType || CONTRACT_TYPE.FULL_PROJECT;
   const initialMilestones =
+    !booking?._id &&
     initialContractType === CONTRACT_TYPE.MILESTONE_BASED &&
     Array.isArray(source.milestones) &&
     source.milestones.length > 0
@@ -174,6 +177,7 @@ export function ContractCreatePageClient({
     !isPhysicalAmountLocked ||
     formState.contractType !== CONTRACT_TYPE.MILESTONE_BASED ||
     milestoneTotal === lockedQuoteAmount;
+  const isPhysicalBookingFlow = formState.serviceMode === "physical" && Boolean(booking?._id);
 
   return (
     <form action={formAction} className="card">
@@ -432,6 +436,23 @@ export function ContractCreatePageClient({
         </div>
       ) : null}
 
+      {isPhysicalBookingFlow ? (
+        <div
+          className="card-sm mb-6"
+          style={{
+            background: "color-mix(in srgb, var(--color-primary) 8%, white)",
+            border: "1px solid color-mix(in srgb, var(--color-primary) 22%, transparent)",
+          }}
+        >
+          <strong>Physical booking contract</strong>
+          <p className="text-muted mb-0" style={{ marginTop: "var(--space-2)" }}>
+            This contract is created from the freelancer's on-site booking quote.
+            The payment structure is fixed to full-project, and the amount stays
+            locked to the quoted value.
+          </p>
+        </div>
+      ) : null}
+
       <div className="form-group">
         <label className="form-label" htmlFor="contract-description">
           Project Scope
@@ -469,7 +490,7 @@ export function ContractCreatePageClient({
           className="form-select"
           value={formState.contractType}
           onChange={(event) => handleChange("contractType", event.target.value)}
-          disabled={isPending}
+          disabled={isPending || isPhysicalBookingFlow}
         >
           <option value={CONTRACT_TYPE.FULL_PROJECT}>
             Full project payment
@@ -495,7 +516,7 @@ export function ContractCreatePageClient({
             disabled={isPending || isPhysicalAmountLocked}
           />
         </div>
-      ) : (
+      ) : !isPhysicalBookingFlow ? (
         <div className="form-group">
           <div className="flex items-center justify-between mb-4">
             <div className="form-label mb-0">Milestones</div>
@@ -625,7 +646,7 @@ export function ContractCreatePageClient({
             </p>
           ) : null}
         </div>
-      )}
+      ) : null}
 
       <div className="flex justify-end">
         <button

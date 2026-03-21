@@ -126,6 +126,7 @@ export function ContractWorkSection({
   onMilestoneAttachmentUploaded,
   onMilestoneEvidenceChange,
   onMilestoneRevisionNotesChange,
+  isPhysicalContract = false,
 }) {
   return isMilestoneContract ? (
     <>
@@ -371,39 +372,66 @@ export function ContractWorkSection({
           </div>
         ) : canSubmitDelivery ? (
           <div className="card-sm">
-            <UploadRecommendation />
+            {isPhysicalContract ? (
+              <div
+                className="card-sm"
+                style={{
+                  marginBottom: "var(--space-3)",
+                  background:
+                    "color-mix(in srgb, var(--color-primary) 7%, white)",
+                }}
+              >
+                <strong>Mark physical work as complete</strong>
+                <p
+                  className="text-muted mb-0"
+                  style={{ marginTop: "var(--space-2)" }}
+                >
+                  Physical jobs do not require work attachments here. Add a short
+                  completion note and mark the on-site work as finished so the
+                  client can review it.
+                </p>
+              </div>
+            ) : (
+              <UploadRecommendation />
+            )}
             <textarea
               className="form-input"
               rows={4}
-              placeholder="Share the final delivery details for this contract"
+              placeholder={
+                isPhysicalContract
+                  ? "Confirm the on-site work is complete and share any final notes"
+                  : "Share the final delivery details for this contract"
+              }
               value={deliveryNotes}
               onChange={(event) => onDeliveryNotesChange(event.target.value)}
             />
-            <div style={{ marginTop: "var(--space-3)" }}>
-              <CloudinaryFileUploader
-                folder="neplance/contracts/deliveries"
-                buttonLabel="Upload Work Attachment"
-                onUploaded={onDeliveryAttachmentUploaded}
-              />
-              <AttachmentLinks
-                attachments={deliveryAttachments}
-                emptyLabel="No attachments selected yet."
-              />
-              {deliveryAttachments.length ? (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {deliveryAttachments.map((attachment, index) => (
-                    <button
-                      key={`${attachment.url}-${index}`}
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => onDeliveryAttachmentRemove(index)}
-                    >
-                      Remove {attachment.name || `File ${index + 1}`}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+            {!isPhysicalContract ? (
+              <div style={{ marginTop: "var(--space-3)" }}>
+                <CloudinaryFileUploader
+                  folder="neplance/contracts/deliveries"
+                  buttonLabel="Upload Work Attachment"
+                  onUploaded={onDeliveryAttachmentUploaded}
+                />
+                <AttachmentLinks
+                  attachments={deliveryAttachments}
+                  emptyLabel="No attachments selected yet."
+                />
+                {deliveryAttachments.length ? (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {deliveryAttachments.map((attachment, index) => (
+                      <button
+                        key={`${attachment.url}-${index}`}
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => onDeliveryAttachmentRemove(index)}
+                      >
+                        Remove {attachment.name || `File ${index + 1}`}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <div className="flex justify-end mt-3">
               <button
                 type="button"
@@ -411,7 +439,11 @@ export function ContractWorkSection({
                 onClick={handleSubmitDelivery}
                 disabled={isPending}
               >
-                {isPending ? "Submitting..." : "Submit Final Work"}
+                {isPending
+                  ? "Submitting..."
+                  : isPhysicalContract
+                    ? "Mark Work Complete"
+                    : "Submit Final Work"}
               </button>
             </div>
           </div>
