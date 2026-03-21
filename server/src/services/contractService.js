@@ -1,5 +1,6 @@
 const Contract = require("../models/Contract");
 const Proposal = require("../models/Proposal");
+const User = require("../models/User");
 const AppError = require("../utils/appError");
 const {
   CANCELLATION_STATUS,
@@ -16,8 +17,14 @@ const {
   releaseContractFunds,
   reserveContractFunds,
   syncPendingContractFunding,
+  linkLatestFundingTransactionToContract,
   updateFundingStatus,
 } = require("./walletService");
+const {
+  syncAcceptedCancellationToBlockchainStrict,
+  syncCompletedMilestoneToBlockchain,
+  syncSignedContractToBlockchain,
+} = require("../blockchain/controllers/contractSyncController");
 
 const normalizeContractType = (value) =>
   value === CONTRACT_TYPE.MILESTONE_BASED
@@ -194,6 +201,13 @@ const createContractFromProposal = async ({
         },
       }
     );
+
+    await linkLatestFundingTransactionToContract({
+      clientId,
+      contractId: contract._id,
+      contractTitle,
+      amount: totalAmount,
+    });
   } catch (error) {
     const rollbackContract = new Contract({
       client: clientId,
@@ -216,6 +230,19 @@ const createContractFromProposal = async ({
 const signContract = async (contract, freelancerId) => {
   if (String(contract.freelancer) !== String(freelancerId)) {
     throw new AppError("Only the assigned freelancer can sign the contract", 403);
+  }
+
+  const [freelancer, client] = await Promise.all([
+    User.findById(freelancerId).select("walletId"),
+    User.findById(contract.client).select("walletId"),
+  ]);
+
+  if (!freelancer?.walletId) {
+    throw new AppError("Freelancer must have a wallet id before signing", 400);
+  }
+
+  if (!client?.walletId) {
+    throw new AppError("Client must have a wallet id before contract signing", 400);
   }
 
   if (contract.status !== CONTRACT_STATUS.PENDING_FREELANCER_SIGNATURE) {
@@ -243,7 +270,42 @@ const signContract = async (contract, freelancerId) => {
   contract.status = CONTRACT_STATUS.ACTIVE;
   contract.updatedAt = new Date();
   await contract.save();
+
+  try {
+    await syncSignedContractToBlockchain(contract._id);
+  } catch (error) {
+    contract.freelancerSignature = {
+      ...(contract.freelancerSignature || {}),
+      signedAt: undefined,
+    };
+    contract.status = CONTRACT_STATUS.PENDING_FREELANCER_SIGNATURE;
+    contract.updatedAt = new Date();
+    await contract.save();
+
+    throw new AppError(
+      error?.message || "Contract signing failed due to blockchain sync error",
+      error?.statusCode || 502
+    );
+  }
+
   return contract;
+};
+
+const withBlockchainRollback = async ({
+  contract,
+  apply,
+  rollback,
+  blockchainAction,
+  errorMessage,
+}) => {
+  await apply();
+
+  try {
+    await blockchainAction();
+  } catch (error) {
+    await rollback();
+    throw new AppError(error?.message || errorMessage, error?.statusCode || 502);
+  }
 };
 
 const ensurePendingFreelancerSignature = (contract) => {
@@ -361,8 +423,33 @@ const approveContractMilestone = async ({
     throw new AppError("Milestone has not been submitted yet", 400);
   }
 
-  milestone.status = MILESTONE_STATUS.COMPLETED;
-  milestone.approvedAt = new Date();
+  const previousContractStatus = contract.status;
+  const previousCompletedAt = contract.completedAt;
+
+  await withBlockchainRollback({
+    contract,
+    apply: async () => {
+      milestone.status = MILESTONE_STATUS.COMPLETED;
+      milestone.approvedAt = new Date();
+      contract.updatedAt = new Date();
+      await contract.save();
+    },
+    rollback: async () => {
+      milestone.status = MILESTONE_STATUS.SUBMITTED;
+      milestone.approvedAt = undefined;
+      contract.status = previousContractStatus;
+      contract.completedAt = previousCompletedAt;
+      contract.updatedAt = new Date();
+      await contract.save();
+    },
+    blockchainAction: async () => {
+      await syncCompletedMilestoneToBlockchain({
+        contractId: contract._id,
+        milestoneIndex,
+      });
+    },
+    errorMessage: "Milestone approval failed due to blockchain sync error",
+  });
 
   await releaseContractFunds({
     contract,
@@ -381,6 +468,7 @@ const approveContractMilestone = async ({
 
   contract.updatedAt = new Date();
   await contract.save();
+
   return { contract, allCompleted };
 };
 
@@ -458,6 +546,22 @@ const approveContractCompletion = async ({ contract, clientId }) => {
     if (!allCompleted) {
       throw new AppError("All milestones must be approved first", 400);
     }
+  }
+
+  const hasMilestones = Array.isArray(contract.milestones) && contract.milestones.length > 0;
+  if (!hasMilestones) {
+    await withBlockchainRollback({
+      contract,
+      apply: async () => {},
+      rollback: async () => {},
+      blockchainAction: async () => {
+        await syncCompletedMilestoneToBlockchain({
+          contractId: contract._id,
+          milestoneIndex: 0,
+        });
+      },
+      errorMessage: "Contract completion failed due to blockchain milestone sync error",
+    });
   }
 
   const unreleasedAmount =
@@ -613,6 +717,8 @@ const respondContractCancellation = async ({ contract, userId, action }) => {
   contract.cancellation.respondedAt = new Date();
 
   if (accepted) {
+    await syncAcceptedCancellationToBlockchainStrict({ contractId: contract._id });
+
     const refundableAmount =
       Number(contract.fundedAmount || 0) -
       Number(contract.releasedAmount || 0) -

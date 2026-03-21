@@ -27,6 +27,10 @@ const walletTransactionSchema = new mongoose.Schema(
       trim: true,
       default: "completed",
     },
+    contract: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Contract",
+    },
     createdAt: {
       type: Date,
       default: Date.now,

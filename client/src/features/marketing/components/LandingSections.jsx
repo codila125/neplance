@@ -303,14 +303,180 @@ export const TestimonialsSection = () => {
 // Categories Section
 export const CategoriesSection = () => {
   const categories = [
-    { name: "Web Development", icon: "💻", count: "2,500+" },
-    { name: "Mobile Development", icon: "📱", count: "1,800+" },
-    { name: "Design & Creative", icon: "🎨", count: "3,200+" },
-    { name: "Writing & Translation", icon: "✍️", count: "1,500+" },
-    { name: "Marketing & Sales", icon: "📈", count: "1,200+" },
-    { name: "Admin & Support", icon: "⚙️", count: "900+" },
-    { name: "Data Science", icon: "📊", count: "1,100+" },
-    { name: "Engineering", icon: "🔧", count: "800+" },
+    {
+      name: "Web Development",
+      count: "2,500+",
+      icon: (
+        <svg
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <title>Web Development</title>
+          <rect x="3" y="4" width="18" height="14" rx="2" />
+          <path d="M8 21h8" />
+          <path d="m9 10-2 2 2 2" />
+          <path d="m15 10 2 2-2 2" />
+        </svg>
+      ),
+    },
+    {
+      name: "Mobile Development",
+      count: "1,800+",
+      icon: (
+        <svg
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <title>Mobile Development</title>
+          <rect x="7" y="2" width="10" height="20" rx="2" />
+          <path d="M11 5h2" />
+          <circle cx="12" cy="18" r="1" />
+        </svg>
+      ),
+    },
+    {
+      name: "Design & Creative",
+      count: "3,200+",
+      icon: (
+        <svg
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <title>Design and Creative</title>
+          <circle cx="13.5" cy="6.5" r="2.5" />
+          <circle cx="7.5" cy="10.5" r="2" />
+          <circle cx="16.5" cy="12" r="2" />
+          <path d="M7 20a3 3 0 1 1 0-6h4.5a5.5 5.5 0 1 0 0-11H11" />
+        </svg>
+      ),
+    },
+    {
+      name: "Writing & Translation",
+      count: "1,500+",
+      icon: (
+        <svg
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <title>Writing and Translation</title>
+          <path d="M4 20h16" />
+          <path d="m13 6 5 5" />
+          <path d="M6 16l9-9 3 3-9 9H6z" />
+        </svg>
+      ),
+    },
+    {
+      name: "Marketing & Sales",
+      count: "1,200+",
+      icon: (
+        <svg
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <title>Marketing and Sales</title>
+          <path d="M3 19h18" />
+          <path d="M5 15l4-4 3 3 6-7" />
+          <path d="M15 7h3v3" />
+        </svg>
+      ),
+    },
+    {
+      name: "Admin & Support",
+      count: "900+",
+      icon: (
+        <svg
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <title>Admin and Support</title>
+          <path d="M3 5h18" />
+          <path d="M7 5v14" />
+          <path d="M3 19h18" />
+          <path d="M12 10h7" />
+          <path d="M12 14h5" />
+        </svg>
+      ),
+    },
+    {
+      name: "Data Science",
+      count: "1,100+",
+      icon: (
+        <svg
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <title>Data Science</title>
+          <path d="M4 19V9" />
+          <path d="M10 19V5" />
+          <path d="M16 19v-8" />
+          <path d="M22 19V3" />
+        </svg>
+      ),
+    },
+    {
+      name: "Engineering",
+      count: "800+",
+      icon: (
+        <svg
+          width="30"
+          height="30"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <title>Engineering</title>
+          <path d="m14.7 6.3 3 3" />
+          <path d="m4 20 6.2-6.2" />
+          <path d="m6.8 12.8 4.4 4.4" />
+          <path d="m18.5 2.5 3 3-8.8 8.8-3-3z" />
+        </svg>
+      ),
+    },
   ];
 
   return (
@@ -341,7 +507,18 @@ export const CategoriesSection = () => {
               }}
             >
               <div
-                style={{ fontSize: "2.5rem", marginBottom: "var(--space-4)" }}
+                style={{
+                  width: "64px",
+                  height: "64px",
+                  borderRadius: "var(--radius-xl)",
+                  background:
+                    "linear-gradient(135deg, var(--color-primary-lightest) 0%, var(--color-primary-100) 100%)",
+                  color: "var(--color-primary)",
+                  margin: "0 auto var(--space-4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
               >
                 {category.icon}
               </div>

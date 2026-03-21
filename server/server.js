@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const AppError = require("./src/utils/appError");
 const connectDB = require("./src/config/db");
+const { checkBlockchainConnection } = require("./src/config/blockchain");
 
 const frontendUrl =
   process.env.FRONTEND_BASE_URL ||
@@ -37,6 +38,7 @@ const notificationRouter = require("./src/routes/notificationRoutes");
 const chatRouter = require("./src/routes/chatRoutes");
 const contractRouter = require("./src/routes/contractRoutes");
 const walletRouter = require("./src/routes/walletRoutes");
+const blockchainRouter = require("./src/routes/blockchainRoutes");
 const errorController = require("./src/controllers/errorController");
 
 app.use("/api", indexRouter);
@@ -50,6 +52,7 @@ app.use("/api/notifications", notificationRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/contracts", contractRouter);
 app.use("/api/wallet", walletRouter);
+app.use("/api/blockchain", blockchainRouter);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", db: mongoose.connection.readyState });
@@ -65,6 +68,7 @@ const PORT = process.env.SERVER_PORT || 5000;
 
 const startServer = async () => {
   await connectDB();
+  await checkBlockchainConnection();
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 };
 

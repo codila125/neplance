@@ -9,6 +9,7 @@ import {
 } from "@/lib/actions/notifications";
 import { logoutAction, switchRoleAction } from "@/lib/actions/session";
 import { API_BASE_URL } from "@/lib/api/config";
+import { WalletCoinIcon } from "@/shared/components/WalletCoinIcon";
 
 const NAVBAR_POLL_INTERVAL_MS = 4000;
 const NAVBAR_NOTIFICATION_LIMIT = 3;
@@ -133,6 +134,7 @@ export function Navbar({
 
   const isActive = (path) => pathname === path;
   const isMessagesActive = pathname.startsWith("/messages");
+  const isWalletActive = pathname.startsWith("/wallet");
   const isNotificationsActive = pathname.startsWith("/notifications");
 
   // Close dropdown on outside click
@@ -246,12 +248,18 @@ export function Navbar({
               </a>
             </li>
             <li>
-              <Link href="/login" className="navbar-link">
+              <Link
+                href="/login"
+                className="btn btn-secondary btn-sm navbar-auth-btn"
+              >
                 Log In
               </Link>
             </li>
             <li>
-              <Link href="/signup" className="btn btn-primary btn-sm">
+              <Link
+                href="/signup"
+                className="btn btn-primary btn-sm navbar-auth-btn"
+              >
                 Sign Up
               </Link>
             </li>
@@ -319,6 +327,15 @@ export function Navbar({
                 </span>
               </>
             ) : null}
+          </Link>
+
+          <Link
+            href="/wallet"
+            className={`navbar-icon-link ${isWalletActive ? "active" : ""}`}
+            aria-label="Wallet"
+            title="Wallet"
+          >
+            <WalletCoinIcon />
           </Link>
 
           <div className="profile-menu" ref={notificationsRef}>
@@ -513,6 +530,14 @@ export function Navbar({
                   Messages
                 </Link>
                 <Link
+                  href="/wallet"
+                  className="dropdown-item"
+                  onClick={() => setShowDropdown(false)}
+                >
+                  <WalletCoinIcon className="dropdown-icon" />
+                  Wallet
+                </Link>
+                <Link
                   href="/notifications"
                   className="dropdown-item"
                   onClick={() => setShowDropdown(false)}
@@ -556,6 +581,32 @@ export function Navbar({
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                   My Profile
+                </Link>
+                <Link
+                  href="/chain"
+                  className="dropdown-item"
+                  onClick={() => setShowDropdown(false)}
+                >
+                  <svg
+                    className="dropdown-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <title>Blockchain</title>
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <path d="M10 6h4" />
+                    <path d="M17.5 10v4" />
+                    <path d="M14 17.5h-4" />
+                    <path d="M6.5 14v-4" />
+                  </svg>
+                  Blockchain
                 </Link>
                 {hasBothRoles && (
                   <form action={switchRoleAction}>

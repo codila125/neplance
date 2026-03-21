@@ -63,8 +63,7 @@ export async function createContractAction(_previousState, formData) {
 
     const contractId = response?.data?._id;
     revalidatePath("/dashboard");
-    revalidatePath("/dashboard/client/wallet");
-    revalidatePath("/dashboard/freelancer/earnings");
+    revalidatePath("/wallet");
     revalidatePath("/messages");
     revalidatePath(`/proposals/${data.proposalId}`);
 
@@ -122,7 +121,7 @@ export async function updateContractAction(
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/dashboard/client/wallet");
+    revalidatePath("/wallet");
     revalidatePath(`/contracts/${contractId}`);
     redirect(`/contracts/${contractId}`);
   } catch (error) {
@@ -145,8 +144,7 @@ export async function signContractAction(contractId) {
   });
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/client/wallet");
-  revalidatePath("/dashboard/freelancer/earnings");
+  revalidatePath("/wallet");
   revalidatePath(`/contracts/${contractId}`);
   revalidatePath("/messages");
 
@@ -183,7 +181,7 @@ export async function cancelPendingContractAction(contractId) {
   const jobId = response?.data?.jobId;
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/client/wallet");
+  revalidatePath("/wallet");
   revalidatePath("/dashboard/client/proposals");
   revalidatePath("/dashboard/freelancer/active-proposals");
   revalidatePath("/proposals");
@@ -221,8 +219,7 @@ export async function submitContractMilestoneAction(
   );
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/client/wallet");
-  revalidatePath("/dashboard/freelancer/earnings");
+  revalidatePath("/wallet");
   revalidatePath(`/contracts/${contractId}`);
   revalidatePath("/messages");
 
@@ -243,8 +240,7 @@ export async function approveContractMilestoneAction(
   );
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/client/wallet");
-  revalidatePath("/dashboard/freelancer/earnings");
+  revalidatePath("/wallet");
   revalidatePath(`/contracts/${contractId}`);
   revalidatePath("/messages");
 
@@ -296,8 +292,7 @@ export async function submitContractWorkAction(
   );
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/client/wallet");
-  revalidatePath("/dashboard/freelancer/earnings");
+  revalidatePath("/wallet");
   revalidatePath(`/contracts/${contractId}`);
   revalidatePath("/messages");
 
@@ -335,8 +330,7 @@ export async function completeContractAction(contractId) {
   );
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/client/wallet");
-  revalidatePath("/dashboard/freelancer/earnings");
+  revalidatePath("/wallet");
   revalidatePath(`/contracts/${contractId}`);
   revalidatePath("/messages");
 
@@ -357,8 +351,7 @@ export async function requestContractCancellationAction(contractId, reason) {
   );
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/client/wallet");
-  revalidatePath("/dashboard/freelancer/earnings");
+  revalidatePath("/wallet");
   revalidatePath(`/contracts/${contractId}`);
   revalidatePath("/messages");
 
@@ -438,8 +431,47 @@ export async function createContractDisputeAction(contractId, payload) {
   );
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/client/wallet");
-  revalidatePath("/dashboard/freelancer/earnings");
+  revalidatePath("/wallet");
+  revalidatePath(`/contracts/${contractId}`);
+  revalidatePath("/admin/disputes");
+  revalidatePath("/notifications");
+
+  return successResult(response?.data || response);
+}
+
+export async function raiseTransactionDisputeAction(
+  contractId,
+  transactionId,
+  payload,
+) {
+  await requireSession();
+
+  const reason =
+    typeof payload.reason === "string" ? payload.reason.trim() : "";
+  const descriptionBase =
+    typeof payload.description === "string" ? payload.description.trim() : "";
+  const description = descriptionBase
+    ? `${descriptionBase}\n\nWallet transaction reference: ${transactionId}`
+    : `Wallet transaction reference: ${transactionId}`;
+
+  if (!reason) {
+    throw new Error("Please provide a dispute reason.");
+  }
+
+  const response = await apiServerRequest(
+    `/api/contracts/${contractId}/disputes`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        reason,
+        description,
+        evidenceAttachments: [],
+      }),
+    },
+  );
+
+  revalidatePath("/dashboard");
+  revalidatePath("/wallet");
   revalidatePath(`/contracts/${contractId}`);
   revalidatePath("/admin/disputes");
   revalidatePath("/notifications");

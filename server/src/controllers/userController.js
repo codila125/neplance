@@ -7,6 +7,9 @@ const Review = require("../models/Review");
 const { pickUserFields } = require("../utils/userFields");
 const { JOB_STATUS, PROPOSAL_STATUS } = require("../constants/statuses");
 const { getReviewSummaryForUser } = require("../services/reviewService");
+const {
+  provisionWalletId,
+} = require("../blockchain/controllers/walletProvisionController");
 
 const attachReviewSummaryToUser = async (user) => {
   if (!user) {
@@ -344,10 +347,16 @@ const reviewUserVerification = catchAsync(async (req, res, next) => {
     throw new AppError("This user has no verification documents", 400);
   }
 
+  const walletId =
+    decision === "approve" && !user.walletId
+      ? await provisionWalletId()
+      : user.walletId;
+
   const updatedUser = await User.findByIdAndUpdate(
     user._id,
     {
       verificationStatus: decision === "approve" ? "verified" : "rejected",
+      ...(decision === "approve" ? { walletId } : {}),
       verificationReviewedAt: new Date(),
       verificationReviewedBy: req.user.id,
       verificationRejectionReason:

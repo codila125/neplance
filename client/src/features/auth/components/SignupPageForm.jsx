@@ -344,8 +344,15 @@ export function SignupPageForm({ error }) {
         </div>
       )}
 
-      <form action={formAction}>
-        <fieldset className="form-group">
+      <form
+        action={formAction}
+        className="signup-form"
+        style={{ display: "grid", gap: "var(--space-4)" }}
+      >
+        <fieldset
+          className="form-group"
+          style={{ border: "none", padding: 0, margin: 0 }}
+        >
           <legend className="form-label" style={{ marginBottom: "0.75rem" }}>
             I want to:
           </legend>
@@ -362,19 +369,24 @@ export function SignupPageForm({ error }) {
               return (
                 <label
                   key={role.value}
+                  className={`btn ${isActive ? "btn-primary" : ""}`}
                   style={{
+                    width: "100%",
                     border: isActive
-                      ? "1px solid var(--color-primary)"
+                      ? "none"
                       : "1px solid var(--color-border-light)",
-                    backgroundColor: isActive
-                      ? "var(--color-primary-lightest)"
-                      : "white",
+                    background: isActive ? undefined : "white",
+                    color: isActive ? "white" : "var(--color-text)",
+                    boxShadow: isActive ? undefined : "none",
                     borderRadius: "var(--radius-lg)",
                     padding: "var(--space-4)",
                     display: "flex",
                     gap: "var(--space-3)",
                     cursor: "pointer",
                     alignItems: "flex-start",
+                    justifyContent: "flex-start",
+                    textAlign: "left",
+                    whiteSpace: "normal",
                   }}
                 >
                   <input
@@ -383,21 +395,24 @@ export function SignupPageForm({ error }) {
                     value={role.value}
                     checked={isActive}
                     onChange={() => handleRoleToggle(role.value)}
-                    style={{ marginTop: "0.2rem" }}
+                    className="sr-only"
                   />
                   <span>
                     <strong
                       style={{
                         display: "block",
                         marginBottom: "0.2rem",
-                        color: "var(--color-text)",
+                        color: isActive ? "white" : "var(--color-text)",
                       }}
                     >
                       {role.label}
                     </strong>
                     <span
-                      className="text-light"
-                      style={{ fontSize: "var(--text-sm)" }}
+                      className={isActive ? "" : "text-light"}
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        color: isActive ? "white" : undefined,
+                      }}
                     >
                       {role.description}
                     </span>
@@ -532,7 +547,7 @@ export function SignupPageForm({ error }) {
             <select
               id="province"
               name="province"
-              className="form-select"
+              className={`form-select ${fieldErrors.province ? "form-select-error" : ""}`}
               value={selectedProvince}
               onChange={handleProvinceChange}
             >
@@ -604,7 +619,7 @@ export function SignupPageForm({ error }) {
               id="locality"
               name="locality"
               type="text"
-              className={`form-input ${fieldErrors.city ? "form-input-error" : ""}`}
+              className={`form-input ${fieldErrors.locality || fieldErrors.city ? "form-input-error" : ""}`}
               placeholder={
                 selectedDistrict
                   ? "Enter your area or neighborhood"
@@ -613,8 +628,10 @@ export function SignupPageForm({ error }) {
               defaultValue={values.locality || values.city || ""}
               disabled={!selectedDistrict}
             />
-            {fieldErrors.city && (
-              <p className="form-error">{fieldErrors.city}</p>
+            {(fieldErrors.locality || fieldErrors.city) && (
+              <p className="form-error">
+                {fieldErrors.locality || fieldErrors.city}
+              </p>
             )}
           </div>
         </div>
@@ -623,7 +640,6 @@ export function SignupPageForm({ error }) {
           <>
             <div
               style={{
-                marginTop: "var(--space-6)",
                 padding: "var(--space-4)",
                 backgroundColor: "var(--color-bg-light)",
                 borderRadius: "var(--radius-lg)",
@@ -724,7 +740,7 @@ export function SignupPageForm({ error }) {
                 <select
                   id="experienceLevel"
                   name="experienceLevel"
-                  className="form-select"
+                  className={`form-select ${fieldErrors.experienceLevel ? "form-select-error" : ""}`}
                   defaultValue={values.experienceLevel || "entry"}
                 >
                   <option value="entry">Entry</option>
@@ -742,7 +758,7 @@ export function SignupPageForm({ error }) {
                 <select
                   id="jobTypePreference"
                   name="jobTypePreference"
-                  className="form-select"
+                  className={`form-select ${fieldErrors.jobTypePreference ? "form-select-error" : ""}`}
                   defaultValue={values.jobTypePreference || "digital"}
                 >
                   <option value="digital">Digital</option>
@@ -760,7 +776,7 @@ export function SignupPageForm({ error }) {
                 <select
                   id="availabilityStatus"
                   name="availabilityStatus"
-                  className="form-select"
+                  className={`form-select ${fieldErrors.availabilityStatus ? "form-select-error" : ""}`}
                   defaultValue={values.availabilityStatus || "available"}
                 >
                   <option value="available">Available</option>

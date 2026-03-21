@@ -25,6 +25,7 @@ const pushTransaction = (wallet, transaction) => {
     direction: transaction.direction,
     description: transaction.description || transaction.type,
     status: transaction.status || "completed",
+    contract: transaction.contract || undefined,
     createdAt: transaction.createdAt || new Date(),
   });
 };
@@ -85,12 +86,49 @@ const updateFundingStatus = (contract) => {
   return contract.fundingStatus;
 };
 
-const reserveContractFunds = async ({
+const linkLatestFundingTransactionToContract = async ({
   clientId,
   contractId,
   contractTitle,
   amount,
 }) => {
+  const wallet = await getOrCreateWallet(clientId);
+  const normalizedAmount = Number(amount) || 0;
+  const now = Date.now();
+
+  const transaction = wallet.transactions.find((item) => {
+    if (item?.contract) {
+      return false;
+    }
+
+    if (![
+      "contract_funded",
+      "contract_funding_adjustment",
+      "contract_funding_cancelled",
+    ].includes(item?.type)) {
+      return false;
+    }
+
+    const amountMatches = Number(item?.amount || 0) === normalizedAmount;
+    const descriptionMatches = String(item?.description || "").includes(
+      contractTitle,
+    );
+    const createdAt = new Date(item?.createdAt || 0).getTime();
+    const isRecent = Number.isFinite(createdAt) && now - createdAt < 15 * 60 * 1000;
+
+    return amountMatches && descriptionMatches && isRecent;
+  });
+
+  if (!transaction) {
+    return;
+  }
+
+  transaction.contract = contractId;
+  wallet.updatedAt = new Date();
+  await wallet.save();
+};
+
+const reserveContractFunds = async ({ clientId, contractTitle, amount }) => {
   const normalizedAmount = Number(amount);
   if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
     throw new AppError("Contract funding amount must be greater than zero", 400);
@@ -149,6 +187,7 @@ const syncPendingContractFunding = async ({
       amount: difference,
       direction: "debit",
       description,
+      contract: contract._id,
     });
   } else if (difference < 0) {
     const refundAmount = Math.abs(difference);
@@ -164,6 +203,7 @@ const syncPendingContractFunding = async ({
       amount: refundAmount,
       direction: "credit",
       description,
+      contract: contract._id,
     });
   }
 
@@ -202,6 +242,7 @@ const releasePendingContractFunding = async ({
     amount: fundedAmount,
     direction: "credit",
     description,
+    contract: contract._id,
   });
   wallet.updatedAt = new Date();
   await wallet.save();
@@ -236,18 +277,29 @@ const releaseContractFunds = async ({
     getOrCreateWallet(contract.freelancer),
   ]);
 
-  if (clientWallet.heldBalance < normalizedAmount) {
-    throw new AppError("Client wallet does not have enough held funds", 400);
+  const heldBalance = Number(clientWallet.heldBalance || 0);
+  const availableBalance = Number(clientWallet.balance || 0);
+  const totalSpendable = heldBalance + availableBalance;
+
+  if (totalSpendable < normalizedAmount) {
+    throw new AppError("Client wallet does not have enough funds", 400);
   }
 
-  clientWallet.heldBalance -= normalizedAmount;
+  const fromHeld = Math.min(heldBalance, normalizedAmount);
+  const fromAvailable = normalizedAmount - fromHeld;
+
+  clientWallet.heldBalance = heldBalance - fromHeld;
+  if (fromAvailable > 0) {
+    clientWallet.balance = availableBalance - fromAvailable;
+  }
   clientWallet.totalSpent += normalizedAmount;
-  pushTransaction(clientWallet, {
-    type: "contract_release",
-    amount: normalizedAmount,
-    direction: "debit",
-    description,
-  });
+    pushTransaction(clientWallet, {
+      type: "contract_release",
+      amount: normalizedAmount,
+      direction: "debit",
+      description,
+      contract: contract._id,
+    });
 
   freelancerWallet.balance += normalizedAmount;
   freelancerWallet.totalEarned += normalizedAmount;
@@ -256,6 +308,7 @@ const releaseContractFunds = async ({
     amount: normalizedAmount,
     direction: "credit",
     description,
+    contract: contract._id,
   });
 
   clientWallet.updatedAt = new Date();
@@ -298,6 +351,7 @@ const refundContractFunds = async ({
     amount: normalizedAmount,
     direction: "credit",
     description,
+    contract: contract._id,
   });
   clientWallet.updatedAt = new Date();
   await clientWallet.save();
@@ -313,7 +367,7 @@ const getWalletSummary = async (user) => {
 
   const [completedContracts, activeContracts] = await Promise.all([
     Contract.find({
-      freelancer: user._id,
+      $or: [{ client: user._id }, { freelancer: user._id }],
       status: CONTRACT_STATUS.COMPLETED,
     }).select(
       "title totalAmount releasedAmount refundedAmount fundedAmount currency completedAt createdAt"
@@ -354,12 +408,36 @@ const getWalletSummary = async (user) => {
       canLoadFunds: roles.includes("client"),
     },
     completedContracts,
+    monthlyFlow: Object.values(
+      wallet.transactions.reduce((accumulator, transaction) => {
+      const dateValue = transaction.createdAt || new Date();
+      const monthKey = new Date(dateValue).toISOString().slice(0, 7);
+      const amount = Number(transaction.amount || 0);
+
+      if (!accumulator[monthKey]) {
+        accumulator[monthKey] = {
+          key: monthKey,
+          incoming: 0,
+          outgoing: 0,
+        };
+      }
+
+      if (transaction.direction === "credit") {
+        accumulator[monthKey].incoming += amount;
+      } else {
+        accumulator[monthKey].outgoing += amount;
+      }
+
+      return accumulator;
+      }, {})
+    ).sort((a, b) => a.key.localeCompare(b.key)),
   };
 };
 
 module.exports = {
   getOrCreateWallet,
   getWalletSummary,
+  linkLatestFundingTransactionToContract,
   loadWalletFunds,
   releasePendingContractFunding,
   refundContractFunds,
