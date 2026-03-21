@@ -5,7 +5,7 @@ import {
   getNotificationSummaryServer,
   listNotificationsServer,
 } from "@/lib/server/notifications";
-import { Navbar } from "@/shared/components/Navbar";
+import { AppShell } from "@/shared/components/AppShell";
 
 export const metadata = {
   title: "Neplance",
@@ -28,14 +28,15 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <Navbar
+        <AppShell
           activeRole={session?.activeRole}
           initialChatUnreadCount={chatSummary.unreadCount}
           notifications={recentNotifications}
           unreadCount={notificationSummary.unreadCount}
           user={session?.user}
-        />
-        {children}
+        >
+          {children}
+        </AppShell>
       </body>
     </html>
   );

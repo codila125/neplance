@@ -14,7 +14,7 @@ const AUTH_PAGES = ["/login", "/signup"];
 
 const isProtectedPath = (pathname) =>
   PROTECTED_PATHS.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`),
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
   );
 
 const isAuthPage = (pathname) => AUTH_PAGES.includes(pathname);
