@@ -29,10 +29,10 @@ export async function loadWalletFundsAction(amount) {
   return successResult(response?.data || response);
 }
 
-export async function requestWithdrawalAction(amount) {
+export async function requestWithdrawalAction(payload) {
   await requireSession();
 
-  const normalizedAmount = Number(amount);
+  const normalizedAmount = Number(payload?.amount ?? payload);
   if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
     throw new Error("Please enter a valid withdrawal amount.");
   }
@@ -41,6 +41,7 @@ export async function requestWithdrawalAction(amount) {
     method: "POST",
     body: JSON.stringify({
       amount: normalizedAmount,
+      qrAttachment: payload?.qrAttachment,
     }),
   });
 
