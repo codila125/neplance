@@ -68,8 +68,9 @@ const createProxyResponse = async (backendResponse) => {
 };
 
 const proxyRequest = async (request, context) => {
+  const params = await context.params;
   const backendUrl = buildBackendUrl(
-    context.params.path,
+    params?.path,
     request.nextUrl.searchParams,
   );
   const method = request.method;
