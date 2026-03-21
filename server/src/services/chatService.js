@@ -3,6 +3,22 @@ const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const User = require("../models/User");
 
+const normalizeMessageAttachments = (attachments = []) => {
+  if (!Array.isArray(attachments)) {
+    return [];
+  }
+
+  return attachments
+    .filter((attachment) => attachment?.url)
+    .map((attachment) => ({
+      name: attachment.name?.trim() || "",
+      url: String(attachment.url).trim(),
+      publicId: attachment.publicId?.trim() || "",
+      resourceType: attachment.resourceType?.trim() || "raw",
+      uploadedAt: attachment.uploadedAt || new Date(),
+    }));
+};
+
 const getParticipantRole = (conversation, userId) => {
   const normalizedUserId = userId.toString();
   const clientId = conversation.client?._id || conversation.client;
@@ -109,10 +125,16 @@ const createAdminConversationForDispute = async (dispute, initiatorId) => {
   });
 };
 
-const sendMessageToConversation = async (conversation, senderId, body) => {
+const sendMessageToConversation = async (
+  conversation,
+  senderId,
+  body,
+  attachments,
+) => {
   const trimmedBody = String(body || "").trim();
+  const normalizedAttachments = normalizeMessageAttachments(attachments);
 
-  if (!trimmedBody) {
+  if (!trimmedBody && normalizedAttachments.length === 0) {
     throw new AppError("Message cannot be empty", 400);
   }
 
@@ -127,10 +149,18 @@ const sendMessageToConversation = async (conversation, senderId, body) => {
     conversation: conversation._id,
     sender: senderId,
     body: trimmedBody,
+    attachments: normalizedAttachments,
   });
 
+  const attachmentPreview =
+    normalizedAttachments.length === 1
+      ? "Sent an attachment"
+      : `Sent ${normalizedAttachments.length} attachments`;
+  const previewSource = trimmedBody || attachmentPreview;
   conversation.lastMessagePreview =
-    trimmedBody.length > 180 ? `${trimmedBody.slice(0, 177)}...` : trimmedBody;
+    previewSource.length > 180
+      ? `${previewSource.slice(0, 177)}...`
+      : previewSource;
   conversation.lastMessageAt = new Date();
   conversation.updatedAt = new Date();
   conversation.unreadCounts[senderRole] = 0;

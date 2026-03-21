@@ -24,8 +24,15 @@ export async function sendMessageAction(conversationId, formData) {
   await requireSession();
 
   const body = String(formData.get("body") || "").trim();
+  let attachments = [];
 
-  if (!body) {
+  try {
+    attachments = JSON.parse(String(formData.get("attachments") || "[]"));
+  } catch {
+    attachments = [];
+  }
+
+  if (!body && attachments.length === 0) {
     throw new Error("Message cannot be empty.");
   }
 
@@ -33,7 +40,7 @@ export async function sendMessageAction(conversationId, formData) {
     `/api/chat/${conversationId}/messages`,
     {
       method: "POST",
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({ body, attachments }),
     },
   );
 

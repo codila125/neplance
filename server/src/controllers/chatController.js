@@ -116,7 +116,8 @@ const sendMessage = catchAsync(async (req, res) => {
   const message = await sendMessageToConversation(
     conversation,
     req.user.id,
-    req.body.body
+    req.body.body,
+    req.body.attachments,
   );
   const populatedMessage = await Message.findById(message._id).populate(
     "sender",

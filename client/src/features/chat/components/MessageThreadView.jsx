@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { sendMessageAction } from "@/lib/actions/chat";
 import { API_BASE_URL } from "@/lib/api/config";
+import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 
 const CHAT_POLL_INTERVAL_MS = 4000;
 
@@ -33,6 +34,7 @@ export function MessageThreadView({
   const formRef = useRef(null);
   const threadBodyRef = useRef(null);
   const [threadMessages, setThreadMessages] = useState(messages);
+  const [attachments, setAttachments] = useState([]);
   const [composerError, setComposerError] = useState("");
   const [isSending, startSendTransition] = useTransition();
   const isClient =
@@ -112,8 +114,9 @@ export function MessageThreadView({
 
     const formData = new FormData(event.currentTarget);
     const body = String(formData.get("body") || "").trim();
+    const nextAttachments = Array.isArray(attachments) ? attachments : [];
 
-    if (!body) {
+    if (!body && nextAttachments.length === 0) {
       setComposerError("Message cannot be empty.");
       return;
     }
@@ -122,6 +125,7 @@ export function MessageThreadView({
     const optimisticMessage = {
       _id: optimisticId,
       body,
+      attachments: nextAttachments,
       createdAt: new Date().toISOString(),
       sender: {
         _id: currentUserId,
@@ -132,11 +136,13 @@ export function MessageThreadView({
 
     setThreadMessages((previous) => [...previous, optimisticMessage]);
     formRef.current?.reset();
+    setAttachments([]);
 
     startSendTransition(async () => {
       try {
         const submitData = new FormData();
         submitData.set("body", body);
+        submitData.set("attachments", JSON.stringify(nextAttachments));
         const result = await sendMessageAction(conversation._id, submitData);
         const savedMessage = result?.data;
 
@@ -232,7 +238,24 @@ export function MessageThreadView({
                       : formatMessageTime(message.createdAt)}
                   </span>
                 </div>
-                <p className="message-bubble-text">{message.body}</p>
+                {message.body ? (
+                  <p className="message-bubble-text">{message.body}</p>
+                ) : null}
+                {message.attachments?.length ? (
+                  <div className="message-attachments">
+                    {message.attachments.map((attachment, index) => (
+                      <a
+                        key={`${attachment.url || attachment.publicId || index}`}
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="message-attachment-link"
+                      >
+                        {attachment.name || `Attachment ${index + 1}`}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             );
           })
@@ -244,9 +267,47 @@ export function MessageThreadView({
           name="body"
           className="form-input"
           placeholder="Write your message..."
-          required
           rows={3}
         />
+        <CloudinaryFileUploader
+          buttonLabel="Attach File"
+          disabled={isSending}
+          folder="chat-attachments"
+          onUploaded={(upload) =>
+            setAttachments((previous) => [...previous, upload])
+          }
+        />
+        {attachments.length ? (
+          <div className="message-composer-attachments">
+            {attachments.map((attachment, index) => (
+              <div
+                key={`${attachment.url}-${index}`}
+                className="message-composer-attachment"
+              >
+                <a
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-link"
+                >
+                  {attachment.name || `Attachment ${index + 1}`}
+                </a>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() =>
+                    setAttachments((previous) =>
+                      previous.filter((_, itemIndex) => itemIndex !== index),
+                    )
+                  }
+                  disabled={isSending}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
         {composerError ? (
           <p className="text-error text-sm mb-0">{composerError}</p>
         ) : null}

@@ -1,5 +1,34 @@
 const mongoose = require("mongoose");
 
+const messageAttachmentSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+    },
+    url: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    publicId: {
+      type: String,
+      trim: true,
+    },
+    resourceType: {
+      type: String,
+      trim: true,
+      default: "raw",
+    },
+    uploadedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false },
+);
+
 const messageSchema = new mongoose.Schema({
   conversation: {
     type: mongoose.Schema.ObjectId,
@@ -14,10 +43,10 @@ const messageSchema = new mongoose.Schema({
   },
   body: {
     type: String,
-    required: true,
     trim: true,
     maxlength: 5000,
   },
+  attachments: [messageAttachmentSchema],
   createdAt: {
     type: Date,
     default: Date.now,
