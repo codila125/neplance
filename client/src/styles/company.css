@@ -1,0 +1,85 @@
+/* ===================================
+   COMPANY PAGES (ABOUT / CONTACT)
+   =================================== */
+
+.about-page-wrap,
+.contact-page-wrap {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.about-hero,
+.contact-hero {
+  background:
+    radial-gradient(circle at top right, rgba(20, 168, 0, 0.08), transparent 55%),
+    var(--color-bg);
+}
+
+.about-hero h1,
+.contact-hero h1 {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.about-hero p,
+.contact-hero p {
+  font-size: var(--text-lg);
+  max-width: 70ch;
+}
+
+.about-hero-cta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.about-stat-grid,
+.about-story-grid,
+.contact-grid {
+  gap: var(--space-5);
+}
+
+.about-stat-card h3 {
+  color: var(--color-primary);
+  margin-bottom: var(--space-2);
+}
+
+.about-stat-card p,
+.about-story-card p,
+.contact-card-note {
+  margin-bottom: 0;
+}
+
+.about-story-card h2 {
+  margin-bottom: var(--space-3);
+}
+
+.contact-card {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.contact-card-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.contact-card-value {
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.contact-card-value:hover {
+  color: var(--color-primary);
+}
+
+@media (max-width: 768px) {
+  .contact-card-value {
+    font-size: var(--text-lg);
+  }
+}

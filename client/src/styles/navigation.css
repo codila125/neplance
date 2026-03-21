@@ -376,3 +376,40 @@
     box-shadow: var(--shadow-lg);
   }
 }
+
+/* ===================================
+   LOGGED-IN FOOTER
+   =================================== */
+
+.site-footer {
+  margin-top: var(--space-12);
+  border-top: 1px solid var(--color-border-light);
+  background: #000;
+  padding: var(--space-5) 0;
+}
+
+.site-footer-inner {
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: 0 var(--container-padding);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.site-footer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+@media (max-width: 768px) {
+  .site-footer-inner {
+    justify-content: flex-start;
+  }
+
+  .site-footer-actions {
+    flex-wrap: wrap;
+  }
+}

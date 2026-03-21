@@ -6,6 +6,7 @@ import {
   listNotificationsServer,
 } from "@/lib/server/notifications";
 import { AppShell } from "@/shared/components/AppShell";
+import { LoggedInFooter } from "@/shared/components/LoggedInFooter";
 
 export const metadata = {
   title: "Neplance",
@@ -28,15 +29,20 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <AppShell
-          activeRole={session?.activeRole}
-          initialChatUnreadCount={chatSummary.unreadCount}
-          notifications={recentNotifications}
-          unreadCount={notificationSummary.unreadCount}
-          user={session?.user}
-        >
-          {children}
-        </AppShell>
+        <div className="root-layout">
+          <div className="root-layout-content">
+            <AppShell
+              activeRole={session?.activeRole}
+              initialChatUnreadCount={chatSummary.unreadCount}
+              notifications={recentNotifications}
+              unreadCount={notificationSummary.unreadCount}
+              user={session?.user}
+            >
+              {children}
+            </AppShell>
+          </div>
+          <LoggedInFooter user={session?.user} />
+        </div>
       </body>
     </html>
   );
