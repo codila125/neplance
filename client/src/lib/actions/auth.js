@@ -2,8 +2,13 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { API_BASE_URL } from "@/lib/api/config";
+import {
+  ACCESS_TOKEN_COOKIE,
+  ACTIVE_ROLE_COOKIE,
+  API_BASE_URL,
+} from "@/lib/api/config";
 import { VERIFICATION_REDIRECT_PATH } from "@/lib/server/auth";
+import { normalizeRoleList } from "@/shared/utils/auth";
 import { loginSchema, signupSchema, validateForm } from "@/shared/validation";
 
 const INITIAL_AUTH_ACTION_STATE = {
@@ -17,12 +22,27 @@ const parseCookieValue = (value) => {
   return Number.isNaN(numberValue) ? value : numberValue;
 };
 
+const splitSetCookieHeader = (headerValue) =>
+  headerValue
+    .split(/,(?=\s*[A-Za-z0-9_-]+=)/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+const getSetCookieHeaders = (response) => {
+  if (typeof response.headers.getSetCookie === "function") {
+    const headers = response.headers.getSetCookie();
+    if (headers.length) {
+      return headers;
+    }
+  }
+
+  const setCookieHeader = response.headers.get("set-cookie");
+  return setCookieHeader ? splitSetCookieHeader(setCookieHeader) : [];
+};
+
 const applyBackendCookies = async (response) => {
   const cookieStore = await cookies();
-  const setCookieHeaders =
-    typeof response.headers.getSetCookie === "function"
-      ? response.headers.getSetCookie()
-      : [];
+  const setCookieHeaders = getSetCookieHeaders(response);
 
   for (const header of setCookieHeaders) {
     const [nameValue, ...attributeParts] = header.split(";");
@@ -51,6 +71,28 @@ const applyBackendCookies = async (response) => {
     }
 
     cookieStore.set(name, value, options);
+  }
+};
+
+const applyAppSessionCookies = async (responseData) => {
+  const cookieStore = await cookies();
+  const accessToken = responseData?.accessToken;
+  const roles = normalizeRoleList(responseData?.data?.user?.role);
+
+  if (accessToken) {
+    cookieStore.set(ACCESS_TOKEN_COOKIE, accessToken, {
+      path: "/",
+      sameSite: "lax",
+      httpOnly: false,
+    });
+  }
+
+  if (roles.length) {
+    cookieStore.set(ACTIVE_ROLE_COOKIE, roles[0], {
+      path: "/",
+      sameSite: "lax",
+      httpOnly: false,
+    });
   }
 };
 
@@ -150,6 +192,7 @@ const submitAuthRequest = async (endpoint, payload) => {
   }
 
   await applyBackendCookies(response);
+  await applyAppSessionCookies(data);
   return data;
 };
 

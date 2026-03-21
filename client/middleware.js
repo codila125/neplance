@@ -14,7 +14,7 @@ const AUTH_PAGES = ["/login", "/signup"];
 
 const isProtectedPath = (pathname) =>
   PROTECTED_PATHS.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`)
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
 
 const isAuthPage = (pathname) => AUTH_PAGES.includes(pathname);
@@ -24,6 +24,7 @@ export function middleware(request) {
   const accessToken = request.cookies.get("neplanceAccessToken")?.value;
   const refreshToken = request.cookies.get("refreshToken")?.value;
   const hasSessionCookie = Boolean(accessToken || refreshToken);
+  const hasAccessSession = Boolean(accessToken);
 
   if (isProtectedPath(pathname) && !hasSessionCookie) {
     const url = request.nextUrl.clone();
@@ -31,7 +32,7 @@ export function middleware(request) {
     return NextResponse.redirect(url);
   }
 
-  if (isAuthPage(pathname) && hasSessionCookie) {
+  if (isAuthPage(pathname) && hasAccessSession) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
