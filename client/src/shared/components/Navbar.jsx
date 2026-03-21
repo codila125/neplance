@@ -8,63 +8,26 @@ import {
   markNotificationReadAction,
 } from "@/lib/actions/notifications";
 import { logoutAction, switchRoleAction } from "@/lib/actions/session";
-import { BROWSER_API_BASE_URL } from "@/lib/api/config";
+import { browserApiRequest } from "@/lib/api/browser";
 import { WalletCoinIcon } from "@/shared/components/WalletCoinIcon";
 
 const NAVBAR_POLL_INTERVAL_MS = 4000;
 const NAVBAR_NOTIFICATION_LIMIT = 3;
 
-async function parseApiResponse(response) {
-  const data = await response.json().catch(() => null);
-  return { ok: response.ok, status: response.status, data };
-}
-
-async function refreshAccessToken() {
-  const response = await fetch(`${BROWSER_API_BASE_URL}/api/auth/refresh`, {
-    method: "GET",
-    credentials: "include",
-  });
-
-  return response.ok;
-}
-
 async function fetchWithSessionRefresh(endpoint) {
-  const response = await fetch(`${BROWSER_API_BASE_URL}${endpoint}`, {
+  const response = await browserApiRequest(endpoint, {
     method: "GET",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
   });
 
-  const parsed = await parseApiResponse(response);
-  const errorCode = parsed.data?.errorCode;
-
-  if (parsed.ok) {
-    return parsed.data;
+  if (response.ok) {
+    return response.data;
   }
 
-  if (parsed.status === 401 && errorCode === "TOKEN_EXPIRED") {
-    const refreshed = await refreshAccessToken();
-    if (!refreshed) {
-      throw new Error("Session expired");
-    }
-
-    const retryResponse = await fetch(`${BROWSER_API_BASE_URL}${endpoint}`, {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    const retried = await parseApiResponse(retryResponse);
-
-    if (retried.ok) {
-      return retried.data;
-    }
+  if (response.status === 401) {
+    throw new Error("Session expired");
   }
 
-  throw new Error(parsed.data?.message || "Failed to fetch latest data.");
+  throw new Error(response.data?.message || "Failed to fetch latest data.");
 }
 
 /**

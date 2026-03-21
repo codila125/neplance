@@ -1,31 +1,25 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { BROWSER_API_BASE_URL } from "@/lib/api/config";
+import { browserApiRequest } from "@/lib/api/browser";
 
 const getResourceType = (file) =>
   file?.type?.startsWith("image/") ? "image" : "raw";
 
 async function requestUploadSignature(folder, resourceType) {
-  const response = await fetch(`${BROWSER_API_BASE_URL}/api/uploads/sign`, {
+  const response = await browserApiRequest("/api/uploads/sign", {
     method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify({
       folder,
       resourceType,
     }),
   });
 
-  const data = await response.json().catch(() => null);
-
   if (!response.ok) {
-    throw new Error(data?.message || "Failed to prepare upload.");
+    throw new Error(response.data?.message || "Failed to prepare upload.");
   }
 
-  return data?.data;
+  return response.data?.data;
 }
 
 async function uploadFileToCloudinary(file, folder) {

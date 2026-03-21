@@ -7,7 +7,7 @@ import {
   submitBookingQuoteAction,
   verifyBookingVisitOtpAction,
 } from "@/lib/actions/bookings";
-import { BROWSER_API_BASE_URL } from "@/lib/api/config";
+import { browserApiRequest } from "@/lib/api/browser";
 import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 import { BOOKING_STATUS } from "@/shared/constants/statuses";
 
@@ -74,11 +74,10 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
 
     const syncBooking = async () => {
       try {
-        const response = await fetch(
-          `${BROWSER_API_BASE_URL}/api/bookings/${currentBooking._id}`,
+        const response = await browserApiRequest(
+          `/api/bookings/${currentBooking._id}`,
           {
-            credentials: "include",
-            cache: "no-store",
+            method: "GET",
           },
         );
 
@@ -86,9 +85,8 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
           return;
         }
 
-        const payload = await response.json();
-        if (isMounted && payload?.data) {
-          setCurrentBooking(payload.data);
+        if (isMounted && response.data?.data) {
+          setCurrentBooking(response.data.data);
         }
       } catch {
         // Keep current UI state if polling fails.

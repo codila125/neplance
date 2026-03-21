@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { sendMessageAction } from "@/lib/actions/chat";
-import { BROWSER_API_BASE_URL } from "@/lib/api/config";
+import { browserApiRequest } from "@/lib/api/browser";
 import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 
 const CHAT_POLL_INTERVAL_MS = 4000;
@@ -60,11 +60,10 @@ export function MessageThreadView({
 
     const syncMessages = async () => {
       try {
-        const response = await fetch(
-          `${BROWSER_API_BASE_URL}/api/chat/${conversation._id}/messages`,
+        const response = await browserApiRequest(
+          `/api/chat/${conversation._id}/messages`,
           {
-            credentials: "include",
-            cache: "no-store",
+            method: "GET",
           },
         );
 
@@ -72,8 +71,9 @@ export function MessageThreadView({
           return;
         }
 
-        const payload = await response.json();
-        const nextMessages = Array.isArray(payload?.data) ? payload.data : [];
+        const nextMessages = Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
 
         if (!isMounted) {
           return;

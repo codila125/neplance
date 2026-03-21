@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { reviewDisputeAction } from "@/lib/actions/admin";
-import { BROWSER_API_BASE_URL } from "@/lib/api/config";
+import { browserApiRequest } from "@/lib/api/browser";
 import { DISPUTE_STATUS } from "@/shared/constants/statuses";
 import { formatStatus } from "@/shared/utils/job";
 
@@ -18,19 +18,20 @@ export function DisputesQueueClient({ initialDisputes }) {
 
     const syncDisputes = async () => {
       try {
-        const response = await fetch(
-          `${BROWSER_API_BASE_URL}/api/admin/disputes?status=all`,
+        const response = await browserApiRequest(
+          "/api/admin/disputes?status=all",
           {
-            credentials: "include",
+            method: "GET",
           },
         );
-        const payload = await response.json().catch(() => null);
 
         if (!response.ok || !isMounted) {
           return;
         }
 
-        setDisputes(Array.isArray(payload?.data) ? payload.data : []);
+        setDisputes(
+          Array.isArray(response.data?.data) ? response.data.data : [],
+        );
       } catch {
         // Ignore background refresh errors to keep the admin queue usable.
       }
