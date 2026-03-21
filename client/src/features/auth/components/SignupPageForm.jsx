@@ -545,7 +545,7 @@ export function SignupPageForm({ error }) {
             <select
               id="province"
               name="province"
-              className="form-select"
+              className={`form-select ${fieldErrors.province ? "form-select-error" : ""}`}
               value={selectedProvince}
               onChange={handleProvinceChange}
             >
@@ -617,7 +617,7 @@ export function SignupPageForm({ error }) {
               id="locality"
               name="locality"
               type="text"
-              className={`form-input ${fieldErrors.city ? "form-input-error" : ""}`}
+              className={`form-input ${fieldErrors.locality || fieldErrors.city ? "form-input-error" : ""}`}
               placeholder={
                 selectedDistrict
                   ? "Enter your area or neighborhood"
@@ -626,8 +626,8 @@ export function SignupPageForm({ error }) {
               defaultValue={values.locality || values.city || ""}
               disabled={!selectedDistrict}
             />
-            {fieldErrors.city && (
-              <p className="form-error">{fieldErrors.city}</p>
+            {(fieldErrors.locality || fieldErrors.city) && (
+              <p className="form-error">{fieldErrors.locality || fieldErrors.city}</p>
             )}
           </div>
         </div>
@@ -636,7 +636,6 @@ export function SignupPageForm({ error }) {
           <>
             <div
               style={{
-                marginTop: "var(--space-6)",
                 padding: "var(--space-4)",
                 backgroundColor: "var(--color-bg-light)",
                 borderRadius: "var(--radius-lg)",
@@ -737,7 +736,7 @@ export function SignupPageForm({ error }) {
                 <select
                   id="experienceLevel"
                   name="experienceLevel"
-                  className="form-select"
+                  className={`form-select ${fieldErrors.experienceLevel ? "form-select-error" : ""}`}
                   defaultValue={values.experienceLevel || "entry"}
                 >
                   <option value="entry">Entry</option>
@@ -755,7 +754,7 @@ export function SignupPageForm({ error }) {
                 <select
                   id="jobTypePreference"
                   name="jobTypePreference"
-                  className="form-select"
+                  className={`form-select ${fieldErrors.jobTypePreference ? "form-select-error" : ""}`}
                   defaultValue={values.jobTypePreference || "digital"}
                 >
                   <option value="digital">Digital</option>
@@ -773,7 +772,7 @@ export function SignupPageForm({ error }) {
                 <select
                   id="availabilityStatus"
                   name="availabilityStatus"
-                  className="form-select"
+                  className={`form-select ${fieldErrors.availabilityStatus ? "form-select-error" : ""}`}
                   defaultValue={values.availabilityStatus || "available"}
                 >
                   <option value="available">Available</option>

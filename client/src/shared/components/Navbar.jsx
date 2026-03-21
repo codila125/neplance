@@ -246,12 +246,12 @@ export function Navbar({
               </a>
             </li>
             <li>
-              <Link href="/login" className="navbar-link">
+              <Link href="/login" className="btn btn-secondary btn-sm navbar-auth-btn">
                 Log In
               </Link>
             </li>
             <li>
-              <Link href="/signup" className="btn btn-primary btn-sm">
+              <Link href="/signup" className="btn btn-primary btn-sm navbar-auth-btn">
                 Sign Up
               </Link>
             </li>

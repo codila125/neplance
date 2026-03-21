@@ -191,8 +191,21 @@
   border-color: var(--color-error);
 }
 
+.form-input.form-input-error,
+.form-select.form-select-error,
+.form-select.form-input-error {
+  border-color: var(--color-error);
+}
+
 .form-input.error:focus,
 .form-select.error:focus {
+  box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.15);
+}
+
+.form-input.form-input-error:focus,
+.form-select.form-select-error:focus,
+.form-select.form-input-error:focus {
+  border-color: var(--color-error);
   box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.15);
 }
 

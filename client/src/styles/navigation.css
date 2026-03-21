@@ -134,6 +134,12 @@
   gap: var(--space-3);
 }
 
+.navbar-auth-btn {
+  height: 38px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .navbar-icon-link,
 .navbar-icon-button {
   position: relative;
