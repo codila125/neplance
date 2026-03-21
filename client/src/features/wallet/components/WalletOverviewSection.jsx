@@ -15,31 +15,96 @@ const PAYMENT_OPTIONS = [
   { id: "bank", label: "Bank", qrSrc: "/wallet-qr/bank.jpg" },
 ];
 
-function BrandBadge() {
+function PaymentMethodBadge({ methodId }) {
+  if (methodId === "esewa") {
+    return (
+      <div
+        aria-hidden="true"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "2px",
+          fontWeight: 700,
+          fontSize: "18px",
+          lineHeight: 1,
+        }}
+      >
+        <span
+          style={{
+            width: "32px",
+            height: "32px",
+            borderRadius: "999px",
+            display: "grid",
+            placeItems: "center",
+            background: "#60bb46",
+            color: "#fff",
+            fontStyle: "italic",
+            fontWeight: 700,
+          }}
+        >
+          e
+        </span>
+        <span style={{ color: "#202445", fontFamily: "Georgia, serif" }}>
+          Sewa
+        </span>
+      </div>
+    );
+  }
+
+  if (methodId === "khalti") {
+    return (
+      <div
+        aria-hidden="true"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          color: "#e41019",
+          fontWeight: 800,
+          fontSize: "20px",
+          letterSpacing: "-0.02em",
+          lineHeight: 1,
+        }}
+      >
+        khalti
+      </div>
+    );
+  }
+
   return (
-    <svg
-      width="40"
-      height="40"
-      viewBox="0 0 32 32"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+    <div
       aria-hidden="true"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        lineHeight: 1,
+      }}
     >
-      <circle cx="16" cy="16" r="16" fill="#14a800" />
-      <path
-        d="M12 10L16 20L20 10"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10 15H22"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "6px 10px",
+          borderRadius: "6px",
+          background: "#e21b23",
+          color: "#fff",
+          fontWeight: 800,
+          fontSize: "18px",
+        }}
+      >
+        fone
+      </span>
+      <span
+        style={{
+          color: "#111",
+          fontWeight: 800,
+          fontSize: "18px",
+        }}
+      >
+        pay
+      </span>
+    </div>
   );
 }
 
@@ -77,7 +142,7 @@ function StaticQrCard({ method }) {
             padding: "var(--space-4)",
           }}
         >
-          <BrandBadge />
+          <PaymentMethodBadge methodId={method?.id} />
           <p
             className="text-muted mb-0"
             style={{ marginTop: "var(--space-3)" }}
@@ -356,9 +421,8 @@ export function WalletOverviewSection({ initialData, mode = "client" }) {
                   }}
                 >
                   <div className="flex justify-center mb-2">
-                    <BrandBadge />
+                    <PaymentMethodBadge methodId={option.id} />
                   </div>
-                  <strong>{option.label}</strong>
                 </button>
               ))}
             </div>
