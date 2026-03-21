@@ -45,6 +45,21 @@ const getBookingById = catchAsync(async (req, res) => {
   });
 });
 
+const listMyBookings = catchAsync(async (req, res) => {
+  const bookings = await populateBooking(
+    Booking.find({
+      $or: [{ client: req.user.id }, { freelancer: req.user.id }],
+      status: { $ne: "CANCELLED" },
+    }).sort({ updatedAt: -1 }),
+  );
+
+  res.status(200).json({
+    status: "success",
+    results: bookings.length,
+    data: bookings,
+  });
+});
+
 const getBookingByProposal = catchAsync(async (req, res) => {
   const proposal = await Proposal.findById(req.params.proposalId);
   if (!proposal) {
@@ -210,6 +225,7 @@ module.exports = {
   generateMyBookingVisitOtp,
   getBookingById,
   getBookingByProposal,
+  listMyBookings,
   submitMyBookingQuote,
   verifyMyBookingVisitOtp,
 };

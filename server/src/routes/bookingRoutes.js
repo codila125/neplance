@@ -4,6 +4,7 @@ const {
   generateMyBookingVisitOtp,
   getBookingById,
   getBookingByProposal,
+  listMyBookings,
   submitMyBookingQuote,
   verifyMyBookingVisitOtp,
 } = require("../controllers/bookingController");
@@ -17,6 +18,7 @@ const router = express.Router();
 
 router.use(protect);
 
+router.get("/", listMyBookings);
 router.get("/proposal/:proposalId", getBookingByProposal);
 router.post(
   "/proposal/:proposalId",

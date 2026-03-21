@@ -844,9 +844,15 @@ const updatePendingContract = async ({ clientId, contract, payload }) => {
     throw new AppError("Only the client can update this contract", 403);
   }
 
-  const contractType = normalizeContractType(payload.contractType);
+  const contractType =
+    contract.serviceMode === "physical"
+      ? CONTRACT_TYPE.FULL_PROJECT
+      : normalizeContractType(payload.contractType);
   const serviceMode = contract.serviceMode || "digital";
-  const milestones = normalizeMilestones(contractType, payload.milestones);
+  const milestones =
+    serviceMode === "physical"
+      ? []
+      : normalizeMilestones(contractType, payload.milestones);
   let totalAmount =
     contractType === CONTRACT_TYPE.MILESTONE_BASED
       ? milestones.reduce(
@@ -856,19 +862,7 @@ const updatePendingContract = async ({ clientId, contract, payload }) => {
       : Number(payload.totalAmount) || 0;
 
   if (serviceMode === "physical" && Number(contract.totalAmount || 0) > 0) {
-    const quotedAmount = Number(contract.totalAmount || 0);
-
-    if (
-      contractType === CONTRACT_TYPE.MILESTONE_BASED &&
-      totalAmount !== quotedAmount
-    ) {
-      throw new AppError(
-        "Physical contract milestones must add up to the freelancer's quoted amount",
-        400
-      );
-    }
-
-    totalAmount = quotedAmount;
+    totalAmount = Number(contract.totalAmount || 0);
   }
 
   if (totalAmount <= 0) {
@@ -968,31 +962,15 @@ const createContractFromBooking = async ({
     throw new AppError("This job already has an active contract", 400);
   }
 
-  const contractType = normalizeContractType(payload.contractType);
+  const contractType = CONTRACT_TYPE.FULL_PROJECT;
   const serviceMode = "physical";
-  const milestones = normalizeMilestones(contractType, payload.milestones);
+  const milestones = [];
   const lockedQuoteAmount = Number(booking.quoteAmount || 0);
-  let totalAmount =
-    contractType === CONTRACT_TYPE.MILESTONE_BASED
-      ? milestones.reduce(
-          (total, milestone) => total + (Number(milestone.value) || 0),
-          0,
-        )
-      : lockedQuoteAmount;
+  let totalAmount = lockedQuoteAmount;
 
   if (lockedQuoteAmount <= 0) {
     throw new AppError(
       "A valid freelancer quote is required before contract creation",
-      400,
-    );
-  }
-
-  if (
-    contractType === CONTRACT_TYPE.MILESTONE_BASED &&
-    totalAmount !== lockedQuoteAmount
-  ) {
-    throw new AppError(
-      "Physical contract milestones must add up to the booking quote amount",
       400,
     );
   }

@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   generateBookingVisitOtpAction,
   submitBookingQuoteAction,
   verifyBookingVisitOtpAction,
 } from "@/lib/actions/bookings";
+import { API_BASE_URL } from "@/lib/api/config";
 import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 import { BOOKING_STATUS } from "@/shared/constants/statuses";
+
+const BOOKING_POLL_INTERVAL_MS = 4000;
 
 export function BookingDetailPageClient({ booking, currentUserId }) {
   const router = useRouter();
@@ -42,10 +45,74 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
     (visitVerified ||
       currentBooking.status === BOOKING_STATUS.VISIT_VERIFIED ||
       !currentBooking.requiresVisit);
+  const canGenerateVisitOtp =
+    isClient &&
+    currentBooking.requiresVisit &&
+    !currentBooking.contract &&
+    currentBooking.visitVerification?.status !== "VERIFIED";
   const canCreateContract =
     isClient &&
     currentBooking.status === BOOKING_STATUS.QUOTED &&
     !currentBooking.contract;
+
+  useEffect(() => {
+    setQuoteAmount(currentBooking.quoteAmount ? String(currentBooking.quoteAmount) : "");
+    setQuoteNotes(currentBooking.quoteNotes || "");
+    setQuoteAttachments(
+      Array.isArray(currentBooking.quoteAttachments)
+        ? currentBooking.quoteAttachments
+        : [],
+    );
+  }, [
+    currentBooking.quoteAmount,
+    currentBooking.quoteAttachments,
+    currentBooking.quoteNotes,
+  ]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncBooking = async () => {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/bookings/${currentBooking._id}`,
+          {
+            credentials: "include",
+            cache: "no-store",
+          },
+        );
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = await response.json();
+        if (isMounted && payload?.data) {
+          setCurrentBooking(payload.data);
+        }
+      } catch {
+        // Keep current UI state if polling fails.
+      }
+    };
+
+    const intervalId = window.setInterval(syncBooking, BOOKING_POLL_INTERVAL_MS);
+    window.addEventListener("focus", syncBooking);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncBooking();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", syncBooking);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [currentBooking._id]);
 
   const runAction = (work) => {
     setError("");
@@ -127,7 +194,7 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
               <p className="text-muted">
                 Status: {currentBooking.visitVerification?.status || "PENDING"}
               </p>
-              {isClient && !currentBooking.contract ? (
+              {canGenerateVisitOtp ? (
                 <div className="flex gap-3 flex-wrap">
                   <button
                     type="button"
@@ -275,7 +342,11 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
                     )
                   }
                 >
-                  {isPending ? "Submitting..." : "Submit Final Quote"}
+                  {isPending
+                    ? "Saving..."
+                    : currentBooking.quoteAmount
+                      ? "Update Quote"
+                      : "Submit Final Quote"}
                 </button>
               </>
             ) : null}
