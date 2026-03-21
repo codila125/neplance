@@ -29,6 +29,12 @@ const makeInitialForm = (user) => ({
   jobTypePreference: user?.jobTypePreference || "digital",
   availabilityStatus: user?.availabilityStatus || "available",
   languages: toCsv(user?.languages),
+  physicalServicesOffered: toCsv(user?.physicalServicesOffered),
+  serviceAreas: toCsv(user?.serviceAreas),
+  onsiteAvailable: Boolean(user?.onsiteAvailable),
+  hasOwnTools: Boolean(user?.hasOwnTools),
+  licenseOrCertification: user?.licenseOrCertification || "",
+  tradeExperienceYears: user?.tradeExperienceYears ?? 0,
   portfolio: Array.isArray(user?.portfolio)
     ? user.portfolio.map((item) => ({
         id: item?._id || item?.id || createPortfolioItemId(),

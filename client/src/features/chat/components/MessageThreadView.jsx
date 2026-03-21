@@ -200,14 +200,25 @@ export function MessageThreadView({
             ["pending", "accepted"].includes(
               conversation.proposal?.status || "",
             ) ? (
-            <a
-              href={`/contracts/create?proposalId=${
-                conversation.proposal?._id || conversation.proposal
-              }`}
-              className="btn btn-secondary btn-sm"
-            >
-              Create Contract
-            </a>
+            conversation.job?.jobType === "physical" ? (
+              <a
+                href={`/proposals/${
+                  conversation.proposal?._id || conversation.proposal
+                }`}
+                className="btn btn-secondary btn-sm"
+              >
+                Manage Booking
+              </a>
+            ) : (
+              <a
+                href={`/contracts/create?proposalId=${
+                  conversation.proposal?._id || conversation.proposal
+                }`}
+                className="btn btn-secondary btn-sm"
+              >
+                Create Contract
+              </a>
+            )
           ) : null}
         </div>
       </div>

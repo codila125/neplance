@@ -25,6 +25,9 @@ export const getCreatorLabel = (creatorAddress) =>
   "Unknown Creator";
 
 export const formatBudget = (budget) => {
+  if (budget?.type === "inspection_required") {
+    return "Inspection Required";
+  }
   if (!budget?.min) return "Negotiable";
   const currency = budget.currency || "NPR";
   if (budget.max) {

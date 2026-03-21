@@ -37,6 +37,7 @@ const uploadRouter = require("./src/routes/uploadRoutes");
 const notificationRouter = require("./src/routes/notificationRoutes");
 const chatRouter = require("./src/routes/chatRoutes");
 const contractRouter = require("./src/routes/contractRoutes");
+const bookingRouter = require("./src/routes/bookingRoutes");
 const walletRouter = require("./src/routes/walletRoutes");
 const blockchainRouter = require("./src/routes/blockchainRoutes");
 const errorController = require("./src/controllers/errorController");
@@ -51,6 +52,7 @@ app.use("/api/uploads", uploadRouter);
 app.use("/api/notifications", notificationRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/contracts", contractRouter);
+app.use("/api/bookings", bookingRouter);
 app.use("/api/wallet", walletRouter);
 app.use("/api/blockchain", blockchainRouter);
 

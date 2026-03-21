@@ -211,7 +211,7 @@ const getFreelancers = catchAsync(async (req, res, next) => {
 
   const skip = (Number(page) - 1) * Number(limit);
   const selectFields =
-    "name email avatar bio location skills hourlyRate experienceLevel jobTypePreference availabilityStatus languages portfolio verificationStatus verificationReviewedAt verificationRejectionReason";
+    "name email avatar bio location skills hourlyRate experienceLevel jobTypePreference availabilityStatus languages physicalServicesOffered serviceAreas onsiteAvailable hasOwnTools licenseOrCertification tradeExperienceYears portfolio verificationStatus verificationReviewedAt verificationRejectionReason";
 
   const [freelancers, total] = await Promise.all([
     User.find(query).select(selectFields).skip(skip).limit(Number(limit)),

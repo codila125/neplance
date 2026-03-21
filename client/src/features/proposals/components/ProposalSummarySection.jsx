@@ -61,7 +61,9 @@ export function ProposalSummarySection({ proposal }) {
               color: "var(--color-primary)",
             }}
           >
-            NPR {proposal.amount?.toLocaleString()}
+            {proposal.pricingType === "inspection_required"
+              ? "Inspection required"
+              : `NPR ${proposal.amount?.toLocaleString()}`}
           </div>
         </div>
         <div>
@@ -211,6 +213,39 @@ export function ProposalSummarySection({ proposal }) {
           >
             {proposal.coverLetter}
           </p>
+        </div>
+      ) : null}
+
+      {proposal.visitAvailableOn || proposal.inspectionNotes ? (
+        <div style={{ marginBottom: "var(--space-6)" }}>
+          <div
+            style={{
+              fontSize: "var(--text-sm)",
+              color: "var(--color-text-light)",
+              marginBottom: "var(--space-2)",
+            }}
+          >
+            Physical Work Notes
+          </div>
+          <div
+            style={{
+              background: "var(--color-bg-secondary)",
+              padding: "var(--space-4)",
+              borderRadius: "var(--radius)",
+            }}
+          >
+            {proposal.visitAvailableOn ? (
+              <p style={{ marginBottom: "var(--space-2)" }}>
+                <strong>Visit available on:</strong>{" "}
+                {new Date(proposal.visitAvailableOn).toLocaleDateString("en-NP")}
+              </p>
+            ) : null}
+            {proposal.inspectionNotes ? (
+              <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.6", margin: 0 }}>
+                {proposal.inspectionNotes}
+              </p>
+            ) : null}
+          </div>
         </div>
       ) : null}
 

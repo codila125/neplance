@@ -28,7 +28,7 @@ const mapContractMilestone = (milestone, index) => ({
     : "",
 });
 
-const buildInitialState = (proposal, contract) => {
+const buildInitialState = (proposal, contract, booking = null) => {
   const source = contract || {};
   const initialContractType = source.contractType || CONTRACT_TYPE.FULL_PROJECT;
   const initialMilestones =
@@ -42,11 +42,46 @@ const buildInitialState = (proposal, contract) => {
     title: source.title || proposal.job?.title || "",
     description: source.description || proposal.job?.description || "",
     terms: source.terms || proposal.job?.terms || "",
+    serviceMode: source.serviceMode || proposal.job?.jobType || "digital",
     contractType: initialContractType,
     totalAmount:
       source.totalAmount !== undefined && source.totalAmount !== null
         ? String(source.totalAmount)
-        : proposal.amount?.toString() || "",
+        : booking?.quoteAmount
+          ? String(booking.quoteAmount)
+          : proposal.amount?.toString() || "",
+    physicalVisit: {
+      isRequired:
+        source.physicalVisit?.isRequired ||
+        proposal.job?.physicalDetails?.siteVisitRequired ||
+        false,
+      preferredVisitDate: source.physicalVisit?.preferredVisitDate
+        ? new Date(source.physicalVisit.preferredVisitDate)
+            .toISOString()
+            .slice(0, 10)
+        : booking?.scheduledFor
+          ? new Date(booking.scheduledFor).toISOString().slice(0, 10)
+          : proposal.job?.physicalDetails?.preferredVisitDate
+          ? new Date(proposal.job.physicalDetails.preferredVisitDate)
+              .toISOString()
+              .slice(0, 10)
+          : "",
+      preferredWorkDate: source.physicalVisit?.preferredWorkDate
+        ? new Date(source.physicalVisit.preferredWorkDate)
+            .toISOString()
+            .slice(0, 10)
+        : proposal.job?.physicalDetails?.preferredWorkDate
+          ? new Date(proposal.job.physicalDetails.preferredWorkDate)
+              .toISOString()
+              .slice(0, 10)
+          : "",
+      inspectionSummary:
+        source.physicalVisit?.inspectionSummary || booking?.quoteNotes || "",
+      materialsAgreement:
+        source.physicalVisit?.materialsAgreement ||
+        proposal.job?.physicalDetails?.materialsPreference ||
+        "",
+    },
     milestones: initialMilestones,
   };
 };
@@ -55,6 +90,7 @@ export function ContractCreatePageClient({
   proposal,
   walletData,
   contract = null,
+  booking = null,
 }) {
   const isEditing = Boolean(contract?._id);
   const action = useMemo(
@@ -65,7 +101,7 @@ export function ContractCreatePageClient({
     [contract?._id, isEditing],
   );
   const [formState, setFormState] = useState(() =>
-    buildInitialState(proposal, contract),
+    buildInitialState(proposal, contract, booking),
   );
   const [actionState, formAction, isPending] = useActionState(action, {
     message: "",
@@ -102,9 +138,13 @@ export function ContractCreatePageClient({
 
   const payload = {
     proposalId: proposal._id,
+    bookingId: booking?._id,
     title: formState.title,
     description: formState.description,
     terms: formState.terms,
+    serviceMode: formState.serviceMode,
+    physicalVisit:
+      formState.serviceMode === "physical" ? formState.physicalVisit : undefined,
     contractType: formState.contractType,
     totalAmount: formState.totalAmount,
     milestones:
@@ -126,6 +166,14 @@ export function ContractCreatePageClient({
       ? milestoneTotal
       : Number(formState.totalAmount) || 0;
   const hasEnoughFunds = wallet.balance >= expectedFundingAmount;
+  const isPhysicalAmountLocked =
+    formState.serviceMode === "physical" &&
+    Number(booking?.quoteAmount || proposal.amount || 0) > 0;
+  const lockedQuoteAmount = Number(booking?.quoteAmount || proposal.amount || 0);
+  const physicalMilestonesMatchQuote =
+    !isPhysicalAmountLocked ||
+    formState.contractType !== CONTRACT_TYPE.MILESTONE_BASED ||
+    milestoneTotal === lockedQuoteAmount;
 
   return (
     <form action={formAction} className="card">
@@ -138,7 +186,9 @@ export function ContractCreatePageClient({
         <p className="text-muted mb-0">
           {isEditing
             ? "Update the contract before the freelancer signs it. Revised terms stay tied to the same proposal."
-            : "This accepts the proposal and creates the working agreement. Work starts only after the freelancer signs the contract."}
+            : booking
+              ? "This turns the completed booking into a contract. The amount is locked to the freelancer's booking quote."
+              : "This accepts the proposal and creates the working agreement. Work starts only after the freelancer signs the contract."}
         </p>
       </div>
 
@@ -147,8 +197,14 @@ export function ContractCreatePageClient({
           <div>
             <strong>Proposal offer</strong>
             <p className="text-muted mb-0">
-              NPR {Number(proposal.amount || 0).toLocaleString()} in{" "}
-              {proposal.deliveryDays || "N/A"} day(s)
+              {booking
+                ? `NPR ${lockedQuoteAmount.toLocaleString()} quoted after booking`
+                : proposal.pricingType === "inspection_required" &&
+                    Number(proposal.amount || 0) <= 0
+                  ? "Inspection required before pricing"
+                  : `NPR ${Number(proposal.amount || 0).toLocaleString()} in ${
+                      proposal.deliveryDays || "N/A"
+                    } day(s)`}
             </p>
           </div>
           <div>
@@ -202,10 +258,31 @@ export function ContractCreatePageClient({
             ) : null}
           </div>
         ) : null}
+        {proposal.pricingType === "inspection_required" ? (
+          <div className="card-sm" style={{ marginTop: "var(--space-3)" }}>
+            <strong>Inspection-first proposal</strong>
+            <p className="text-muted mb-0">
+              {booking
+                ? "The booking is complete, and the freelancer's inspection quote is now the locked contract amount."
+                : "The freelancer marked this job as inspection required, so the final price is expected to be agreed here in the contract."}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {actionState?.message ? (
         <div className="card-error mb-4">{actionState.message}</div>
+      ) : null}
+
+      {isPhysicalAmountLocked ? (
+        <div className="card-sm mb-6">
+          <strong>Quoted amount locked from proposal</strong>
+          <p className="text-muted mb-0">
+            For physical jobs, the freelancer's quoted amount is used as the
+            contract amount. The client can set terms and structure here, but
+            cannot change the quoted price.
+          </p>
+        </div>
       ) : null}
       {expectedFundingAmount > 0 ? (
         <div className={`card-sm mb-6 ${hasEnoughFunds ? "" : "card-error"}`}>
@@ -240,6 +317,120 @@ export function ContractCreatePageClient({
           disabled={isPending}
         />
       </div>
+
+      {formState.serviceMode === "physical" ? (
+        <div className="card-sm mb-6">
+          <h3 className="mb-3">On-site Agreement</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-group">
+              <label className="form-label" htmlFor="contract-visit-required">
+                Site Visit Required
+              </label>
+              <select
+                id="contract-visit-required"
+                className="form-select"
+                value={formState.physicalVisit.isRequired ? "yes" : "no"}
+                onChange={(event) =>
+                  setFormState((previous) => ({
+                    ...previous,
+                    physicalVisit: {
+                      ...previous.physicalVisit,
+                      isRequired: event.target.value === "yes",
+                    },
+                  }))
+                }
+                disabled={isPending}
+              >
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="contract-materials">
+                Materials Agreement
+              </label>
+              <input
+                id="contract-materials"
+                className="form-input"
+                value={formState.physicalVisit.materialsAgreement}
+                onChange={(event) =>
+                  setFormState((previous) => ({
+                    ...previous,
+                    physicalVisit: {
+                      ...previous.physicalVisit,
+                      materialsAgreement: event.target.value,
+                    },
+                  }))
+                }
+                disabled={isPending}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="contract-visit-date">
+                Preferred Visit Date
+              </label>
+              <input
+                id="contract-visit-date"
+                type="date"
+                className="form-input"
+                value={formState.physicalVisit.preferredVisitDate}
+                onChange={(event) =>
+                  setFormState((previous) => ({
+                    ...previous,
+                    physicalVisit: {
+                      ...previous.physicalVisit,
+                      preferredVisitDate: event.target.value,
+                    },
+                  }))
+                }
+                disabled={isPending}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="contract-work-date">
+                Preferred Work Date
+              </label>
+              <input
+                id="contract-work-date"
+                type="date"
+                className="form-input"
+                value={formState.physicalVisit.preferredWorkDate}
+                onChange={(event) =>
+                  setFormState((previous) => ({
+                    ...previous,
+                    physicalVisit: {
+                      ...previous.physicalVisit,
+                      preferredWorkDate: event.target.value,
+                    },
+                  }))
+                }
+                disabled={isPending}
+              />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="contract-inspection-summary">
+              Inspection Summary / Agreement Notes
+            </label>
+            <textarea
+              id="contract-inspection-summary"
+              className="form-input"
+              rows={4}
+              value={formState.physicalVisit.inspectionSummary}
+              onChange={(event) =>
+                setFormState((previous) => ({
+                  ...previous,
+                  physicalVisit: {
+                    ...previous.physicalVisit,
+                    inspectionSummary: event.target.value,
+                  },
+                }))
+              }
+              disabled={isPending}
+            />
+          </div>
+        </div>
+      ) : null}
 
       <div className="form-group">
         <label className="form-label" htmlFor="contract-description">
@@ -301,7 +492,7 @@ export function ContractCreatePageClient({
             onChange={(event) =>
               handleChange("totalAmount", event.target.value)
             }
-            disabled={isPending}
+            disabled={isPending || isPhysicalAmountLocked}
           />
         </div>
       ) : (
@@ -423,6 +614,16 @@ export function ContractCreatePageClient({
           <p className="text-muted mb-0 mt-3">
             Total contract value: NPR {milestoneTotal.toLocaleString()}
           </p>
+          {isPhysicalAmountLocked ? (
+            <p className="text-muted mb-0 mt-2">
+              Locked quoted amount: NPR {lockedQuoteAmount.toLocaleString()}
+            </p>
+          ) : null}
+          {isPhysicalAmountLocked && !physicalMilestonesMatchQuote ? (
+            <p className="text-error mb-0 mt-2">
+              Milestone total must match the freelancer's quoted amount.
+            </p>
+          ) : null}
         </div>
       )}
 
@@ -430,7 +631,9 @@ export function ContractCreatePageClient({
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={isPending || !hasEnoughFunds}
+          disabled={
+            isPending || !hasEnoughFunds || !physicalMilestonesMatchQuote
+          }
         >
           {isPending
             ? isEditing

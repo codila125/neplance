@@ -126,6 +126,12 @@ export function JobsPageClient({
   const userSkills = Array.isArray(user?.skills)
     ? user.skills.map((skill) => String(skill).toLowerCase())
     : [];
+  const userPhysicalServices = Array.isArray(user?.physicalServicesOffered)
+    ? user.physicalServicesOffered.map((service) => String(service).toLowerCase())
+    : [];
+  const userServiceAreas = Array.isArray(user?.serviceAreas)
+    ? user.serviceAreas.map((area) => String(area).toLowerCase())
+    : [];
   const matchedJobs = jobs
     .map((job) => {
       const jobSkills = Array.isArray(job.requiredSkills)
@@ -134,9 +140,28 @@ export function JobsPageClient({
       const jobTags = Array.isArray(job.tags)
         ? job.tags.map((tag) => String(tag).toLowerCase())
         : [];
-      const matchCount = userSkills.filter(
+      const skillMatchCount = userSkills.filter(
         (skill) => jobSkills.includes(skill) || jobTags.includes(skill),
       ).length;
+      const physicalMatchCount =
+        job.jobType === "physical"
+          ? [
+              userPhysicalServices.includes(
+                String(job.physicalDetails?.serviceCategory || "").toLowerCase(),
+              )
+                ? 1
+                : 0,
+              userServiceAreas.includes(
+                String(job.location?.city || "").toLowerCase(),
+              ) ||
+              userServiceAreas.includes(
+                String(job.location?.district || "").toLowerCase(),
+              )
+                ? 1
+                : 0,
+            ].reduce((sum, value) => sum + value, 0)
+          : 0;
+      const matchCount = skillMatchCount + physicalMatchCount;
 
       return { job, matchCount };
     })

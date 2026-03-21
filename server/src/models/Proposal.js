@@ -20,7 +20,12 @@ const proposalSchema = new mongoose.Schema({
   amount: {
     type: Number,
     required: true,
-    min: 1,
+    min: 0,
+  },
+  pricingType: {
+    type: String,
+    enum: ["fixed_quote", "inspection_required"],
+    default: "fixed_quote",
   },
   coverLetter: {
     type: String,
@@ -37,6 +42,11 @@ const proposalSchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: 0,
+  },
+  visitAvailableOn: Date,
+  inspectionNotes: {
+    type: String,
+    maxlength: 3000,
   },
   attachments: {
     type: [String],

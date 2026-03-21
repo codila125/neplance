@@ -42,6 +42,7 @@ export const JobCard = ({
     tags,
     attachments,
     budget,
+    budgetType,
     experienceLevel,
     location,
     isUrgent,
@@ -53,7 +54,12 @@ export const JobCard = ({
 
   const creatorLabel = getCreatorLabel(creatorAddress);
   const locationText = formatLocation(location, { includeAddress: false });
-  const budgetDisplay = budget ? formatBudget(budget) : "Negotiable";
+  const budgetDisplay =
+    budgetType === "inspection_required"
+      ? "Inspection Required"
+      : budget
+        ? formatBudget(budget)
+        : "Negotiable";
   const attachmentList = Array.isArray(attachments) ? attachments : [];
   const attachmentCount = attachmentList.length;
   const attachmentPreview = attachmentList.slice(0, 2);
@@ -217,6 +223,12 @@ export const JobCard = ({
             {jobType}
           </span>
         ) : null}
+        {jobType === "physical" && job.physicalDetails?.serviceCategory ? (
+          <span className="badge">{job.physicalDetails.serviceCategory}</span>
+        ) : null}
+        {budgetType === "inspection_required" ? (
+          <span className="badge badge-warning">Amount after inspection</span>
+        ) : null}
         {experienceLevel ? (
           <span
             className="badge"
@@ -248,6 +260,30 @@ export const JobCard = ({
           }}
         >
           Location: {locationText}
+        </div>
+      ) : null}
+      {jobType === "physical" ? (
+        <div
+          style={{
+            fontSize: "var(--text-sm)",
+            color: "var(--color-text-light)",
+            marginBottom: "var(--space-3)",
+            display: "flex",
+            gap: "var(--space-2)",
+            flexWrap: "wrap",
+          }}
+        >
+          {job.physicalDetails?.siteVisitRequired ? (
+            <span>Site visit required</span>
+          ) : null}
+          {job.physicalDetails?.preferredWorkDate ? (
+            <span>
+              Work date:{" "}
+              {new Date(job.physicalDetails.preferredWorkDate).toLocaleDateString(
+                "en-NP",
+              )}
+            </span>
+          ) : null}
         </div>
       ) : null}
 
@@ -561,6 +597,7 @@ export const ProposalCard = ({ proposal, onWithdraw }) => {
   const {
     job,
     amount,
+    pricingType,
     status,
     coverLetter,
     deliveryDays,
@@ -670,7 +707,9 @@ export const ProposalCard = ({ proposal, onWithdraw }) => {
                 color: "var(--color-primary)",
               }}
             >
-              NPR {amount?.toLocaleString() || "N/A"}
+              {pricingType === "inspection_required"
+                ? "Inspection required"
+                : `NPR ${amount?.toLocaleString() || "N/A"}`}
             </span>
           </div>
           {deliveryDays ? (

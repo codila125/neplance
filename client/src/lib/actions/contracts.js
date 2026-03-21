@@ -47,7 +47,9 @@ export async function createContractAction(_previousState, formData) {
 
   try {
     const response = await apiServerRequest(
-      `/api/contracts/proposal/${data.proposalId}`,
+      data.bookingId
+        ? `/api/contracts/booking/${data.bookingId}`
+        : `/api/contracts/proposal/${data.proposalId}`,
       {
         method: "POST",
         body: JSON.stringify({
@@ -55,6 +57,8 @@ export async function createContractAction(_previousState, formData) {
           description: data.description,
           terms: data.terms,
           contractType: data.contractType,
+          serviceMode: data.serviceMode,
+          physicalVisit: data.physicalVisit,
           totalAmount: data.totalAmount,
           milestones: data.milestones,
         }),
@@ -65,7 +69,12 @@ export async function createContractAction(_previousState, formData) {
     revalidatePath("/dashboard");
     revalidatePath("/wallet");
     revalidatePath("/messages");
-    revalidatePath(`/proposals/${data.proposalId}`);
+    if (data.proposalId) {
+      revalidatePath(`/proposals/${data.proposalId}`);
+    }
+    if (data.bookingId) {
+      revalidatePath(`/bookings/${data.bookingId}`);
+    }
 
     redirect(contractId ? `/contracts/${contractId}` : "/dashboard");
   } catch (error) {
@@ -115,6 +124,8 @@ export async function updateContractAction(
         description: data.description,
         terms: data.terms,
         contractType: data.contractType,
+        serviceMode: data.serviceMode,
+        physicalVisit: data.physicalVisit,
         totalAmount: data.totalAmount,
         milestones: data.milestones,
       }),
@@ -333,6 +344,38 @@ export async function completeContractAction(contractId) {
   revalidatePath("/wallet");
   revalidatePath(`/contracts/${contractId}`);
   revalidatePath("/messages");
+
+  return successResult(response?.data || response);
+}
+
+export async function generateContractVisitOtpAction(contractId) {
+  await requireSession();
+
+  const response = await apiServerRequest(`/api/contracts/${contractId}/visit-otp`, {
+    method: "PATCH",
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/contracts/${contractId}`);
+
+  return successResult(response?.data || response);
+}
+
+export async function verifyContractVisitOtpAction(contractId, otpCode) {
+  await requireSession();
+
+  const response = await apiServerRequest(
+    `/api/contracts/${contractId}/visit-otp/verify`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        otpCode: typeof otpCode === "string" ? otpCode.trim() : "",
+      }),
+    },
+  );
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/contracts/${contractId}`);
 
   return successResult(response?.data || response);
 }

@@ -32,15 +32,23 @@ export function JobDetailPageClient({
   const user = initialUser;
   const [job] = useState(initialJob);
   const [amount, setAmount] = useState("");
+  const [pricingType, setPricingType] = useState("fixed_quote");
   const [coverLetter, setCoverLetter] = useState("");
   const [deliveryDays, setDeliveryDays] = useState("");
   const [revisionsIncluded, setRevisionsIncluded] = useState("0");
+  const [visitAvailableOn, setVisitAvailableOn] = useState("");
+  const [inspectionNotes, setInspectionNotes] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [proposalError, setProposalError] = useState("");
   const [isProposalPending, startProposalTransition] = useTransition();
 
   const creatorLabel = getCreatorLabel(job.creatorAddress);
-  const budgetDisplay = job.budget ? formatBudget(job.budget) : "Negotiable";
+  const budgetDisplay =
+    job.budgetType === "inspection_required"
+      ? "Inspection Required"
+      : job.budget
+        ? formatBudget(job.budget)
+        : "Negotiable";
   const locationText = formatLocation(job.location);
   const deadlineText = formatDate(job.deadline);
 
@@ -58,10 +66,13 @@ export function JobDetailPageClient({
       try {
         await createProposalMutationAction({
           job: job._id,
+          pricingType,
           amount,
           coverLetter,
           deliveryDays,
           revisionsIncluded,
+          visitAvailableOn,
+          inspectionNotes,
           attachments,
         });
         router.push("/dashboard");
@@ -166,8 +177,11 @@ export function JobDetailPageClient({
               attachments={attachments}
               coverLetter={coverLetter}
               deliveryDays={deliveryDays}
+              inspectionNotes={inspectionNotes}
               handleSubmitProposal={handleSubmitProposal}
               isProposalPending={isProposalPending}
+              job={job}
+              pricingType={pricingType}
               proposalError={proposalError}
               revisionsIncluded={revisionsIncluded}
               router={router}
@@ -175,7 +189,11 @@ export function JobDetailPageClient({
               setAttachments={setAttachments}
               setCoverLetter={setCoverLetter}
               setDeliveryDays={setDeliveryDays}
+              setInspectionNotes={setInspectionNotes}
+              setPricingType={setPricingType}
               setRevisionsIncluded={setRevisionsIncluded}
+              setVisitAvailableOn={setVisitAvailableOn}
+              visitAvailableOn={visitAvailableOn}
             />
           )
         ) : null}

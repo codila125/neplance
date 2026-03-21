@@ -171,9 +171,22 @@ export async function updateJobAction(jobId, _previousState, formData) {
   const location =
     payload.jobType === "physical"
       ? {
+          address: payload.locationAddress?.trim() || undefined,
           city: payload.locationCity?.trim() || undefined,
           district: payload.locationDistrict?.trim() || undefined,
           province: payload.locationProvince?.trim() || undefined,
+        }
+      : undefined;
+  const physicalDetails =
+    payload.jobType === "physical"
+      ? {
+          propertyType: payload.propertyType?.trim() || undefined,
+          siteVisitRequired: Boolean(payload.siteVisitRequired),
+          preferredVisitDate: payload.preferredVisitDate || undefined,
+          preferredWorkDate: payload.preferredWorkDate || undefined,
+          materialsPreference: payload.materialsPreference || undefined,
+          safetyNotes: payload.safetyNotes?.trim() || undefined,
+          estimatedDuration: payload.estimatedDuration?.trim() || undefined,
         }
       : undefined;
   const submitData = {
@@ -190,9 +203,11 @@ export async function updateJobAction(jobId, _previousState, formData) {
       max: payload.budgetMax ? Number(payload.budgetMax) : undefined,
       currency: "NPR",
     },
+    budgetType: payload.budgetType || "fixed_budget",
     deadline: payload.deadline || undefined,
     isUrgent: Boolean(payload.isUrgent),
     location,
+    physicalDetails,
     attachments: sanitizeAttachments(payload.attachments),
   };
 

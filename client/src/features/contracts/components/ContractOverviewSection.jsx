@@ -3,9 +3,16 @@ import { formatStatus } from "@/shared/utils/job";
 import { formatContractDateTime } from "./contractDetailUtils";
 
 export function ContractOverviewSection({
+  canGenerateVisitOtp,
+  canVerifyVisitOtp,
   contract,
   freelancerRejectedContract,
+  handleGenerateVisitOtp,
+  handleVerifyVisitOtp,
+  isPending,
   remainingFundedBalance,
+  setVisitOtp,
+  visitOtp,
 }) {
   return (
     <>
@@ -82,6 +89,104 @@ export function ContractOverviewSection({
         <div className="mb-6">
           <h3 className="mb-2">Terms</h3>
           <p className="text-secondary mb-0">{contract.terms}</p>
+        </div>
+      ) : null}
+
+      {contract.serviceMode === "physical" ? (
+        <div className="mb-6">
+          <h3 className="mb-2">Physical Visit Verification</h3>
+          <div className="card-sm">
+            <p className="text-secondary">
+              <strong>Visit required:</strong>{" "}
+              {contract.physicalVisit?.isRequired ? "Yes" : "No"}
+            </p>
+            {contract.physicalVisit?.preferredVisitDate ? (
+              <p className="text-secondary">
+                <strong>Preferred visit date:</strong>{" "}
+                {new Date(contract.physicalVisit.preferredVisitDate).toLocaleDateString(
+                  "en-NP",
+                )}
+              </p>
+            ) : null}
+            {contract.physicalVisit?.preferredWorkDate ? (
+              <p className="text-secondary">
+                <strong>Preferred work date:</strong>{" "}
+                {new Date(contract.physicalVisit.preferredWorkDate).toLocaleDateString(
+                  "en-NP",
+                )}
+              </p>
+            ) : null}
+            {contract.physicalVisit?.inspectionSummary ? (
+              <p className="text-secondary">
+                <strong>Inspection summary:</strong>{" "}
+                {contract.physicalVisit.inspectionSummary}
+              </p>
+            ) : null}
+            {contract.physicalVisit?.materialsAgreement ? (
+              <p className="text-secondary">
+                <strong>Materials agreement:</strong>{" "}
+                {contract.physicalVisit.materialsAgreement}
+              </p>
+            ) : null}
+            <p className="text-secondary mb-3">
+              <strong>OTP status:</strong>{" "}
+              {contract.physicalVisit?.verification?.status || "NOT_REQUIRED"}
+            </p>
+            {contract.booking ? (
+              <p className="text-secondary">
+                This verification was completed during the physical booking
+                before contract signing.
+              </p>
+            ) : null}
+            {canGenerateVisitOtp ? (
+              <div className="flex gap-3 flex-wrap">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleGenerateVisitOtp}
+                  disabled={isPending}
+                >
+                  {isPending ? "Generating..." : "Generate On-site OTP"}
+                </button>
+                {contract.physicalVisit?.verification?.otpCode ? (
+                  <span className="badge badge-warning">
+                    OTP: {contract.physicalVisit.verification.otpCode}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            {canVerifyVisitOtp ? (
+              <div style={{ marginTop: "var(--space-3)" }}>
+                <label className="form-label" htmlFor="visit-otp">
+                  Enter client OTP
+                </label>
+                <div className="flex gap-3 flex-wrap">
+                  <input
+                    id="visit-otp"
+                    className="form-input"
+                    value={visitOtp}
+                    onChange={(event) => setVisitOtp(event.target.value)}
+                    placeholder="6-digit OTP"
+                    style={{ maxWidth: "220px" }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={handleVerifyVisitOtp}
+                    disabled={isPending || !visitOtp}
+                  >
+                    {isPending ? "Verifying..." : "Verify Visit"}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {contract.physicalVisit?.verification?.verifiedAt ? (
+              <p className="text-secondary mb-0" style={{ marginTop: "var(--space-3)" }}>
+                Verified at{" "}
+                {formatContractDateTime(contract.physicalVisit.verification.verifiedAt)}
+              </p>
+            ) : null}
+          </div>
         </div>
       ) : null}
 

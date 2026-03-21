@@ -21,10 +21,13 @@ const buildProposalPayload = (payload) => {
 
   return {
     job: payload.job,
+    pricingType: payload.pricingType || "fixed_quote",
     amount: Number(payload.amount),
     coverLetter: String(payload.coverLetter || "").trim(),
     deliveryDays: Number(payload.deliveryDays),
     revisionsIncluded: Number(payload.revisionsIncluded) || 0,
+    visitAvailableOn: payload.visitAvailableOn || undefined,
+    inspectionNotes: String(payload.inspectionNotes || "").trim(),
     attachments,
   };
 };

@@ -92,6 +92,25 @@ const userSchema = new mongoose.Schema({
     default: "available",
   },
   languages: [{ type: String }],
+  physicalServicesOffered: [{ type: String }],
+  serviceAreas: [{ type: String }],
+  onsiteAvailable: {
+    type: Boolean,
+    default: false,
+  },
+  hasOwnTools: {
+    type: Boolean,
+    default: false,
+  },
+  licenseOrCertification: {
+    type: String,
+    maxlength: 500,
+  },
+  tradeExperienceYears: {
+    type: Number,
+    min: 0,
+    default: 0,
+  },
   portfolio: [
     {
       title: String,

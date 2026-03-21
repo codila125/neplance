@@ -9,6 +9,7 @@ export function ProposalResubmitSection({
   resubmitData,
   resubmitError,
   title = "Resubmit Proposal",
+  isPhysicalJob = false,
 }) {
   return (
     <div style={{ marginTop: "var(--space-6)" }}>
@@ -33,15 +34,40 @@ export function ProposalResubmitSection({
         <Input
           type="number"
           label="Your Amount (NPR)"
-          placeholder="Enter amount"
+          placeholder={
+            resubmitData.pricingType === "inspection_required"
+              ? "0 until inspection"
+              : "Enter amount"
+          }
           value={resubmitData.amount}
           onChange={(event) =>
             handleResubmitChange("amount", event.target.value)
           }
-          min="1"
-          required
+          min="0"
+          required={resubmitData.pricingType !== "inspection_required"}
           disabled={isResubmitting}
         />
+        {isPhysicalJob ? (
+          <div style={{ marginTop: "var(--space-4)" }}>
+            <label className="form-label" htmlFor="proposal-pricing-type">
+              Quote Type
+            </label>
+            <select
+              id="proposal-pricing-type"
+              className="form-select"
+              value={resubmitData.pricingType || "fixed_quote"}
+              onChange={(event) =>
+                handleResubmitChange("pricingType", event.target.value)
+              }
+              disabled={isResubmitting}
+            >
+              <option value="fixed_quote">I can quote now</option>
+              <option value="inspection_required">
+                Inspection required first
+              </option>
+            </select>
+          </div>
+        ) : null}
         <div style={{ marginTop: "var(--space-4)" }}>
           <label
             htmlFor="resubmitCoverLetter"
@@ -84,6 +110,34 @@ export function ProposalResubmitSection({
             {resubmitData.coverLetter.length}/5000 characters
           </p>
         </div>
+        {isPhysicalJob ? (
+          <>
+            <Input
+              type="date"
+              label="Visit Available On"
+              value={resubmitData.visitAvailableOn || ""}
+              onChange={(event) =>
+                handleResubmitChange("visitAvailableOn", event.target.value)
+              }
+              disabled={isResubmitting}
+            />
+            <div style={{ marginTop: "var(--space-4)" }}>
+              <label className="form-label" htmlFor="inspection-notes">
+                Inspection / On-site Notes
+              </label>
+              <textarea
+                id="inspection-notes"
+                className="form-input"
+                rows={3}
+                value={resubmitData.inspectionNotes || ""}
+                onChange={(event) =>
+                  handleResubmitChange("inspectionNotes", event.target.value)
+                }
+                disabled={isResubmitting}
+              />
+            </div>
+          </>
+        ) : null}
         <div
           style={{
             display: "grid",

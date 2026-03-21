@@ -128,8 +128,10 @@ const createJob = catchAsync(async (req, res) => {
     subcategory,
     experienceLevel,
     budget,
+    budgetType,
     deadline,
     location,
+    physicalDetails,
     terms,
     status,
     jobType,
@@ -185,9 +187,17 @@ const createJob = catchAsync(async (req, res) => {
     requiredSkills: normalizedDefaults.requiredSkills,
     experienceLevel,
     budget,
+    budgetType,
     deadline,
     isUrgent: normalizedDefaults.isUrgent,
     location,
+    physicalDetails:
+      normalizedDefaults.jobType === "physical"
+        ? {
+            ...(physicalDetails || {}),
+            serviceCategory: category,
+          }
+        : undefined,
     isPublic: normalizedDefaults.isPublic,
     parties: normalizedParties,
     terms,
@@ -232,9 +242,12 @@ const findJobs = catchAsync(async (req, res) => {
   if (isFeatured === "true") query.isFeatured = true;
 
   if (minBudget || maxBudget) {
-    query["budget.min"] = {};
-    if (minBudget) query["budget.min"].$gte = Number(minBudget);
-    if (maxBudget) query["budget.max"] = { $lte: Number(maxBudget) };
+    if (minBudget) {
+      query["budget.min"] = { ...(query["budget.min"] || {}), $gte: Number(minBudget) };
+    }
+    if (maxBudget) {
+      query["budget.max"] = { $lte: Number(maxBudget) };
+    }
   }
 
   if (city) query["location.city"] = new RegExp(city, "i");
@@ -522,9 +535,11 @@ const updateJob = catchAsync(async (req, res) => {
     "requiredSkills",
     "experienceLevel",
     "budget",
+    "budgetType",
     "deadline",
     "isUrgent",
     "location",
+    "physicalDetails",
     "isPublic",
     "terms",
     "attachments",
@@ -538,6 +553,15 @@ const updateJob = catchAsync(async (req, res) => {
   });
 
   updates.updatedAt = new Date();
+  if (
+    updates.jobType === "physical" ||
+    (updates.jobType === undefined && job.jobType === "physical")
+  ) {
+    updates.physicalDetails = {
+      ...(updates.physicalDetails || job.physicalDetails || {}),
+      serviceCategory: updates.category || job.category,
+    };
+  }
 
   const updatedJob = await Job.findByIdAndUpdate(jobId, updates, {
     new: true,

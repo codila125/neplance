@@ -1,4 +1,6 @@
 const Contract = require("../models/Contract");
+const Booking = require("../models/Booking");
+const Job = require("../models/Job");
 const Proposal = require("../models/Proposal");
 const User = require("../models/User");
 const AppError = require("../utils/appError");
@@ -9,6 +11,7 @@ const {
   CONTRACT_TYPE,
   JOB_STATUS,
   MILESTONE_STATUS,
+  BOOKING_STATUS,
   PROPOSAL_STATUS,
 } = require("../constants/statuses");
 const {
@@ -63,12 +66,75 @@ const normalizeMilestones = (contractType, milestones = []) => {
     }));
 };
 
+const normalizePhysicalVisit = (serviceMode, payload = {}, job = null) => {
+  if (serviceMode !== "physical") {
+    return {
+      isRequired: false,
+      verification: { status: "NOT_REQUIRED" },
+    };
+  }
+
+  const jobPhysicalDetails = job?.physicalDetails || {};
+  const visitPayload = payload?.physicalVisit || {};
+  const isRequired = Boolean(
+    visitPayload.isRequired ?? jobPhysicalDetails.siteVisitRequired
+  );
+
+  return {
+    isRequired,
+    preferredVisitDate:
+      visitPayload.preferredVisitDate ||
+      jobPhysicalDetails.preferredVisitDate ||
+      undefined,
+    preferredWorkDate:
+      visitPayload.preferredWorkDate ||
+      jobPhysicalDetails.preferredWorkDate ||
+      undefined,
+    inspectionSummary:
+      typeof visitPayload.inspectionSummary === "string"
+        ? visitPayload.inspectionSummary.trim()
+        : "",
+    materialsAgreement:
+      typeof visitPayload.materialsAgreement === "string"
+        ? visitPayload.materialsAgreement.trim()
+        : jobPhysicalDetails.materialsPreference || "",
+    verification: {
+      status: isRequired ? "PENDING" : "NOT_REQUIRED",
+    },
+  };
+};
+
+const createVisitOtpCode = () =>
+  String(Math.floor(100000 + Math.random() * 900000));
+
+const ensureContractAllowsVisitVerification = (contract) => {
+  if (contract.status !== CONTRACT_STATUS.PENDING_FREELANCER_SIGNATURE) {
+    throw new AppError(
+      "Visit verification is only available before the freelancer signs",
+      400
+    );
+  }
+
+  if (contract.booking) {
+    throw new AppError(
+      "Physical visit verification for this contract was already handled in the booking stage",
+      400,
+    );
+  }
+};
+
 const createContractFromProposal = async ({
   clientId,
   job,
   payload,
   proposal,
 }) => {
+  if (job.jobType === "physical") {
+    throw new AppError(
+      "Physical jobs must go through a booking before a contract can be created",
+      400,
+    );
+  }
   if (String(job.creatorAddress) !== String(clientId)) {
     throw new AppError("Only the job creator can create a contract", 403);
   }
@@ -111,11 +177,28 @@ const createContractFromProposal = async ({
   }
 
   const contractType = normalizeContractType(payload.contractType);
+  const serviceMode = job.jobType === "physical" ? "physical" : "digital";
   const milestones = normalizeMilestones(contractType, payload.milestones);
-  const totalAmount =
+  let totalAmount =
     contractType === CONTRACT_TYPE.MILESTONE_BASED
       ? milestones.reduce((total, milestone) => total + (Number(milestone.value) || 0), 0)
       : Number(payload.totalAmount) || proposal.amount || job.budget?.max || job.budget?.min || 0;
+
+  if (serviceMode === "physical" && Number(proposal.amount || 0) > 0) {
+    const quotedAmount = Number(proposal.amount || 0);
+
+    if (
+      contractType === CONTRACT_TYPE.MILESTONE_BASED &&
+      totalAmount !== quotedAmount
+    ) {
+      throw new AppError(
+        "Physical contract milestones must add up to the freelancer's quoted amount",
+        400
+      );
+    }
+
+    totalAmount = quotedAmount;
+  }
 
   if (totalAmount <= 0) {
     throw new AppError("Contract amount must be greater than zero", 400);
@@ -142,6 +225,7 @@ const createContractFromProposal = async ({
       freelancer: proposal.freelancer,
       title: contractTitle,
       description: contractDescription,
+      serviceMode,
       contractType,
       totalAmount,
       fundingStatus: CONTRACT_FUNDING_STATUS.FUNDED,
@@ -151,6 +235,7 @@ const createContractFromProposal = async ({
       fundedAt: new Date(),
       currency: job.budget?.currency || "NPR",
       terms: payload.terms?.trim() || job.terms || "",
+      physicalVisit: normalizePhysicalVisit(serviceMode, payload, job),
       milestones,
       status: CONTRACT_STATUS.PENDING_FREELANCER_SIGNATURE,
       clientSignature: {
@@ -257,6 +342,17 @@ const signContract = async (contract, freelancerId) => {
   ) {
     throw new AppError(
       "This contract is not fully funded yet and cannot be signed",
+      400
+    );
+  }
+
+  if (
+    contract.serviceMode === "physical" &&
+    contract.physicalVisit?.isRequired &&
+    contract.physicalVisit?.verification?.status !== "VERIFIED"
+  ) {
+    throw new AppError(
+      "Physical contracts can only be signed after on-site OTP verification",
       400
     );
   }
@@ -749,14 +845,31 @@ const updatePendingContract = async ({ clientId, contract, payload }) => {
   }
 
   const contractType = normalizeContractType(payload.contractType);
+  const serviceMode = contract.serviceMode || "digital";
   const milestones = normalizeMilestones(contractType, payload.milestones);
-  const totalAmount =
+  let totalAmount =
     contractType === CONTRACT_TYPE.MILESTONE_BASED
       ? milestones.reduce(
           (total, milestone) => total + (Number(milestone.value) || 0),
           0
         )
       : Number(payload.totalAmount) || 0;
+
+  if (serviceMode === "physical" && Number(contract.totalAmount || 0) > 0) {
+    const quotedAmount = Number(contract.totalAmount || 0);
+
+    if (
+      contractType === CONTRACT_TYPE.MILESTONE_BASED &&
+      totalAmount !== quotedAmount
+    ) {
+      throw new AppError(
+        "Physical contract milestones must add up to the freelancer's quoted amount",
+        400
+      );
+    }
+
+    totalAmount = quotedAmount;
+  }
 
   if (totalAmount <= 0) {
     throw new AppError("Contract amount must be greater than zero", 400);
@@ -772,6 +885,8 @@ const updatePendingContract = async ({ clientId, contract, payload }) => {
   contract.title = payload.title?.trim() || contract.title;
   contract.description = payload.description?.trim() || "";
   contract.terms = payload.terms?.trim() || "";
+  contract.serviceMode = serviceMode;
+  contract.physicalVisit = normalizePhysicalVisit(serviceMode, payload, null);
   contract.contractType = contractType;
   contract.totalAmount = totalAmount;
   contract.milestones = milestones;
@@ -779,6 +894,275 @@ const updatePendingContract = async ({ clientId, contract, payload }) => {
     ...(contract.freelancerSignature || {}),
     rejectedAt: undefined,
     rejectionReason: "",
+  };
+  contract.updatedAt = new Date();
+  await contract.save();
+
+  return contract;
+};
+
+const generateContractVisitOtp = async ({ contract, clientId }) => {
+  ensureContractAllowsVisitVerification(contract);
+
+  if (String(contract.client) !== String(clientId)) {
+    throw new AppError("Only the client can generate the visit OTP", 403);
+  }
+
+  if (contract.serviceMode !== "physical") {
+    throw new AppError("Visit OTP is only available for physical contracts", 400);
+  }
+
+  if (!contract.physicalVisit?.isRequired) {
+    throw new AppError("This contract does not require physical visit verification", 400);
+  }
+
+  contract.physicalVisit = contract.physicalVisit || {};
+  contract.physicalVisit.verification = {
+    ...(contract.physicalVisit.verification || {}),
+    status: "PENDING",
+    otpCode: createVisitOtpCode(),
+    generatedAt: new Date(),
+    generatedBy: clientId,
+    verifiedAt: undefined,
+    verifiedBy: undefined,
+  };
+  contract.updatedAt = new Date();
+  await contract.save();
+
+  return contract;
+};
+
+const createContractFromBooking = async ({
+  clientId,
+  booking,
+  payload,
+}) => {
+  if (String(booking.client) !== String(clientId)) {
+    throw new AppError("Only the booking client can create a contract", 403);
+  }
+
+  if (booking.contract) {
+    const existingContract = await Contract.findById(booking.contract);
+    if (existingContract) {
+      return existingContract;
+    }
+  }
+
+  if (booking.status !== BOOKING_STATUS.QUOTED) {
+    throw new AppError(
+      "The freelancer must finish the booking and submit a quote before contract creation",
+      400,
+    );
+  }
+
+  const [job, proposal] = await Promise.all([
+    Job.findById(booking.job),
+    Proposal.findById(booking.proposal),
+  ]);
+
+  if (!job || !proposal) {
+    throw new AppError("Booking data is incomplete", 400);
+  }
+
+  if (job.activeContract) {
+    throw new AppError("This job already has an active contract", 400);
+  }
+
+  const contractType = normalizeContractType(payload.contractType);
+  const serviceMode = "physical";
+  const milestones = normalizeMilestones(contractType, payload.milestones);
+  const lockedQuoteAmount = Number(booking.quoteAmount || 0);
+  let totalAmount =
+    contractType === CONTRACT_TYPE.MILESTONE_BASED
+      ? milestones.reduce(
+          (total, milestone) => total + (Number(milestone.value) || 0),
+          0,
+        )
+      : lockedQuoteAmount;
+
+  if (lockedQuoteAmount <= 0) {
+    throw new AppError(
+      "A valid freelancer quote is required before contract creation",
+      400,
+    );
+  }
+
+  if (
+    contractType === CONTRACT_TYPE.MILESTONE_BASED &&
+    totalAmount !== lockedQuoteAmount
+  ) {
+    throw new AppError(
+      "Physical contract milestones must add up to the booking quote amount",
+      400,
+    );
+  }
+
+  totalAmount = lockedQuoteAmount;
+
+  const contractTitle = payload.title?.trim() || job.title;
+  const contractDescription =
+    payload.description?.trim() || job.description || "";
+
+  await reserveContractFunds({
+    clientId,
+    contractId: booking._id,
+    contractTitle,
+    amount: totalAmount,
+  });
+
+  let contract;
+
+  try {
+    contract = await Contract.create({
+      job: job._id,
+      proposal: proposal._id,
+      booking: booking._id,
+      client: clientId,
+      freelancer: booking.freelancer,
+      title: contractTitle,
+      description: contractDescription,
+      serviceMode,
+      contractType,
+      totalAmount,
+      fundingStatus: CONTRACT_FUNDING_STATUS.FUNDED,
+      fundedAmount: totalAmount,
+      releasedAmount: 0,
+      refundedAmount: 0,
+      fundedAt: new Date(),
+      currency: job.budget?.currency || "NPR",
+      terms: payload.terms?.trim() || job.terms || "",
+      physicalVisit: {
+        isRequired: Boolean(booking.requiresVisit),
+        preferredVisitDate:
+          booking.scheduledFor || job.physicalDetails?.preferredVisitDate || undefined,
+        preferredWorkDate:
+          job.physicalDetails?.preferredWorkDate || undefined,
+        inspectionSummary:
+          payload.physicalVisit?.inspectionSummary?.trim() ||
+          booking.quoteNotes ||
+          "",
+        materialsAgreement:
+          payload.physicalVisit?.materialsAgreement?.trim() ||
+          job.physicalDetails?.materialsPreference ||
+          "",
+        verification: {
+          status: booking.requiresVisit
+            ? booking.visitVerification?.status || "PENDING"
+            : "NOT_REQUIRED",
+          generatedAt: booking.visitVerification?.generatedAt,
+          generatedBy: booking.visitVerification?.generatedBy,
+          verifiedAt: booking.visitVerification?.verifiedAt,
+          verifiedBy: booking.visitVerification?.verifiedBy,
+        },
+      },
+      milestones,
+      status: CONTRACT_STATUS.PENDING_FREELANCER_SIGNATURE,
+      clientSignature: {
+        signedAt: new Date(),
+      },
+      updatedAt: new Date(),
+    });
+
+    booking.contract = contract._id;
+    booking.status = BOOKING_STATUS.CONTRACT_CREATED;
+    booking.updatedAt = new Date();
+    await booking.save();
+
+    proposal.status = PROPOSAL_STATUS.ACCEPTED;
+    proposal.updatedAt = new Date();
+    await proposal.save();
+
+    job.status = JOB_STATUS.CONTRACT_PENDING;
+    job.hiredFreelancer = booking.freelancer;
+    job.selectedProposal = proposal._id;
+    job.activeBooking = booking._id;
+    job.activeContract = contract._id;
+    job.updatedAt = new Date();
+
+    const contractorAddress = booking.freelancer.toString();
+    const existingParties = Array.isArray(job.parties) ? job.parties : [];
+    if (
+      !existingParties.some(
+        (party) =>
+          party?.role === "CONTRACTOR" &&
+          String(party.address) === contractorAddress,
+      )
+    ) {
+      existingParties.push({
+        address: contractorAddress,
+        role: "CONTRACTOR",
+      });
+    }
+    job.parties = existingParties;
+    await job.save();
+
+    await proposal.constructor.updateMany(
+      {
+        job: job._id,
+        _id: { $ne: proposal._id },
+        status: PROPOSAL_STATUS.PENDING,
+      },
+      {
+        $set: {
+          status: PROPOSAL_STATUS.REJECTED,
+          rejectedAt: new Date(),
+          rejectionReason: "Another proposal moved forward to contract.",
+          updatedAt: new Date(),
+        },
+      },
+    );
+
+    await linkLatestFundingTransactionToContract({
+      clientId,
+      contractId: contract._id,
+      contractTitle,
+      amount: totalAmount,
+    });
+  } catch (error) {
+    const rollbackContract = new Contract({
+      client: clientId,
+      freelancer: booking.freelancer,
+      fundedAmount: totalAmount,
+      releasedAmount: 0,
+      refundedAmount: 0,
+    });
+    await refundContractFunds({
+      contract: rollbackContract,
+      amount: totalAmount,
+      description: `Contract funding rolled back for "${contractTitle}"`,
+    });
+    throw error;
+  }
+
+  return contract;
+};
+
+const verifyContractVisitOtp = async ({ contract, freelancerId, otpCode }) => {
+  ensureContractAllowsVisitVerification(contract);
+
+  if (String(contract.freelancer) !== String(freelancerId)) {
+    throw new AppError("Only the assigned freelancer can verify the visit OTP", 403);
+  }
+
+  if (contract.serviceMode !== "physical" || !contract.physicalVisit?.isRequired) {
+    throw new AppError("This contract does not support physical visit verification", 400);
+  }
+
+  const expectedCode = String(contract.physicalVisit?.verification?.otpCode || "");
+  if (!expectedCode) {
+    throw new AppError("The client has not generated an OTP yet", 400);
+  }
+
+  if (String(otpCode || "").trim() !== expectedCode) {
+    throw new AppError("Invalid OTP code", 400);
+  }
+
+  contract.physicalVisit.verification = {
+    ...(contract.physicalVisit.verification || {}),
+    status: "VERIFIED",
+    otpCode: undefined,
+    verifiedAt: new Date(),
+    verifiedBy: freelancerId,
   };
   contract.updatedAt = new Date();
   await contract.save();
@@ -823,6 +1207,9 @@ const cancelPendingContract = async ({ clientId, contract, job }) => {
   if (String(job.activeContract || "") === String(contract._id)) {
     job.activeContract = undefined;
   }
+  if (contract.booking && String(job.activeBooking || "") === String(contract.booking)) {
+    job.activeBooking = contract.booking;
+  }
   if (String(job.selectedProposal || "") === String(contract.proposal || "")) {
     job.selectedProposal = undefined;
   }
@@ -856,6 +1243,18 @@ const cancelPendingContract = async ({ clientId, contract, job }) => {
     },
   });
 
+  if (contract.booking) {
+    await Booking.findByIdAndUpdate(contract.booking, {
+      $set: {
+        status: BOOKING_STATUS.QUOTED,
+        contract: undefined,
+        updatedAt: new Date(),
+      },
+    });
+    job.status = JOB_STATUS.BOOKING_PENDING;
+    await job.save();
+  }
+
   await contract.deleteOne();
 
   return job;
@@ -866,6 +1265,7 @@ module.exports = {
   approveContractMilestone,
   cancelPendingContract,
   createContractFromProposal,
+  createContractFromBooking,
   getParticipantRole,
   rejectPendingContract,
   requestContractCancellation,
@@ -875,5 +1275,7 @@ module.exports = {
   signContract,
   submitContractMilestone,
   submitFullProjectDelivery,
+  generateContractVisitOtp,
+  verifyContractVisitOtp,
   updatePendingContract,
 };

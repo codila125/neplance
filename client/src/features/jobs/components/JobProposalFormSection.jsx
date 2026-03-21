@@ -6,8 +6,11 @@ export function JobProposalFormSection({
   attachments,
   coverLetter,
   deliveryDays,
+  inspectionNotes,
   handleSubmitProposal,
   isProposalPending,
+  job,
+  pricingType,
   proposalError,
   revisionsIncluded,
   router,
@@ -15,8 +18,13 @@ export function JobProposalFormSection({
   setAttachments,
   setCoverLetter,
   setDeliveryDays,
+  setInspectionNotes,
+  setPricingType,
   setRevisionsIncluded,
+  setVisitAvailableOn,
+  visitAvailableOn,
 }) {
+  const isPhysicalJob = job?.jobType === "physical";
   const removeAttachment = (index) => {
     setAttachments((previous) =>
       previous.filter((_, attachmentIndex) => attachmentIndex !== index),
@@ -39,16 +47,52 @@ export function JobProposalFormSection({
         Submit Proposal
       </h2>
       <form onSubmit={handleSubmitProposal}>
+        {isPhysicalJob ? (
+          <div style={{ marginBottom: "1rem" }}>
+            <label
+              htmlFor="proposalPricingType"
+              style={{
+                display: "block",
+                marginBottom: "0.5rem",
+                fontWeight: 500,
+              }}
+            >
+              Quote Type
+            </label>
+            <select
+              id="proposalPricingType"
+              value={pricingType}
+              onChange={(event) => setPricingType(event.target.value)}
+              disabled={isProposalPending}
+              className="form-select"
+            >
+              <option value="fixed_quote">I can quote now</option>
+              <option value="inspection_required">
+                Inspection required first
+              </option>
+            </select>
+          </div>
+        ) : null}
         <Input
           type="number"
           label="Your Amount (NPR)"
-          placeholder="Enter amount"
+          placeholder={
+            pricingType === "inspection_required"
+              ? "0 until inspection"
+              : "Enter amount"
+          }
           value={amount}
           onChange={(event) => setAmount(event.target.value)}
-          min="1"
-          required
+          min="0"
+          required={pricingType !== "inspection_required"}
           disabled={isProposalPending}
         />
+        {isPhysicalJob ? (
+          <p className="text-light" style={{ marginTop: "0.5rem" }}>
+            If the scope needs an on-site inspection, set quote type to
+            inspection required and finalize the price in the contract later.
+          </p>
+        ) : null}
 
         <div style={{ marginTop: "1rem" }}>
           <label
@@ -119,6 +163,58 @@ export function JobProposalFormSection({
             disabled={isProposalPending}
           />
         </div>
+
+        {isPhysicalJob ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "1rem",
+              marginTop: "1rem",
+            }}
+          >
+            <Input
+              type="date"
+              label="Visit Available On"
+              value={visitAvailableOn}
+              onChange={(event) => setVisitAvailableOn(event.target.value)}
+              disabled={isProposalPending}
+            />
+            <div />
+          </div>
+        ) : null}
+
+        {isPhysicalJob ? (
+          <div style={{ marginTop: "1rem" }}>
+            <label
+              htmlFor="inspectionNotes"
+              style={{
+                display: "block",
+                marginBottom: "0.5rem",
+                fontWeight: 500,
+              }}
+            >
+              Inspection / On-site Notes
+            </label>
+            <textarea
+              id="inspectionNotes"
+              value={inspectionNotes}
+              onChange={(event) => setInspectionNotes(event.target.value)}
+              placeholder="Mention travel area, inspection conditions, material notes, or rough estimate context."
+              rows={3}
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                borderRadius: "4px",
+                border: "1px solid var(--color-border)",
+                fontFamily: "inherit",
+                fontSize: "0.875rem",
+                resize: "vertical",
+              }}
+              disabled={isProposalPending}
+            />
+          </div>
+        ) : null}
 
         <div style={{ marginTop: "1rem" }}>
           <div
@@ -193,7 +289,10 @@ export function JobProposalFormSection({
           <Button
             type="submit"
             disabled={
-              isProposalPending || !amount || !coverLetter || !deliveryDays
+              isProposalPending ||
+              (!amount && pricingType !== "inspection_required") ||
+              !coverLetter ||
+              !deliveryDays
             }
           >
             {isProposalPending ? "Submitting..." : "Submit Proposal"}

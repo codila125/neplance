@@ -34,9 +34,15 @@ const updateProposal = async (proposal, payload = {}) => {
   assertProposalCanUpdate(proposal);
 
   proposal.amount = payload.amount;
+  proposal.pricingType = payload.pricingType || "fixed_quote";
   proposal.coverLetter = payload.coverLetter;
   proposal.deliveryDays = payload.deliveryDays;
   proposal.revisionsIncluded = payload.revisionsIncluded;
+  proposal.visitAvailableOn = payload.visitAvailableOn || undefined;
+  proposal.inspectionNotes =
+    typeof payload.inspectionNotes === "string"
+      ? payload.inspectionNotes.trim()
+      : "";
   proposal.attachments = Array.isArray(payload.attachments)
     ? payload.attachments
     : [];

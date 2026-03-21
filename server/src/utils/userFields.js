@@ -18,6 +18,12 @@ const freelancerOnlyFields = [
   "jobTypePreference",
   "availabilityStatus",
   "languages",
+  "physicalServicesOffered",
+  "serviceAreas",
+  "onsiteAvailable",
+  "hasOwnTools",
+  "licenseOrCertification",
+  "tradeExperienceYears",
   "portfolio",
 ];
 

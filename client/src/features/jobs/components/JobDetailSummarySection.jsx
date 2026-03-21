@@ -151,6 +151,70 @@ export function JobDetailSummarySection({
         </div>
       )}
 
+      {job.jobType === "physical" && job.physicalDetails ? (
+        <div style={{ marginTop: "var(--space-6)" }}>
+          <h3
+            style={{
+              fontSize: "var(--text-base)",
+              fontWeight: "var(--font-weight-semibold)",
+              marginBottom: "var(--space-2)",
+            }}
+          >
+            On-site Details
+          </h3>
+          <div className="card-sm">
+            {job.physicalDetails.serviceCategory ? (
+              <p>
+                <strong>Service:</strong> {job.physicalDetails.serviceCategory}
+              </p>
+            ) : null}
+            {job.physicalDetails.propertyType ? (
+              <p>
+                <strong>Property type:</strong> {job.physicalDetails.propertyType}
+              </p>
+            ) : null}
+            {job.physicalDetails.siteVisitRequired ? (
+              <p>
+                <strong>Visit:</strong> Required before finalizing work
+              </p>
+            ) : null}
+            {job.physicalDetails.preferredVisitDate ? (
+              <p>
+                <strong>Preferred visit date:</strong>{" "}
+                {new Date(job.physicalDetails.preferredVisitDate).toLocaleDateString(
+                  "en-NP",
+                )}
+              </p>
+            ) : null}
+            {job.physicalDetails.preferredWorkDate ? (
+              <p>
+                <strong>Preferred work date:</strong>{" "}
+                {new Date(job.physicalDetails.preferredWorkDate).toLocaleDateString(
+                  "en-NP",
+                )}
+              </p>
+            ) : null}
+            {job.physicalDetails.materialsPreference ? (
+              <p>
+                <strong>Materials:</strong> {job.physicalDetails.materialsPreference}
+              </p>
+            ) : null}
+            {job.physicalDetails.estimatedDuration ? (
+              <p>
+                <strong>Estimated duration:</strong>{" "}
+                {job.physicalDetails.estimatedDuration}
+              </p>
+            ) : null}
+            {job.physicalDetails.safetyNotes ? (
+              <p style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>
+                <strong>Safety / access notes:</strong>{" "}
+                {job.physicalDetails.safetyNotes}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       {job.requiredSkills?.length > 0 && (
         <div style={{ marginTop: "var(--space-6)" }}>
           <h3

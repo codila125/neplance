@@ -40,9 +40,12 @@ export const JobModal = ({
       job.creatorAddress === currentUserId ||
       job.creatorAddress?.id === currentUserId);
   const [amount, setAmount] = useState("");
+  const [pricingType, setPricingType] = useState("fixed_quote");
   const [coverLetter, setCoverLetter] = useState("");
   const [deliveryDays, setDeliveryDays] = useState("");
   const [revisionsIncluded, setRevisionsIncluded] = useState("0");
+  const [visitAvailableOn, setVisitAvailableOn] = useState("");
+  const [inspectionNotes, setInspectionNotes] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
@@ -54,10 +57,13 @@ export const JobModal = ({
 
     const submitData = {
       job: job._id,
+      pricingType,
       amount: Number(amount),
       coverLetter: coverLetter.trim(),
       deliveryDays: Number(deliveryDays),
       revisionsIncluded: Number(revisionsIncluded) || 0,
+      visitAvailableOn,
+      inspectionNotes: inspectionNotes.trim(),
       attachments,
     };
 
@@ -102,7 +108,12 @@ export const JobModal = ({
 
   const isProposalMode = mode === "proposal";
   const creatorLabel = getCreatorLabel(job.creatorAddress);
-  const budgetDisplay = job.budget ? formatBudget(job.budget) : "Negotiable";
+  const budgetDisplay =
+    job.budgetType === "inspection_required"
+      ? "Inspection Required"
+      : job.budget
+        ? formatBudget(job.budget)
+        : "Negotiable";
   const locationText = formatLocation(job.location);
   const deadlineText = formatDate(job.deadline);
 
@@ -249,6 +260,46 @@ export const JobModal = ({
             </p>
           )}
 
+          {job.jobType === "physical" && job.physicalDetails ? (
+            <div style={{ marginTop: "0.75rem" }}>
+              <strong style={{ fontSize: "0.875rem" }}>On-site details:</strong>
+              <div
+                style={{
+                  display: "grid",
+                  gap: "0.35rem",
+                  marginTop: "0.5rem",
+                  fontSize: "0.875rem",
+                }}
+              >
+                {job.physicalDetails.serviceCategory ? (
+                  <div>Service: {job.physicalDetails.serviceCategory}</div>
+                ) : null}
+                {job.physicalDetails.siteVisitRequired ? (
+                  <div>Site visit required before final agreement</div>
+                ) : null}
+                {job.physicalDetails.preferredVisitDate ? (
+                  <div>
+                    Preferred visit:{" "}
+                    {new Date(
+                      job.physicalDetails.preferredVisitDate,
+                    ).toLocaleDateString("en-NP")}
+                  </div>
+                ) : null}
+                {job.physicalDetails.preferredWorkDate ? (
+                  <div>
+                    Preferred work date:{" "}
+                    {new Date(
+                      job.physicalDetails.preferredWorkDate,
+                    ).toLocaleDateString("en-NP")}
+                  </div>
+                ) : null}
+                {job.physicalDetails.materialsPreference ? (
+                  <div>Materials: {job.physicalDetails.materialsPreference}</div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
           {job.requiredSkills?.length > 0 && (
             <div style={{ marginTop: "0.75rem" }}>
               <strong style={{ fontSize: "0.875rem" }}>Required Skills:</strong>
@@ -344,17 +395,53 @@ export const JobModal = ({
 
         {isProposalMode && !isJobOwner ? (
           <form onSubmit={handleSubmit} className="proposal-modal-form">
+            {job.jobType === "physical" ? (
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  htmlFor="proposalPricingType"
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  Quote Type
+                </label>
+                <select
+                  id="proposalPricingType"
+                  value={pricingType}
+                  onChange={(e) => setPricingType(e.target.value)}
+                  className="form-select"
+                  disabled={loading}
+                >
+                  <option value="fixed_quote">I can quote now</option>
+                  <option value="inspection_required">
+                    Inspection required first
+                  </option>
+                </select>
+              </div>
+            ) : null}
             <Input
               type="number"
               label="Your Amount (NPR)"
-              placeholder="Enter amount"
+              placeholder={
+                pricingType === "inspection_required"
+                  ? "0 until inspection"
+                  : "Enter amount"
+              }
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               error={getFieldError(errors, "amount")}
-              min="1"
-              required
+              min="0"
+              required={pricingType !== "inspection_required"}
               disabled={loading}
             />
+            {job.jobType === "physical" ? (
+              <p className="text-light" style={{ marginTop: "0.5rem" }}>
+                For on-site work, you can choose inspection required and settle
+                the final amount at contract creation after the visit.
+              </p>
+            ) : null}
 
             <div style={{ marginTop: "1rem" }}>
               <label
@@ -439,6 +526,49 @@ export const JobModal = ({
               />
             </div>
 
+            {job.jobType === "physical" ? (
+              <>
+                <div style={{ marginTop: "1rem" }}>
+                  <Input
+                    type="date"
+                    label="Visit Available On"
+                    value={visitAvailableOn}
+                    onChange={(e) => setVisitAvailableOn(e.target.value)}
+                    error={getFieldError(errors, "visitAvailableOn")}
+                    disabled={loading}
+                  />
+                </div>
+                <div style={{ marginTop: "1rem" }}>
+                  <label
+                    htmlFor="inspectionNotes"
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Inspection / On-site Notes
+                  </label>
+                  <textarea
+                    id="inspectionNotes"
+                    value={inspectionNotes}
+                    onChange={(e) => setInspectionNotes(e.target.value)}
+                    rows={3}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem",
+                      borderRadius: "4px",
+                      border: "1px solid var(--color-border)",
+                      fontFamily: "inherit",
+                      fontSize: "0.875rem",
+                      resize: "vertical",
+                    }}
+                    disabled={loading}
+                  />
+                </div>
+              </>
+            ) : null}
+
             <div style={{ marginTop: "1rem" }}>
               <div
                 style={{
@@ -522,7 +652,12 @@ export const JobModal = ({
             <div className="proposal-modal-actions">
               <Button
                 type="submit"
-                disabled={loading || !amount || !coverLetter || !deliveryDays}
+                disabled={
+                  loading ||
+                  (!amount && pricingType !== "inspection_required") ||
+                  !coverLetter ||
+                  !deliveryDays
+                }
               >
                 {loading ? "Submitting..." : "Submit"}
               </Button>

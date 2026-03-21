@@ -45,6 +45,24 @@ export const getContractTimelineEvents = (contract) => {
     });
   }
 
+  if (contract.physicalVisit?.verification?.generatedAt) {
+    events.push({
+      key: "visit-otp-generated",
+      title: "On-site OTP generated",
+      description: "The client generated a verification OTP for the physical visit.",
+      at: contract.physicalVisit.verification.generatedAt,
+    });
+  }
+
+  if (contract.physicalVisit?.verification?.verifiedAt) {
+    events.push({
+      key: "visit-otp-verified",
+      title: "Physical visit verified",
+      description: "The freelancer verified the on-site meeting through the in-app OTP.",
+      at: contract.physicalVisit.verification.verifiedAt,
+    });
+  }
+
   if (contract.freelancerSignature?.rejectedAt) {
     events.push({
       key: "freelancer-rejected",

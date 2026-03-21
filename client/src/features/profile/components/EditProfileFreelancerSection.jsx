@@ -32,6 +32,30 @@ export function EditProfileFreelancerSection({
           />
         </div>
         <div className="form-group">
+          <label className="form-label" htmlFor="profile-physical-services">
+            Physical Services Offered
+          </label>
+          <input
+            id="profile-physical-services"
+            className="form-input"
+            value={formData.physicalServicesOffered}
+            onChange={handleChange("physicalServicesOffered")}
+            placeholder="Plumbing, Carpentry, Electrician"
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="profile-service-areas">
+            Service Areas
+          </label>
+          <input
+            id="profile-service-areas"
+            className="form-input"
+            value={formData.serviceAreas}
+            onChange={handleChange("serviceAreas")}
+            placeholder="Kathmandu, Lalitpur, Bhaktapur"
+          />
+        </div>
+        <div className="form-group">
           <label className="form-label" htmlFor="profile-hourly-rate">
             Hourly Rate (NPR)
           </label>
@@ -87,6 +111,66 @@ export function EditProfileFreelancerSection({
             <option value="available">Available</option>
             <option value="busy">Busy</option>
             <option value="unavailable">Unavailable</option>
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="profile-license">
+            License / Certification
+          </label>
+          <input
+            id="profile-license"
+            className="form-input"
+            value={formData.licenseOrCertification}
+            onChange={handleChange("licenseOrCertification")}
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="profile-trade-exp">
+            Trade Experience (years)
+          </label>
+          <input
+            id="profile-trade-exp"
+            type="number"
+            min="0"
+            className="form-input"
+            value={formData.tradeExperienceYears}
+            onChange={handleChange("tradeExperienceYears")}
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="profile-onsite-available">
+            On-site Available
+          </label>
+          <select
+            id="profile-onsite-available"
+            className="form-select"
+            value={formData.onsiteAvailable ? "yes" : "no"}
+            onChange={(event) =>
+              handleChange("onsiteAvailable")({
+                target: { value: event.target.value === "yes" },
+              })
+            }
+          >
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="profile-own-tools">
+            Has Own Tools
+          </label>
+          <select
+            id="profile-own-tools"
+            className="form-select"
+            value={formData.hasOwnTools ? "yes" : "no"}
+            onChange={(event) =>
+              handleChange("hasOwnTools")({
+                target: { value: event.target.value === "yes" },
+              })
+            }
+          >
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
           </select>
         </div>
       </div>

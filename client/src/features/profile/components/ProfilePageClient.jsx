@@ -297,6 +297,18 @@ export function ProfilePageClient({
                           {user?.availabilityStatus || "available"}
                         </span>
                       </div>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "var(--text-sm)",
+                            color: "var(--color-text-light)",
+                            marginBottom: "var(--space-1)",
+                          }}
+                        >
+                          On-site Available
+                        </div>
+                        <div>{user?.onsiteAvailable ? "Yes" : "No"}</div>
+                      </div>
                     </>
                   )}
                 </div>
@@ -447,6 +459,57 @@ export function ProfilePageClient({
                     <p className="text-light">No skills added.</p>
                   )}
                 </div>
+                {Array.isArray(user?.physicalServicesOffered) &&
+                user.physicalServicesOffered.length > 0 ? (
+                  <div style={{ marginBottom: "var(--space-4)" }}>
+                    <div
+                      style={{
+                        marginBottom: "var(--space-2)",
+                        fontWeight: "var(--font-weight-medium)",
+                      }}
+                    >
+                      Physical Services
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "var(--space-2)",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {user.physicalServicesOffered.map((service) => (
+                        <span key={service} className="badge badge-warning">
+                          {service}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {Array.isArray(user?.serviceAreas) && user.serviceAreas.length > 0 ? (
+                  <div style={{ marginBottom: "var(--space-4)" }}>
+                    <div
+                      style={{
+                        marginBottom: "var(--space-2)",
+                        fontWeight: "var(--font-weight-medium)",
+                      }}
+                    >
+                      Service Areas
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "var(--space-2)",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {user.serviceAreas.map((area) => (
+                        <span key={area} className="badge badge-info">
+                          {area}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <div>
                   <div
                     style={{

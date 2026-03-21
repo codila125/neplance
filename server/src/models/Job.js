@@ -42,6 +42,40 @@ const budgetSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const physicalDetailsSchema = new mongoose.Schema(
+  {
+    serviceCategory: {
+      type: String,
+      trim: true,
+    },
+    propertyType: {
+      type: String,
+      trim: true,
+    },
+    siteVisitRequired: {
+      type: Boolean,
+      default: false,
+    },
+    preferredVisitDate: Date,
+    preferredWorkDate: Date,
+    materialsPreference: {
+      type: String,
+      enum: ["client", "freelancer", "shared"],
+    },
+    safetyNotes: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
+    },
+    estimatedDuration: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+    },
+  },
+  { _id: false }
+);
+
 const jobSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -86,12 +120,18 @@ const jobSchema = new mongoose.Schema({
     enum: ["entry", "intermediate", "expert"],
   },
   budget: budgetSchema,
+  budgetType: {
+    type: String,
+    enum: ["fixed_budget", "inspection_required"],
+    default: "fixed_budget",
+  },
   deadline: Date,
   isUrgent: {
     type: Boolean,
     default: false,
   },
   location: locationSchema,
+  physicalDetails: physicalDetailsSchema,
   isPublic: {
     type: Boolean,
     default: true,
@@ -128,6 +168,10 @@ const jobSchema = new mongoose.Schema({
   selectedProposal: {
     type: mongoose.Schema.ObjectId,
     ref: "Proposal",
+  },
+  activeBooking: {
+    type: mongoose.Schema.ObjectId,
+    ref: "Booking",
   },
   activeContract: {
     type: mongoose.Schema.ObjectId,

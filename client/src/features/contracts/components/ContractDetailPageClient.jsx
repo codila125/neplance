@@ -7,6 +7,7 @@ import {
   approveContractMilestoneAction,
   cancelPendingContractAction,
   completeContractAction,
+  generateContractVisitOtpAction,
   createContractDisputeAction,
   requestContractCancellationAction,
   requestContractDeliveryChangesAction,
@@ -16,6 +17,7 @@ import {
   submitContractMilestoneAction,
   submitContractReviewAction,
   submitContractWorkAction,
+  verifyContractVisitOtpAction,
 } from "@/lib/actions/contracts";
 import {
   CANCELLATION_STATUS,
@@ -45,6 +47,7 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
   const [reviewComment, setReviewComment] = useState("");
   const [reviewRating, setReviewRating] = useState("5");
   const [deliveryRevisionNotes, setDeliveryRevisionNotes] = useState("");
+  const [visitOtp, setVisitOtp] = useState("");
   const [disputeReason, setDisputeReason] = useState("");
   const [disputeDescription, setDisputeDescription] = useState("");
   const [disputeEvidenceAttachments, setDisputeEvidenceAttachments] = useState(
@@ -65,6 +68,10 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
   const isMilestoneContract =
     currentContract.contractType === CONTRACT_TYPE.MILESTONE_BASED;
   const canSign = isFreelancer && isPendingFreelancerSignature;
+  const visitVerificationPending =
+    currentContract.serviceMode === "physical" &&
+    currentContract.physicalVisit?.isRequired &&
+    currentContract.physicalVisit?.verification?.status !== "VERIFIED";
   const canEditPendingContract = isClient && isPendingFreelancerSignature;
   const canSubmitDelivery =
     isFreelancer &&
@@ -155,6 +162,15 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
 
   const handleCompleteContract = () => {
     runAction(() => completeContractAction(currentContract._id));
+  };
+
+  const handleGenerateVisitOtp = () => {
+    runAction(() => generateContractVisitOtpAction(currentContract._id));
+  };
+
+  const handleVerifyVisitOtp = () => {
+    runAction(() => verifyContractVisitOtpAction(currentContract._id, visitOtp));
+    setVisitOtp("");
   };
 
   const handleRequestCancellation = () => {
@@ -290,9 +306,29 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
           </div>
 
           <ContractOverviewSection
+            canGenerateVisitOtp={
+              isClient &&
+              isPendingFreelancerSignature &&
+              !currentContract.booking &&
+              currentContract.serviceMode === "physical" &&
+              currentContract.physicalVisit?.isRequired
+            }
+            canVerifyVisitOtp={
+              isFreelancer &&
+              isPendingFreelancerSignature &&
+              !currentContract.booking &&
+              currentContract.serviceMode === "physical" &&
+              currentContract.physicalVisit?.isRequired &&
+              currentContract.physicalVisit?.verification?.status !== "VERIFIED"
+            }
             contract={currentContract}
             freelancerRejectedContract={freelancerRejectedContract}
+            handleGenerateVisitOtp={handleGenerateVisitOtp}
+            handleVerifyVisitOtp={handleVerifyVisitOtp}
+            isPending={isPending}
             remainingFundedBalance={remainingFundedBalance}
+            setVisitOtp={setVisitOtp}
+            visitOtp={visitOtp}
           />
 
           <ContractAttachmentsTimelineSection
@@ -437,14 +473,22 @@ export function ContractDetailPageClient({ contract, currentUserId }) {
               </>
             ) : null}
             {canSign ? (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleSign}
-                disabled={isPending}
-              >
-                {isPending ? "Signing..." : "Sign Contract"}
-              </button>
+              <>
+                {visitVerificationPending ? (
+                  <div className="card-sm">
+                    Physical visit verification must be completed before the
+                    freelancer can sign this contract.
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSign}
+                  disabled={isPending || visitVerificationPending}
+                >
+                  {isPending ? "Signing..." : "Sign Contract"}
+                </button>
+              </>
             ) : null}
           </div>
         </div>

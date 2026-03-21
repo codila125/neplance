@@ -141,6 +141,10 @@ const contractSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  booking: {
+    type: mongoose.Schema.ObjectId,
+    ref: "Booking",
+  },
   client: {
     type: mongoose.Schema.ObjectId,
     ref: "User",
@@ -163,6 +167,11 @@ const contractSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxlength: 5000,
+  },
+  serviceMode: {
+    type: String,
+    enum: ["digital", "physical"],
+    default: "digital",
   },
   contractType: {
     type: String,
@@ -203,6 +212,42 @@ const contractSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxlength: 5000,
+  },
+  physicalVisit: {
+    isRequired: {
+      type: Boolean,
+      default: false,
+    },
+    preferredVisitDate: Date,
+    preferredWorkDate: Date,
+    inspectionSummary: {
+      type: String,
+      trim: true,
+      maxlength: 5000,
+    },
+    materialsAgreement: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
+    },
+    verification: {
+      status: {
+        type: String,
+        enum: ["NOT_REQUIRED", "PENDING", "VERIFIED"],
+        default: "NOT_REQUIRED",
+      },
+      otpCode: String,
+      generatedAt: Date,
+      generatedBy: {
+        type: mongoose.Schema.ObjectId,
+        ref: "User",
+      },
+      verifiedAt: Date,
+      verifiedBy: {
+        type: mongoose.Schema.ObjectId,
+        ref: "User",
+      },
+    },
   },
   milestones: {
     type: [contractMilestoneSchema],

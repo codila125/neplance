@@ -162,10 +162,13 @@ const getMyProposals = catchAsync(async (req, res) => {
 const createProposal = catchAsync(async (req, res) => {
   const {
     job: jobId,
+    pricingType,
     amount,
     coverLetter,
     deliveryDays,
     revisionsIncluded,
+    visitAvailableOn,
+    inspectionNotes,
     attachments,
     status,
   } = req.body;
@@ -201,10 +204,13 @@ const createProposal = catchAsync(async (req, res) => {
     freelancer: req.user.id,
     job: jobId,
     status: PROPOSAL_STATUS.PENDING,
+    pricingType,
     amount,
     coverLetter,
     deliveryDays,
     revisionsIncluded,
+    visitAvailableOn,
+    inspectionNotes,
     attachments,
   });
 
@@ -385,9 +391,12 @@ const updateProposal = catchAsync(async (req, res, next) => {
 
   const updatedProposal = await updateProposalService(proposal, {
     amount: req.body?.amount,
+    pricingType: req.body?.pricingType,
     coverLetter: req.body?.coverLetter,
     deliveryDays: req.body?.deliveryDays,
     revisionsIncluded: req.body?.revisionsIncluded,
+    visitAvailableOn: req.body?.visitAvailableOn,
+    inspectionNotes: req.body?.inspectionNotes,
     attachments: req.body?.attachments,
   });
 

@@ -14,6 +14,7 @@ export function ClientPostJobSection() {
     title: "",
     description: "",
     jobType: "digital",
+    budgetType: "fixed_budget",
     category: "",
     subcategory: "",
     tags: "",
@@ -26,6 +27,14 @@ export function ClientPostJobSection() {
     locationCity: "",
     locationDistrict: "",
     locationProvince: "",
+    locationAddress: "",
+    propertyType: "",
+    siteVisitRequired: false,
+    preferredVisitDate: "",
+    preferredWorkDate: "",
+    materialsPreference: "",
+    safetyNotes: "",
+    estimatedDuration: "",
     attachments: [],
   });
   const [actionState, formAction, isPending] = useActionState(createJobAction, {
@@ -77,9 +86,22 @@ export function ClientPostJobSection() {
     const location =
       formState.jobType === "physical"
         ? {
+            address: formState.locationAddress.trim() || undefined,
             city: formState.locationCity.trim() || undefined,
             district: formState.locationDistrict.trim() || undefined,
             province: formState.locationProvince.trim() || undefined,
+          }
+        : undefined;
+    const physicalDetails =
+      formState.jobType === "physical"
+        ? {
+            propertyType: formState.propertyType.trim() || undefined,
+            siteVisitRequired: formState.siteVisitRequired,
+            preferredVisitDate: formState.preferredVisitDate || undefined,
+            preferredWorkDate: formState.preferredWorkDate || undefined,
+            materialsPreference: formState.materialsPreference || undefined,
+            safetyNotes: formState.safetyNotes.trim() || undefined,
+            estimatedDuration: formState.estimatedDuration.trim() || undefined,
           }
         : undefined;
 
@@ -97,9 +119,11 @@ export function ClientPostJobSection() {
         max: formState.budgetMax ? Number(formState.budgetMax) : undefined,
         currency: "NPR",
       },
+      budgetType: formState.budgetType,
       deadline: formState.deadline || undefined,
       isUrgent: formState.isUrgent,
       location,
+      physicalDetails,
       attachments: formState.attachments.map((attachment) => attachment.url),
       isPublic: true,
     };
@@ -303,8 +327,10 @@ export function ClientPostJobSection() {
             type="number"
             value={formState.budgetMin}
             onChange={(e) => handleFormChange("budgetMin", e.target.value)}
-            placeholder="5000"
-            required
+            placeholder={
+              formState.budgetType === "inspection_required" ? "0" : "5000"
+            }
+            required={formState.budgetType === "fixed_budget"}
             disabled={isPending}
             error={fieldErrors["budget.min"]}
           />
@@ -319,6 +345,38 @@ export function ClientPostJobSection() {
             disabled={isPending}
             error={fieldErrors["budget.max"]}
           />
+        </div>
+        <div style={{ flex: "1", minWidth: "180px" }}>
+          <label
+            htmlFor="budgetType"
+            style={{
+              display: "block",
+              marginBottom: "var(--space-1)",
+              fontWeight: "var(--font-weight-medium)",
+            }}
+          >
+            Pricing Intent
+          </label>
+          <select
+            id="budgetType"
+            value={formState.budgetType}
+            onChange={(e) => handleFormChange("budgetType", e.target.value)}
+            disabled={isPending}
+            style={{
+              width: "100%",
+              padding: "var(--space-2)",
+              borderRadius: "var(--radius)",
+              border: `1px solid ${fieldErrors.budgetType ? "var(--color-error)" : "var(--color-border)"}`,
+            }}
+          >
+            <option value="fixed_budget">Client knows the budget</option>
+            <option value="inspection_required">
+              Inspection required first
+            </option>
+          </select>
+          {fieldErrors.budgetType ? (
+            <p className="form-error">{fieldErrors.budgetType}</p>
+          ) : null}
         </div>
         <div style={{ flex: "1", minWidth: "150px" }}>
           <Input
@@ -362,6 +420,18 @@ export function ClientPostJobSection() {
             borderRadius: "var(--radius)",
           }}
         >
+          <div style={{ flex: "1", minWidth: "150px" }}>
+            <Input
+              label="Address / Landmark"
+              value={formState.locationAddress}
+              onChange={(e) =>
+                handleFormChange("locationAddress", e.target.value)
+              }
+              placeholder="House no., street, landmark"
+              disabled={isPending}
+              error={fieldErrors["location.address"]}
+            />
+          </div>
           <div style={{ flex: "1", minWidth: "150px" }}>
             <Input
               label="City"
@@ -419,6 +489,137 @@ export function ClientPostJobSection() {
             {fieldErrors["location.province"] && (
               <p className="form-error">{fieldErrors["location.province"]}</p>
             )}
+          </div>
+          <div style={{ flex: "1", minWidth: "160px" }}>
+            <Input
+              label="Property Type"
+              value={formState.propertyType}
+              onChange={(e) => handleFormChange("propertyType", e.target.value)}
+              placeholder="Home, office, shop..."
+              disabled={isPending}
+              error={fieldErrors["physicalDetails.propertyType"]}
+            />
+          </div>
+          <div style={{ flex: "1", minWidth: "160px" }}>
+            <Input
+              label="Preferred Visit Date"
+              type="date"
+              value={formState.preferredVisitDate}
+              onChange={(e) =>
+                handleFormChange("preferredVisitDate", e.target.value)
+              }
+              disabled={isPending}
+              error={fieldErrors["physicalDetails.preferredVisitDate"]}
+            />
+          </div>
+          <div style={{ flex: "1", minWidth: "160px" }}>
+            <Input
+              label="Preferred Work Date"
+              type="date"
+              value={formState.preferredWorkDate}
+              onChange={(e) =>
+                handleFormChange("preferredWorkDate", e.target.value)
+              }
+              disabled={isPending}
+              error={fieldErrors["physicalDetails.preferredWorkDate"]}
+            />
+          </div>
+          <div style={{ flex: "1", minWidth: "160px" }}>
+            <Input
+              label="Estimated Duration"
+              value={formState.estimatedDuration}
+              onChange={(e) =>
+                handleFormChange("estimatedDuration", e.target.value)
+              }
+              placeholder="2 hours, 1 day..."
+              disabled={isPending}
+              error={fieldErrors["physicalDetails.estimatedDuration"]}
+            />
+          </div>
+          <div style={{ flex: "1", minWidth: "180px" }}>
+            <label
+              htmlFor="materialsPreference"
+              style={{
+                display: "block",
+                marginBottom: "var(--space-1)",
+                fontWeight: "var(--font-weight-medium)",
+              }}
+            >
+              Materials
+            </label>
+            <select
+              id="materialsPreference"
+              value={formState.materialsPreference}
+              onChange={(e) =>
+                handleFormChange("materialsPreference", e.target.value)
+              }
+              disabled={isPending}
+              style={{
+                width: "100%",
+                padding: "var(--space-2)",
+                borderRadius: "var(--radius)",
+                border: "1px solid var(--color-border)",
+              }}
+            >
+              <option value="">Select</option>
+              <option value="client">Client provides</option>
+              <option value="freelancer">Freelancer provides</option>
+              <option value="shared">Shared</option>
+            </select>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--space-2)",
+              minWidth: "180px",
+            }}
+          >
+            <input
+              type="checkbox"
+              id="siteVisitRequired"
+              checked={formState.siteVisitRequired}
+              onChange={(e) =>
+                handleFormChange("siteVisitRequired", e.target.checked)
+              }
+              disabled={isPending}
+            />
+            <label htmlFor="siteVisitRequired" style={{ cursor: "pointer" }}>
+              Site visit required
+            </label>
+          </div>
+          <div style={{ width: "100%" }}>
+            <div className="card-sm" style={{ marginBottom: "var(--space-3)" }}>
+              <strong>Physical service details</strong>
+              <p className="text-light" style={{ margin: "var(--space-2) 0 0" }}>
+                The main category above becomes the service type for this job.
+                Add the exact location, visit preference, and access notes here.
+              </p>
+            </div>
+            <label
+              htmlFor="safetyNotes"
+              style={{
+                display: "block",
+                marginBottom: "var(--space-1)",
+                fontWeight: "var(--font-weight-medium)",
+              }}
+            >
+              Safety / Access Notes
+            </label>
+            <textarea
+              id="safetyNotes"
+              value={formState.safetyNotes}
+              onChange={(e) => handleFormChange("safetyNotes", e.target.value)}
+              rows={3}
+              disabled={isPending}
+              style={{
+                width: "100%",
+                padding: "var(--space-2)",
+                borderRadius: "var(--radius)",
+                border: "1px solid var(--color-border)",
+                fontFamily: "inherit",
+              }}
+            />
           </div>
         </div>
       )}

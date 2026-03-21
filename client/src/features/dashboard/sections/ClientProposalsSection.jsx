@@ -55,6 +55,7 @@ export function ClientProposalsSection({
           proposal.job?.activeContract || proposal._contract?.activeContract,
         );
         const canCreateContract =
+          proposal.job?.jobType !== "physical" &&
           [PROPOSAL_STATUS.PENDING, PROPOSAL_STATUS.ACCEPTED].includes(
             proposal.status,
           ) && !hasActiveContract;
@@ -114,6 +115,14 @@ export function ClientProposalsSection({
                     Create Contract
                   </Link>
                 )}
+                {proposal.job?.jobType === "physical" && !hasActiveContract ? (
+                  <Link
+                    href={`/proposals/${proposal._id}`}
+                    className="btn btn-primary btn-sm"
+                  >
+                    Manage Booking
+                  </Link>
+                ) : null}
                 {proposal.status === PROPOSAL_STATUS.ACCEPTED &&
                 hasActiveContract ? (
                   <span className="badge badge-success">Contract Selected</span>

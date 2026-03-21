@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { ProposalDecisionSection } from "@/features/proposals/components/ProposalDecisionSection";
 import { ProposalResubmitSection } from "@/features/proposals/components/ProposalResubmitSection";
 import { ProposalSummarySection } from "@/features/proposals/components/ProposalSummarySection";
+import { createBookingFromProposalAction } from "@/lib/actions/bookings";
 import { createConversationFromProposalAction } from "@/lib/actions/chat";
 import {
   createProposalMutationAction,
@@ -13,10 +14,11 @@ import {
   updateProposalMutationAction,
 } from "@/lib/actions/proposals";
 import { Button } from "@/shared/components/UI";
-import { PROPOSAL_STATUS } from "@/shared/constants/statuses";
+import { BOOKING_STATUS, PROPOSAL_STATUS } from "@/shared/constants/statuses";
 
 export function ProposalDetailPageClient({
   initialConversationId,
+  initialBooking,
   initialContractId,
   initialProposal,
   initialUser,
@@ -25,15 +27,21 @@ export function ProposalDetailPageClient({
   const user = initialUser;
   const [proposal, setProposal] = useState(initialProposal);
   const [conversationId, setConversationId] = useState(initialConversationId);
+  const [booking, setBooking] = useState(initialBooking);
   const [contractId] = useState(initialContractId);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
   const [chatError, setChatError] = useState("");
   const [resubmitData, setResubmitData] = useState({
     amount: initialProposal.amount?.toString() || "",
+    pricingType: initialProposal.pricingType || "fixed_quote",
     coverLetter: initialProposal.coverLetter || "",
     deliveryDays: initialProposal.deliveryDays?.toString() || "",
     revisionsIncluded: initialProposal.revisionsIncluded?.toString() || "0",
+    visitAvailableOn: initialProposal.visitAvailableOn
+      ? new Date(initialProposal.visitAvailableOn).toISOString().slice(0, 10)
+      : "",
+    inspectionNotes: initialProposal.inspectionNotes || "",
     attachments: Array.isArray(initialProposal.attachments)
       ? initialProposal.attachments
       : [],
@@ -43,6 +51,7 @@ export function ProposalDetailPageClient({
   const [isRejecting, startRejectTransition] = useTransition();
   const [isResubmitting, startResubmitTransition] = useTransition();
   const [isStartingChat, startChatTransition] = useTransition();
+  const [isCreatingBooking, startBookingTransition] = useTransition();
 
   const handleReject = async () => {
     setRejectError("");
@@ -68,7 +77,10 @@ export function ProposalDetailPageClient({
     event.preventDefault();
     setResubmitError("");
 
-    if (!resubmitData.amount || Number(resubmitData.amount) <= 0) {
+    if (
+      resubmitData.pricingType !== "inspection_required" &&
+      (!resubmitData.amount || Number(resubmitData.amount) <= 0)
+    ) {
       setResubmitError("Please enter a valid amount");
       return;
     }
@@ -96,10 +108,13 @@ export function ProposalDetailPageClient({
       try {
         const result = await createProposalMutationAction({
           job: proposal.job?._id || proposal.job,
+          pricingType: resubmitData.pricingType,
           amount: Number(resubmitData.amount),
           coverLetter: resubmitData.coverLetter.trim(),
           deliveryDays: Number(resubmitData.deliveryDays),
           revisionsIncluded: Number(resubmitData.revisionsIncluded) || 0,
+          visitAvailableOn: resubmitData.visitAvailableOn || undefined,
+          inspectionNotes: resubmitData.inspectionNotes?.trim(),
           attachments: attachmentsArray,
         });
         const newId = result.data?._id;
@@ -114,7 +129,10 @@ export function ProposalDetailPageClient({
     event.preventDefault();
     setResubmitError("");
 
-    if (!resubmitData.amount || Number(resubmitData.amount) <= 0) {
+    if (
+      resubmitData.pricingType !== "inspection_required" &&
+      (!resubmitData.amount || Number(resubmitData.amount) <= 0)
+    ) {
       setResubmitError("Please enter a valid amount");
       return;
     }
@@ -142,10 +160,13 @@ export function ProposalDetailPageClient({
       try {
         const result = await updateProposalMutationAction(proposal._id, {
           job: proposal.job?._id || proposal.job,
+          pricingType: resubmitData.pricingType,
           amount: Number(resubmitData.amount),
           coverLetter: resubmitData.coverLetter.trim(),
           deliveryDays: Number(resubmitData.deliveryDays),
           revisionsIncluded: Number(resubmitData.revisionsIncluded) || 0,
+          visitAvailableOn: resubmitData.visitAvailableOn || undefined,
+          inspectionNotes: resubmitData.inspectionNotes?.trim(),
           attachments: attachmentsArray,
         });
 
@@ -176,6 +197,21 @@ export function ProposalDetailPageClient({
     });
   };
 
+  const handleCreateBooking = async () => {
+    setChatError("");
+    startBookingTransition(async () => {
+      try {
+        const result = await createBookingFromProposalAction(proposal._id);
+        if (result.data) {
+          setBooking(result.data);
+          router.push(`/bookings/${result.data._id}`);
+        }
+      } catch (error) {
+        setChatError(error.message || "Failed to create booking");
+      }
+    });
+  };
+
   const currentUserId = user?.id || user?._id;
   const freelancerId =
     proposal?.freelancer?._id || proposal?.freelancer || proposal?.freelancerId;
@@ -202,9 +238,24 @@ export function ProposalDetailPageClient({
   const canOpenChat = Boolean(conversationId) && (isClient || isFreelancer);
   const canCreateContract =
     isClient &&
+    proposal?.job?.jobType !== "physical" &&
     [PROPOSAL_STATUS.PENDING, PROPOSAL_STATUS.ACCEPTED].includes(
       proposal?.status,
     ) &&
+    !contractId;
+  const canCreateBooking =
+    isClient &&
+    proposal?.job?.jobType === "physical" &&
+    !booking?._id &&
+    !contractId &&
+    [PROPOSAL_STATUS.PENDING, PROPOSAL_STATUS.ACCEPTED].includes(
+      proposal?.status,
+    );
+  const canOpenBooking = Boolean(booking?._id);
+  const canCreateContractFromBooking =
+    isClient &&
+    proposal?.job?.jobType === "physical" &&
+    booking?.status === BOOKING_STATUS.QUOTED &&
     !contractId;
   const canViewContract = Boolean(contractId);
 
@@ -240,6 +291,31 @@ export function ProposalDetailPageClient({
                 Create Contract
               </Link>
             ) : null}
+            {canCreateBooking ? (
+              <Button
+                variant="secondary"
+                disabled={isCreatingBooking}
+                onClick={handleCreateBooking}
+              >
+                {isCreatingBooking ? "Creating Booking..." : "Create Booking"}
+              </Button>
+            ) : null}
+            {canOpenBooking ? (
+              <Link
+                href={`/bookings/${booking._id}`}
+                className="btn btn-secondary"
+              >
+                Open Booking
+              </Link>
+            ) : null}
+            {canCreateContractFromBooking ? (
+              <Link
+                href={`/contracts/create?bookingId=${booking._id}`}
+                className="btn btn-secondary"
+              >
+                Create Contract
+              </Link>
+            ) : null}
             {canStartChat ? (
               <Button
                 variant="secondary"
@@ -265,6 +341,7 @@ export function ProposalDetailPageClient({
               handleResubmit={handleEdit}
               handleResubmitChange={handleResubmitChange}
               isResubmitting={isEditing}
+              isPhysicalJob={proposal?.job?.jobType === "physical"}
               resubmitData={resubmitData}
               resubmitError={resubmitError}
             />
@@ -277,6 +354,7 @@ export function ProposalDetailPageClient({
               handleResubmit={handleResubmit}
               handleResubmitChange={handleResubmitChange}
               isResubmitting={isResubmitting}
+              isPhysicalJob={proposal?.job?.jobType === "physical"}
               resubmitData={resubmitData}
               resubmitError={resubmitError}
             />

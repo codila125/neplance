@@ -39,8 +39,14 @@ const validateJobUpdate = (job) => {
 const publishJob = async (job) => {
   assertJobCanPublish(job);
 
-  if (!job.category || !job.budget?.min) {
-    throw new AppError("Job must have category and budget to be published", 400);
+  if (
+    !job.category ||
+    (job.budgetType !== "inspection_required" && !job.budget?.min)
+  ) {
+    throw new AppError(
+      "Job must have category and budget to be published",
+      400
+    );
   }
 
   job.status = JOB_STATUS.OPEN;

@@ -88,6 +88,14 @@ export async function updateProfileAction(_previousState, formData) {
     submitData.jobTypePreference = payload.jobTypePreference;
     submitData.availabilityStatus = payload.availabilityStatus;
     submitData.languages = payload.languages || "";
+    submitData.physicalServicesOffered = payload.physicalServicesOffered || "";
+    submitData.serviceAreas = payload.serviceAreas || "";
+    submitData.onsiteAvailable = Boolean(payload.onsiteAvailable);
+    submitData.hasOwnTools = Boolean(payload.hasOwnTools);
+    submitData.licenseOrCertification =
+      payload.licenseOrCertification?.trim() || "";
+    submitData.tradeExperienceYears =
+      Number(payload.tradeExperienceYears) || 0;
     submitData.portfolio = Array.isArray(payload.portfolio)
       ? payload.portfolio.map((item) => ({
           title: item.title?.trim() || undefined,
@@ -140,6 +148,14 @@ export async function updateProfileAction(_previousState, formData) {
     finalPayload.jobTypePreference = data.jobTypePreference;
     finalPayload.availabilityStatus = data.availabilityStatus;
     finalPayload.languages = parseCsv(payload.languages || "");
+    finalPayload.physicalServicesOffered = parseCsv(
+      payload.physicalServicesOffered || "",
+    );
+    finalPayload.serviceAreas = parseCsv(payload.serviceAreas || "");
+    finalPayload.onsiteAvailable = data.onsiteAvailable;
+    finalPayload.hasOwnTools = data.hasOwnTools;
+    finalPayload.licenseOrCertification = data.licenseOrCertification?.trim();
+    finalPayload.tradeExperienceYears = data.tradeExperienceYears;
     finalPayload.portfolio = (payload.portfolio || []).map((item) => ({
       title: item.title?.trim(),
       description: item.description?.trim(),

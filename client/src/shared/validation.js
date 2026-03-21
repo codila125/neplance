@@ -113,6 +113,19 @@ export const profileUpdateSchema = z.object({
     .optional()
     .default("available"),
   languages: z.string().optional(),
+  physicalServicesOffered: z.string().optional(),
+  serviceAreas: z.string().optional(),
+  onsiteAvailable: z.boolean().optional().default(false),
+  hasOwnTools: z.boolean().optional().default(false),
+  licenseOrCertification: z
+    .string()
+    .max(500, "Certification details must be less than 500 characters")
+    .optional(),
+  tradeExperienceYears: z
+    .number()
+    .min(0, "Trade experience cannot be negative")
+    .optional()
+    .default(0),
   portfolio: z
     .array(
       z.object({
@@ -141,9 +154,13 @@ export const profileUpdateSchema = z.object({
 
 export const proposalSchema = z.object({
   job: z.string().min(1, "Job ID is required"),
+  pricingType: z
+    .enum(["fixed_quote", "inspection_required"])
+    .optional()
+    .default("fixed_quote"),
   amount: z
     .number({ message: "Amount must be a number" })
-    .positive("Amount must be greater than 0"),
+    .min(0, "Amount must be zero or greater"),
   coverLetter: z
     .string()
     .min(1, "Cover letter is required")
@@ -154,7 +171,17 @@ export const proposalSchema = z.object({
     .int("Must be a whole number")
     .positive("Delivery days must be at least 1"),
   revisionsIncluded: z.number().int().min(0).default(0),
+  visitAvailableOn: z.string().optional(),
+  inspectionNotes: z.string().max(3000).optional(),
   attachments: z.array(z.string().url("Invalid URL")).optional().default([]),
+}).superRefine((data, context) => {
+  if (data.pricingType === "fixed_quote" && Number(data.amount || 0) <= 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Amount must be greater than 0 for a fixed quote",
+      path: ["amount"],
+    });
+  }
 });
 
 export const milestoneSchema = z.object({
@@ -205,30 +232,93 @@ export const jobCreateSchema = z.object({
       message: "Maximum budget must be greater than minimum budget",
       path: ["max"],
     }),
+  budgetType: z
+    .enum(["fixed_budget", "inspection_required"])
+    .optional()
+    .default("fixed_budget"),
   deadline: z.string().optional(),
   isUrgent: z.boolean().optional().default(false),
   location: z
     .object({
+      address: z.string().optional(),
       city: z.string().optional(),
       district: z.string().optional(),
       province: z.string().optional(),
     })
     .optional(),
+  physicalDetails: z
+    .object({
+      propertyType: z.string().optional(),
+      siteVisitRequired: z.boolean().optional().default(false),
+      preferredVisitDate: z.string().optional(),
+      preferredWorkDate: z.string().optional(),
+      materialsPreference: z
+        .enum(["client", "freelancer", "shared"])
+        .optional(),
+      safetyNotes: z.string().max(2000).optional(),
+      estimatedDuration: z.string().max(200).optional(),
+    })
+    .optional(),
   isPublic: z.boolean().optional().default(true),
   attachments: z.array(z.string().url("Invalid URL")).optional().default([]),
+}).superRefine((data, context) => {
+  if (data.budgetType === "fixed_budget" && Number(data.budget?.min || 0) <= 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Minimum budget must be greater than 0",
+      path: ["budget", "min"],
+    });
+  }
+
+  if (data.jobType === "physical") {
+    if (!data.location?.city && !data.location?.district) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Add at least a city or district for a physical job",
+        path: ["location", "city"],
+      });
+    }
+
+    if (!data.category) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Choose a service category for a physical job",
+        path: ["category"],
+      });
+    }
+  }
 });
 
 export const contractCreateSchema = z
   .object({
-    proposalId: z.string().min(1, "Proposal is required"),
+    proposalId: z.string().optional(),
+    bookingId: z.string().optional(),
     title: z.string().min(1, "Contract title is required").max(200),
     description: z.string().max(5000).optional(),
     terms: z.string().max(5000).optional(),
     contractType: z.enum(["full_project", "milestone_based"]),
+    serviceMode: z.enum(["digital", "physical"]).optional().default("digital"),
+    physicalVisit: z
+      .object({
+        isRequired: z.boolean().optional().default(false),
+        preferredVisitDate: z.string().optional(),
+        preferredWorkDate: z.string().optional(),
+        inspectionSummary: z.string().max(5000).optional(),
+        materialsAgreement: z.string().max(2000).optional(),
+      })
+      .optional(),
     totalAmount: z.number().min(0).optional(),
     milestones: z.array(milestoneSchema).optional().default([]),
   })
   .superRefine((data, context) => {
+    if (!data.proposalId && !data.bookingId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Proposal or booking is required",
+        path: ["proposalId"],
+      });
+    }
+
     if (
       data.contractType === "milestone_based" &&
       data.milestones.length === 0

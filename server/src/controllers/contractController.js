@@ -1,4 +1,5 @@
 const Contract = require("../models/Contract");
+const Booking = require("../models/Booking");
 const Job = require("../models/Job");
 const Proposal = require("../models/Proposal");
 const Review = require("../models/Review");
@@ -26,6 +27,8 @@ const {
   approveContractMilestone,
   cancelPendingContract,
   createContractFromProposal,
+  createContractFromBooking,
+  generateContractVisitOtp,
   rejectPendingContract,
   requestContractCancellation,
   requestContractDeliveryChanges,
@@ -34,6 +37,7 @@ const {
   signContract,
   submitContractMilestone,
   submitFullProjectDelivery,
+  verifyContractVisitOtp,
   updatePendingContract,
 } = require("../services/contractService");
 
@@ -43,9 +47,13 @@ const populateContract = (query) =>
     .populate("freelancer", "name email avatar bio experienceLevel availabilityStatus skills")
     .populate(
       "job",
-      "title description status budget attachments category subcategory tags requiredSkills experienceLevel deadline location terms creatorAddress selectedProposal activeContract hiredFreelancer"
+      "title description status budget budgetType attachments category subcategory tags requiredSkills experienceLevel deadline location physicalDetails terms creatorAddress selectedProposal activeContract hiredFreelancer jobType"
     )
-    .populate("proposal", "amount deliveryDays status coverLetter attachments");
+    .populate(
+      "proposal",
+      "amount pricingType deliveryDays status coverLetter inspectionNotes visitAvailableOn attachments"
+    )
+    .populate("booking");
 
 const attachReviewsToContract = async (contractDoc) => {
   if (!contractDoc) {
@@ -238,6 +246,115 @@ const signMyContract = catchAsync(async (req, res) => {
     link: `/contracts/${updatedContract._id}`,
     metadata: {
       job: job?._id,
+      proposal: updatedContract.proposal,
+    },
+  });
+
+  res.status(200).json({
+    status: "success",
+    data,
+  });
+});
+
+const createContractFromMyBooking = catchAsync(async (req, res) => {
+  const booking = await Booking.findById(req.params.bookingId);
+  if (!booking) {
+    throw new AppError("Booking not found", 404);
+  }
+
+  const contract = await createContractFromBooking({
+    clientId: req.user.id,
+    booking,
+    payload: req.body,
+  });
+
+  const populatedContract = await populateContract(Contract.findById(contract._id));
+  const data = await attachReviewsToContract(populatedContract);
+
+  await createNotification({
+    recipient: booking.freelancer,
+    actor: req.user.id,
+    type: "contract.created",
+    title: "Contract created",
+    message: `A contract was created from your booking for "${data.job?.title || "a job"}". Review and sign it to start work.`,
+    link: `/contracts/${contract._id}`,
+    metadata: {
+      job: booking.job,
+      proposal: booking.proposal,
+      booking: booking._id,
+      contract: contract._id,
+    },
+  });
+
+  res.status(201).json({
+    status: "success",
+    data,
+  });
+});
+
+const generateMyContractVisitOtp = catchAsync(async (req, res) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) {
+    throw new AppError("Contract not found", 404);
+  }
+
+  const updatedContract = await generateContractVisitOtp({
+    contract,
+    clientId: req.user.id,
+  });
+
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
+
+  await createNotification({
+    recipient: updatedContract.freelancer,
+    actor: req.user.id,
+    type: "contract.visit_otp_generated",
+    title: "Visit OTP generated",
+    message: `The client generated an on-site verification OTP for "${updatedContract.title}".`,
+    link: `/contracts/${updatedContract._id}`,
+    metadata: {
+      contract: updatedContract._id,
+      job: updatedContract.job,
+      proposal: updatedContract.proposal,
+    },
+  });
+
+  res.status(200).json({
+    status: "success",
+    data,
+  });
+});
+
+const verifyMyContractVisitOtp = catchAsync(async (req, res) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) {
+    throw new AppError("Contract not found", 404);
+  }
+
+  const updatedContract = await verifyContractVisitOtp({
+    contract,
+    freelancerId: req.user.id,
+    otpCode: req.body?.otpCode,
+  });
+
+  const populatedContract = await populateContract(
+    Contract.findById(updatedContract._id)
+  );
+  const data = await attachReviewsToContract(populatedContract);
+
+  await createNotification({
+    recipient: updatedContract.client,
+    actor: req.user.id,
+    type: "contract.visit_verified",
+    title: "On-site visit verified",
+    message: `${req.user.name || "The freelancer"} successfully verified the on-site OTP for "${updatedContract.title}".`,
+    link: `/contracts/${updatedContract._id}`,
+    metadata: {
+      contract: updatedContract._id,
+      job: updatedContract.job,
       proposal: updatedContract.proposal,
     },
   });
@@ -813,8 +930,10 @@ module.exports = {
   cancelMyPendingContract,
   completeMyContract,
   createContract,
+  createContractFromMyBooking,
   createMyContractDispute,
   getAdminContractById,
+  generateMyContractVisitOtp,
   getContractById,
   getContractByProposal,
   listMyContracts,
@@ -826,6 +945,7 @@ module.exports = {
   signMyContract,
   submitContractWork,
   submitMyMilestone,
+  verifyMyContractVisitOtp,
   createMyContractReview,
   updateMyPendingContract,
 };
