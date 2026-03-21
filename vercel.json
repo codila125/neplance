@@ -1,8 +1,12 @@
 {
   "version": 2,
- 
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] , 
 
+  "rewrites": [
+    {
+      "source": "/backend/:path*",
+      "destination": "https://neplance.onrender.com*"
+    }
+  ],
   "builds": [
     {
       "src": "client/package.json",
