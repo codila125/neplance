@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { sendMessageAction } from "@/lib/actions/chat";
-import { API_BASE_URL } from "@/lib/api/config";
+import { BROWSER_API_BASE_URL } from "@/lib/api/config";
 import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 
 const CHAT_POLL_INTERVAL_MS = 4000;
@@ -61,7 +61,7 @@ export function MessageThreadView({
     const syncMessages = async () => {
       try {
         const response = await fetch(
-          `${API_BASE_URL}/api/chat/${conversation._id}/messages`,
+          `${BROWSER_API_BASE_URL}/api/chat/${conversation._id}/messages`,
           {
             credentials: "include",
             cache: "no-store",

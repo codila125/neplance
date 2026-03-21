@@ -8,7 +8,7 @@ import {
   markNotificationReadAction,
 } from "@/lib/actions/notifications";
 import { logoutAction, switchRoleAction } from "@/lib/actions/session";
-import { API_BASE_URL } from "@/lib/api/config";
+import { BROWSER_API_BASE_URL } from "@/lib/api/config";
 import { WalletCoinIcon } from "@/shared/components/WalletCoinIcon";
 
 const NAVBAR_POLL_INTERVAL_MS = 4000;
@@ -20,7 +20,7 @@ async function parseApiResponse(response) {
 }
 
 async function refreshAccessToken() {
-  const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+  const response = await fetch(`${BROWSER_API_BASE_URL}/api/auth/refresh`, {
     method: "GET",
     credentials: "include",
   });
@@ -29,7 +29,7 @@ async function refreshAccessToken() {
 }
 
 async function fetchWithSessionRefresh(endpoint) {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${BROWSER_API_BASE_URL}${endpoint}`, {
     method: "GET",
     credentials: "include",
     headers: {
@@ -50,7 +50,7 @@ async function fetchWithSessionRefresh(endpoint) {
       throw new Error("Session expired");
     }
 
-    const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const retryResponse = await fetch(`${BROWSER_API_BASE_URL}${endpoint}`, {
       method: "GET",
       credentials: "include",
       headers: {

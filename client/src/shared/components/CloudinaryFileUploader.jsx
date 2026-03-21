@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { API_BASE_URL } from "@/lib/api/config";
+import { BROWSER_API_BASE_URL } from "@/lib/api/config";
 
 const getResourceType = (file) =>
   file?.type?.startsWith("image/") ? "image" : "raw";
 
 async function requestUploadSignature(folder, resourceType) {
-  const response = await fetch(`${API_BASE_URL}/api/uploads/sign`, {
+  const response = await fetch(`${BROWSER_API_BASE_URL}/api/uploads/sign`, {
     method: "POST",
     credentials: "include",
     headers: {

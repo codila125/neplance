@@ -1,21 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
   generateBookingVisitOtpAction,
   submitBookingQuoteAction,
   verifyBookingVisitOtpAction,
 } from "@/lib/actions/bookings";
-import { API_BASE_URL } from "@/lib/api/config";
+import { BROWSER_API_BASE_URL } from "@/lib/api/config";
 import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 import { BOOKING_STATUS } from "@/shared/constants/statuses";
 
 const BOOKING_POLL_INTERVAL_MS = 4000;
 
 export function BookingDetailPageClient({ booking, currentUserId }) {
-  const router = useRouter();
   const [currentBooking, setCurrentBooking] = useState(booking);
   const [visitOtp, setVisitOtp] = useState("");
   const [quoteAmount, setQuoteAmount] = useState(
@@ -56,7 +54,9 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
     !currentBooking.contract;
 
   useEffect(() => {
-    setQuoteAmount(currentBooking.quoteAmount ? String(currentBooking.quoteAmount) : "");
+    setQuoteAmount(
+      currentBooking.quoteAmount ? String(currentBooking.quoteAmount) : "",
+    );
     setQuoteNotes(currentBooking.quoteNotes || "");
     setQuoteAttachments(
       Array.isArray(currentBooking.quoteAttachments)
@@ -75,7 +75,7 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
     const syncBooking = async () => {
       try {
         const response = await fetch(
-          `${API_BASE_URL}/api/bookings/${currentBooking._id}`,
+          `${BROWSER_API_BASE_URL}/api/bookings/${currentBooking._id}`,
           {
             credentials: "include",
             cache: "no-store",
@@ -95,7 +95,10 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
       }
     };
 
-    const intervalId = window.setInterval(syncBooking, BOOKING_POLL_INTERVAL_MS);
+    const intervalId = window.setInterval(
+      syncBooking,
+      BOOKING_POLL_INTERVAL_MS,
+    );
     window.addEventListener("focus", syncBooking);
 
     const handleVisibilityChange = () => {
@@ -145,7 +148,8 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
 
           <div className="grid gap-4 mb-6">
             <div>
-              <strong>Job category:</strong> {currentBooking.job?.category || "N/A"}
+              <strong>Job category:</strong>{" "}
+              {currentBooking.job?.category || "N/A"}
             </div>
             <div>
               <strong>Client:</strong>{" "}
@@ -163,7 +167,9 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
             {currentBooking.scheduledFor ? (
               <div>
                 <strong>Scheduled visit:</strong>{" "}
-                {new Date(currentBooking.scheduledFor).toLocaleDateString("en-NP")}
+                {new Date(currentBooking.scheduledFor).toLocaleDateString(
+                  "en-NP",
+                )}
               </div>
             ) : null}
             {currentBooking.job?.location ? (
@@ -263,8 +269,8 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
               </p>
             ) : (
               <p className="text-muted">
-                The freelancer will submit the final amount here after inspection
-                or real-time assessment.
+                The freelancer will submit the final amount here after
+                inspection or real-time assessment.
               </p>
             )}
 
@@ -305,17 +311,27 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
                     }
                   />
                   {quoteAttachments.length > 0 ? (
-                    <div style={{ display: "grid", gap: "var(--space-3)", marginTop: "var(--space-3)" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: "var(--space-3)",
+                        marginTop: "var(--space-3)",
+                      }}
+                    >
                       {quoteAttachments.map((attachment, index) => (
                         <div key={attachment.url || index} className="card-sm">
                           <div className="flex items-center justify-between gap-3 flex-wrap">
-                            <span>{attachment.name || `Attachment ${index + 1}`}</span>
+                            <span>
+                              {attachment.name || `Attachment ${index + 1}`}
+                            </span>
                             <button
                               type="button"
                               className="btn btn-ghost btn-sm"
                               onClick={() =>
                                 setQuoteAttachments((previous) =>
-                                  previous.filter((_, itemIndex) => itemIndex !== index),
+                                  previous.filter(
+                                    (_, itemIndex) => itemIndex !== index,
+                                  ),
                                 )
                               }
                             >
@@ -361,10 +377,16 @@ export function BookingDetailPageClient({ booking, currentUserId }) {
           {error ? <div className="card-error mb-4">{error}</div> : null}
 
           <div className="flex gap-3 flex-wrap">
-            <Link href={`/proposals/${currentBooking.proposal?._id || currentBooking.proposal}`} className="btn btn-ghost">
+            <Link
+              href={`/proposals/${currentBooking.proposal?._id || currentBooking.proposal}`}
+              className="btn btn-ghost"
+            >
               View Proposal
             </Link>
-            <Link href={`/jobs/${currentBooking.job?._id || currentBooking.job}`} className="btn btn-ghost">
+            <Link
+              href={`/jobs/${currentBooking.job?._id || currentBooking.job}`}
+              className="btn btn-ghost"
+            >
               View Job
             </Link>
             {canCreateContract ? (

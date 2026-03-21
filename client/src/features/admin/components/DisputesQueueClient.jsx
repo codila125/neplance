@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { reviewDisputeAction } from "@/lib/actions/admin";
-import { API_BASE_URL } from "@/lib/api/config";
+import { BROWSER_API_BASE_URL } from "@/lib/api/config";
 import { DISPUTE_STATUS } from "@/shared/constants/statuses";
 import { formatStatus } from "@/shared/utils/job";
 
@@ -19,7 +19,7 @@ export function DisputesQueueClient({ initialDisputes }) {
     const syncDisputes = async () => {
       try {
         const response = await fetch(
-          `${API_BASE_URL}/api/admin/disputes?status=all`,
+          `${BROWSER_API_BASE_URL}/api/admin/disputes?status=all`,
           {
             credentials: "include",
           },
