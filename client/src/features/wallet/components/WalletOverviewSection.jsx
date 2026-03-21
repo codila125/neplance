@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useTransition } from "react";
 import {
   loadWalletFundsAction,
@@ -9,9 +10,9 @@ import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUpload
 import { WalletCoinIcon } from "@/shared/components/WalletCoinIcon";
 
 const PAYMENT_OPTIONS = [
-  { id: "esewa", label: "eSewa" },
-  { id: "khalti", label: "Khalti" },
-  { id: "bank", label: "Bank" },
+  { id: "esewa", label: "eSewa", qrSrc: "/wallet-qr/esewa.jpg" },
+  { id: "khalti", label: "Khalti", qrSrc: "/wallet-qr/khalti.jpg" },
+  { id: "bank", label: "Bank", qrSrc: "/wallet-qr/bank.jpg" },
 ];
 
 function BrandBadge() {
@@ -42,7 +43,7 @@ function BrandBadge() {
   );
 }
 
-function StaticQrCard() {
+function StaticQrCard({ method }) {
   return (
     <div
       style={{
@@ -54,31 +55,37 @@ function StaticQrCard() {
           "linear-gradient(135deg, rgba(20,168,0,0.08) 0%, rgba(255,255,255,1) 100%)",
         display: "grid",
         placeItems: "center",
+        overflow: "hidden",
       }}
     >
-      <div
-        style={{
-          width: "180px",
-          height: "180px",
-          background:
-            "repeating-linear-gradient(0deg, #111 0 10px, #fff 10px 20px), repeating-linear-gradient(90deg, #111 0 10px, #fff 10px 20px)",
-          padding: "var(--space-4)",
-          position: "relative",
-        }}
-      >
+      {method?.qrSrc ? (
+        <Image
+          src={method.qrSrc}
+          alt={`${method.label} QR`}
+          width={220}
+          height={220}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+      ) : (
         <div
           style={{
-            position: "absolute",
-            inset: "50% auto auto 50%",
-            transform: "translate(-50%, -50%)",
-            background: "white",
-            padding: "var(--space-2)",
-            borderRadius: "var(--radius-md)",
+            textAlign: "center",
+            padding: "var(--space-4)",
           }}
         >
           <BrandBadge />
+          <p
+            className="text-muted mb-0"
+            style={{ marginTop: "var(--space-3)" }}
+          >
+            Add a QR image for this payment method.
+          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -116,6 +123,9 @@ export function WalletOverviewSection({ initialData, mode = "client" }) {
   const pendingLoadRequests = data?.pendingLoadRequests || [];
   const pendingWithdrawalRequests = data?.pendingWithdrawalRequests || [];
   const recentTransactions = wallet.transactions?.slice(0, 10) || [];
+  const selectedPaymentOption = PAYMENT_OPTIONS.find(
+    (option) => option.id === selectedPaymentMethod,
+  );
 
   const formatAmount = (value) =>
     `${wallet.currency || "NPR"} ${Number(value || 0).toLocaleString()}`;
@@ -544,7 +554,7 @@ export function WalletOverviewSection({ initialData, mode = "client" }) {
             </div>
 
             <div className="flex justify-center mb-4">
-              <StaticQrCard />
+              <StaticQrCard method={selectedPaymentOption} />
             </div>
             <p
               className="text-center"
