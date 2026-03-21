@@ -5,9 +5,58 @@ import { createJobAction } from "@/lib/actions/jobs";
 import { CloudinaryFileUploader } from "@/shared/components/CloudinaryFileUploader";
 import { Input } from "@/shared/components/UI";
 import {
+  DISTRICT_TO_PROVINCE,
   JOB_CATEGORIES,
+  NEPAL_CITIES,
+  NEPAL_DISTRICTS,
   NEPAL_PROVINCES,
+  PROPERTY_TYPES,
 } from "@/shared/constants/jobCategories";
+
+const renderSelect = ({
+  id,
+  label,
+  value,
+  options,
+  placeholder,
+  onChange,
+  error,
+  disabled,
+  required = false,
+  helperText,
+}) => (
+  <div className="form-group">
+    <label htmlFor={id} className="form-label">
+      {label}
+      {required ? (
+        <span style={{ color: "var(--color-error)" }}> *</span>
+      ) : null}
+    </label>
+    <select
+      id={id}
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+      required={required}
+      className={`form-select ${error ? "form-select-error" : ""}`}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((option) => {
+        const normalizedOption =
+          typeof option === "string"
+            ? { value: option, label: option }
+            : option;
+        return (
+          <option key={normalizedOption.value} value={normalizedOption.value}>
+            {normalizedOption.label}
+          </option>
+        );
+      })}
+    </select>
+    {helperText ? <p className="job-form-helper">{helperText}</p> : null}
+    {error ? <p className="form-error">{error}</p> : null}
+  </div>
+);
 
 export function ClientPostJobSection() {
   const [formState, setFormState] = useState({
@@ -45,6 +94,15 @@ export function ClientPostJobSection() {
 
   const handleFormChange = (field, value) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleDistrictChange = (district) => {
+    const province = DISTRICT_TO_PROVINCE[district] || "";
+    setFormState((prev) => ({
+      ...prev,
+      locationDistrict: district,
+      locationProvince: province || prev.locationProvince,
+    }));
   };
 
   const handleUploadedAttachment = (attachment) => {
@@ -137,191 +195,129 @@ export function ClientPostJobSection() {
           <p style={{ margin: 0 }}>{actionState.message}</p>
         </div>
       )}
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-4)",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ flex: "1", minWidth: "200px" }}>
+
+      <div className="job-form-section">
+        <div className="job-form-section-header">
+          <div>
+            <p className="job-form-section-eyebrow">Step 1</p>
+            <h3 className="job-form-section-title">Job basics</h3>
+            <p className="job-form-section-copy">
+              Start with a clear title and describe what you want done.
+            </p>
+          </div>
+        </div>
+        <div className="job-form-grid job-form-grid-single">
           <Input
             label="Job Title"
             value={formState.title}
             onChange={(e) => handleFormChange("title", e.target.value)}
-            placeholder="e.g. Landing page redesign"
+            placeholder="e.g. Interior painting for a 2-bedroom apartment"
             required
             disabled={isPending}
             error={fieldErrors.title}
           />
         </div>
-      </div>
-
-      <Input
-        label="Description"
-        value={formState.description}
-        onChange={(e) => handleFormChange("description", e.target.value)}
-        placeholder="Describe the work scope"
-        disabled={isPending}
-        error={fieldErrors.description}
-      />
-
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-4)",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ flex: "1", minWidth: "150px" }}>
-          <label
-            htmlFor="jobType"
-            style={{
-              display: "block",
-              marginBottom: "var(--space-1)",
-              fontWeight: "var(--font-weight-medium)",
-            }}
-          >
-            Job Type
-          </label>
-          <select
-            id="jobType"
-            value={formState.jobType}
-            onChange={(e) => handleFormChange("jobType", e.target.value)}
-            disabled={isPending}
-            style={{
-              width: "100%",
-              padding: "var(--space-2)",
-              borderRadius: "var(--radius)",
-              border: `1px solid ${fieldErrors.jobType ? "var(--color-error)" : "var(--color-border)"}`,
-            }}
-          >
-            <option value="digital">Digital</option>
-            <option value="physical">Physical</option>
-          </select>
-          {fieldErrors.jobType && (
-            <p className="form-error">{fieldErrors.jobType}</p>
-          )}
-        </div>
-        <div style={{ flex: "2", minWidth: "200px" }}>
-          <label
-            htmlFor="category"
-            style={{
-              display: "block",
-              marginBottom: "var(--space-1)",
-              fontWeight: "var(--font-weight-medium)",
-            }}
-          >
-            Category <span style={{ color: "var(--color-error)" }}>*</span>
-          </label>
-          <select
-            id="category"
-            value={formState.category}
-            onChange={(e) => handleFormChange("category", e.target.value)}
-            disabled={isPending}
-            required
-            style={{
-              width: "100%",
-              padding: "var(--space-2)",
-              borderRadius: "var(--radius)",
-              border: `1px solid ${fieldErrors.category ? "var(--color-error)" : "var(--color-border)"}`,
-            }}
-          >
-            <option value="">Select Category</option>
-            {JOB_CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-          {fieldErrors.category && (
-            <p className="form-error">{fieldErrors.category}</p>
-          )}
-        </div>
-        <div style={{ flex: "1", minWidth: "150px" }}>
+        <Input
+          label="Description"
+          value={formState.description}
+          onChange={(e) => handleFormChange("description", e.target.value)}
+          placeholder="Describe the work scope, expected output, and any important conditions"
+          disabled={isPending}
+          error={fieldErrors.description}
+        />
+        <div className="job-form-grid job-form-grid-3">
+          {renderSelect({
+            id: "jobType",
+            label: "Job Type",
+            value: formState.jobType,
+            options: [
+              { value: "digital", label: "Digital" },
+              { value: "physical", label: "Physical / On-site" },
+            ],
+            placeholder: "Select job type",
+            onChange: (e) => handleFormChange("jobType", e.target.value),
+            error: fieldErrors.jobType,
+            disabled: isPending,
+          })}
+          {renderSelect({
+            id: "category",
+            label: "Category",
+            value: formState.category,
+            options: JOB_CATEGORIES,
+            placeholder: "Select category",
+            onChange: (e) => handleFormChange("category", e.target.value),
+            error: fieldErrors.category,
+            disabled: isPending,
+            required: true,
+          })}
           <Input
             label="Subcategory"
             value={formState.subcategory}
             onChange={(e) => handleFormChange("subcategory", e.target.value)}
-            placeholder="e.g. Frontend"
+            placeholder="e.g. Frontend, Plumbing repair"
             disabled={isPending}
             error={fieldErrors.subcategory}
           />
         </div>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-4)",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ flex: "1", minWidth: "200px" }}>
+      <div className="job-form-section">
+        <div className="job-form-section-header">
+          <div>
+            <p className="job-form-section-eyebrow">Step 2</p>
+            <h3 className="job-form-section-title">Skills and scope</h3>
+            <p className="job-form-section-copy">
+              Add keywords that help the right freelancer understand the job
+              quickly.
+            </p>
+          </div>
+        </div>
+        <div className="job-form-grid job-form-grid-3">
           <Input
             label="Tags (comma separated)"
             value={formState.tags}
             onChange={(e) => handleFormChange("tags", e.target.value)}
-            placeholder="e.g. React, Node.js, MongoDB"
+            placeholder="e.g. urgent, repair, remote"
             disabled={isPending}
             error={fieldErrors.tags}
           />
-        </div>
-        <div style={{ flex: "1", minWidth: "200px" }}>
           <Input
             label="Required Skills (comma separated)"
             value={formState.requiredSkills}
             onChange={(e) => handleFormChange("requiredSkills", e.target.value)}
-            placeholder="e.g. JavaScript, CSS"
+            placeholder="e.g. JavaScript, CSS or painting, plumbing"
             disabled={isPending}
             error={fieldErrors.requiredSkills}
           />
-        </div>
-        <div style={{ flex: "1", minWidth: "150px" }}>
-          <label
-            htmlFor="experienceLevel"
-            style={{
-              display: "block",
-              marginBottom: "var(--space-1)",
-              fontWeight: "var(--font-weight-medium)",
-            }}
-          >
-            Experience Level
-          </label>
-          <select
-            id="experienceLevel"
-            value={formState.experienceLevel}
-            onChange={(e) =>
-              handleFormChange("experienceLevel", e.target.value)
-            }
-            disabled={isPending}
-            style={{
-              width: "100%",
-              padding: "var(--space-2)",
-              borderRadius: "var(--radius)",
-              border: `1px solid ${fieldErrors.experienceLevel ? "var(--color-error)" : "var(--color-border)"}`,
-            }}
-          >
-            <option value="">Any</option>
-            <option value="entry">Entry Level</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="expert">Expert</option>
-          </select>
-          {fieldErrors.experienceLevel && (
-            <p className="form-error">{fieldErrors.experienceLevel}</p>
-          )}
+          {renderSelect({
+            id: "experienceLevel",
+            label: "Experience Level",
+            value: formState.experienceLevel,
+            options: [
+              { value: "entry", label: "Entry Level" },
+              { value: "intermediate", label: "Intermediate" },
+              { value: "expert", label: "Expert" },
+            ],
+            placeholder: "Any level",
+            onChange: (e) =>
+              handleFormChange("experienceLevel", e.target.value),
+            error: fieldErrors.experienceLevel,
+            disabled: isPending,
+          })}
         </div>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-4)",
-          flexWrap: "wrap",
-          alignItems: "flex-end",
-        }}
-      >
-        <div style={{ flex: "1", minWidth: "150px" }}>
+      <div className="job-form-section">
+        <div className="job-form-section-header">
+          <div>
+            <p className="job-form-section-eyebrow">Step 3</p>
+            <h3 className="job-form-section-title">Budget and timeline</h3>
+            <p className="job-form-section-copy">
+              Set budget expectations, due date, and urgency clearly.
+            </p>
+          </div>
+        </div>
+        <div className="job-form-grid job-form-grid-4">
           <Input
             label="Budget Min (NPR)"
             type="number"
@@ -334,8 +330,6 @@ export function ClientPostJobSection() {
             disabled={isPending}
             error={fieldErrors["budget.min"]}
           />
-        </div>
-        <div style={{ flex: "1", minWidth: "150px" }}>
           <Input
             label="Budget Max (NPR)"
             type="number"
@@ -345,40 +339,22 @@ export function ClientPostJobSection() {
             disabled={isPending}
             error={fieldErrors["budget.max"]}
           />
-        </div>
-        <div style={{ flex: "1", minWidth: "180px" }}>
-          <label
-            htmlFor="budgetType"
-            style={{
-              display: "block",
-              marginBottom: "var(--space-1)",
-              fontWeight: "var(--font-weight-medium)",
-            }}
-          >
-            Pricing Intent
-          </label>
-          <select
-            id="budgetType"
-            value={formState.budgetType}
-            onChange={(e) => handleFormChange("budgetType", e.target.value)}
-            disabled={isPending}
-            style={{
-              width: "100%",
-              padding: "var(--space-2)",
-              borderRadius: "var(--radius)",
-              border: `1px solid ${fieldErrors.budgetType ? "var(--color-error)" : "var(--color-border)"}`,
-            }}
-          >
-            <option value="fixed_budget">Client knows the budget</option>
-            <option value="inspection_required">
-              Inspection required first
-            </option>
-          </select>
-          {fieldErrors.budgetType ? (
-            <p className="form-error">{fieldErrors.budgetType}</p>
-          ) : null}
-        </div>
-        <div style={{ flex: "1", minWidth: "150px" }}>
+          {renderSelect({
+            id: "budgetType",
+            label: "Pricing Intent",
+            value: formState.budgetType,
+            options: [
+              { value: "fixed_budget", label: "Client knows the budget" },
+              {
+                value: "inspection_required",
+                label: "Inspection required first",
+              },
+            ],
+            placeholder: "Select pricing intent",
+            onChange: (e) => handleFormChange("budgetType", e.target.value),
+            error: fieldErrors.budgetType,
+            disabled: isPending,
+          })}
           <Input
             label="Deadline"
             type="date"
@@ -388,252 +364,244 @@ export function ClientPostJobSection() {
             error={fieldErrors.deadline}
           />
         </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--space-2)",
-            marginBottom: "var(--space-1)",
-          }}
-        >
-          <input
-            type="checkbox"
-            id="isUrgent"
-            checked={formState.isUrgent}
-            onChange={(e) => handleFormChange("isUrgent", e.target.checked)}
-            disabled={isPending}
-          />
-          <label htmlFor="isUrgent" style={{ cursor: "pointer" }}>
-            Urgent
+        <div className="job-form-toggle-row">
+          <label htmlFor="isUrgent" className="job-form-checkbox">
+            <input
+              type="checkbox"
+              id="isUrgent"
+              checked={formState.isUrgent}
+              onChange={(e) => handleFormChange("isUrgent", e.target.checked)}
+              disabled={isPending}
+            />
+            <span>
+              <strong>Mark this job as urgent</strong>
+              <small>Use this if you need faster freelancer responses.</small>
+            </span>
           </label>
         </div>
       </div>
 
-      {formState.jobType === "physical" && (
-        <div
-          style={{
-            display: "flex",
-            gap: "var(--space-4)",
-            flexWrap: "wrap",
-            padding: "var(--space-3)",
-            background: "var(--color-bg-secondary)",
-            borderRadius: "var(--radius)",
-          }}
-        >
-          <div style={{ flex: "1", minWidth: "150px" }}>
-            <Input
-              label="Address / Landmark"
-              value={formState.locationAddress}
-              onChange={(e) =>
-                handleFormChange("locationAddress", e.target.value)
-              }
-              placeholder="House no., street, landmark"
-              disabled={isPending}
-              error={fieldErrors["location.address"]}
-            />
+      <div className="job-form-section">
+        <div className="job-form-section-header">
+          <div>
+            <p className="job-form-section-eyebrow">Step 4</p>
+            <h3 className="job-form-section-title">
+              {formState.jobType === "physical"
+                ? "On-site job details"
+                : "Digital job details"}
+            </h3>
+            <p className="job-form-section-copy">
+              {formState.jobType === "physical"
+                ? "Add the exact location, property type, visit preferences, and access notes in a cleaner layout."
+                : "Keep the brief remote-friendly and use attachments to share examples, brand guides, or reference files."}
+            </p>
           </div>
-          <div style={{ flex: "1", minWidth: "150px" }}>
-            <Input
-              label="City"
-              value={formState.locationCity}
-              onChange={(e) => handleFormChange("locationCity", e.target.value)}
-              placeholder="Kathmandu"
-              disabled={isPending}
-              error={fieldErrors["location.city"]}
-            />
+          <span className="badge badge-primary">
+            {formState.jobType === "physical"
+              ? "Physical service"
+              : "Digital delivery"}
+          </span>
+        </div>
+
+        {formState.jobType === "physical" ? (
+          <div className="job-form-physical-layout">
+            <div className="job-form-subsection">
+              <h4 className="job-form-subsection-title">Location</h4>
+              <div className="job-form-grid job-form-grid-2">
+                {renderSelect({
+                  id: "locationCity",
+                  label: "City",
+                  value: formState.locationCity,
+                  options: NEPAL_CITIES,
+                  placeholder: "Select city",
+                  onChange: (e) =>
+                    handleFormChange("locationCity", e.target.value),
+                  error: fieldErrors["location.city"],
+                  disabled: isPending,
+                })}
+                {renderSelect({
+                  id: "locationDistrict",
+                  label: "District",
+                  value: formState.locationDistrict,
+                  options: NEPAL_DISTRICTS,
+                  placeholder: "Select district",
+                  onChange: (e) => handleDistrictChange(e.target.value),
+                  error: fieldErrors["location.district"],
+                  disabled: isPending,
+                  helperText:
+                    "Province is auto-filled after choosing a district.",
+                })}
+              </div>
+              <div className="job-form-grid job-form-grid-2">
+                {renderSelect({
+                  id: "locationProvince",
+                  label: "Province",
+                  value: formState.locationProvince,
+                  options: NEPAL_PROVINCES,
+                  placeholder: "Select province",
+                  onChange: (e) =>
+                    handleFormChange("locationProvince", e.target.value),
+                  error: fieldErrors["location.province"],
+                  disabled: isPending,
+                })}
+                <Input
+                  label="Address / Landmark"
+                  value={formState.locationAddress}
+                  onChange={(e) =>
+                    handleFormChange("locationAddress", e.target.value)
+                  }
+                  placeholder="House no., street, chowk, nearby landmark"
+                  disabled={isPending}
+                  error={fieldErrors["location.address"]}
+                />
+              </div>
+            </div>
+
+            <div className="job-form-subsection">
+              <h4 className="job-form-subsection-title">Property and visit</h4>
+              <div className="job-form-grid job-form-grid-2">
+                {renderSelect({
+                  id: "propertyType",
+                  label: "Property Type",
+                  value: formState.propertyType,
+                  options: PROPERTY_TYPES,
+                  placeholder: "Select property type",
+                  onChange: (e) =>
+                    handleFormChange("propertyType", e.target.value),
+                  error: fieldErrors["physicalDetails.propertyType"],
+                  disabled: isPending,
+                })}
+                <Input
+                  label="Estimated Duration"
+                  value={formState.estimatedDuration}
+                  onChange={(e) =>
+                    handleFormChange("estimatedDuration", e.target.value)
+                  }
+                  placeholder="2 hours, 1 day, 3 visits..."
+                  disabled={isPending}
+                  error={fieldErrors["physicalDetails.estimatedDuration"]}
+                />
+              </div>
+              <div className="job-form-grid job-form-grid-2">
+                <Input
+                  label="Preferred Visit Date"
+                  type="date"
+                  value={formState.preferredVisitDate}
+                  onChange={(e) =>
+                    handleFormChange("preferredVisitDate", e.target.value)
+                  }
+                  disabled={isPending}
+                  error={fieldErrors["physicalDetails.preferredVisitDate"]}
+                />
+                <Input
+                  label="Preferred Work Date"
+                  type="date"
+                  value={formState.preferredWorkDate}
+                  onChange={(e) =>
+                    handleFormChange("preferredWorkDate", e.target.value)
+                  }
+                  disabled={isPending}
+                  error={fieldErrors["physicalDetails.preferredWorkDate"]}
+                />
+              </div>
+              <div className="job-form-grid job-form-grid-2">
+                {renderSelect({
+                  id: "materialsPreference",
+                  label: "Materials",
+                  value: formState.materialsPreference,
+                  options: [
+                    { value: "client", label: "Client provides" },
+                    { value: "freelancer", label: "Freelancer provides" },
+                    { value: "shared", label: "Shared" },
+                  ],
+                  placeholder: "Select material responsibility",
+                  onChange: (e) =>
+                    handleFormChange("materialsPreference", e.target.value),
+                  disabled: isPending,
+                })}
+                <div className="job-form-inline-panel">
+                  <label
+                    htmlFor="siteVisitRequired"
+                    className="job-form-checkbox"
+                  >
+                    <input
+                      type="checkbox"
+                      id="siteVisitRequired"
+                      checked={formState.siteVisitRequired}
+                      onChange={(e) =>
+                        handleFormChange("siteVisitRequired", e.target.checked)
+                      }
+                      disabled={isPending}
+                    />
+                    <span>
+                      <strong>Site visit required</strong>
+                      <small>
+                        Use this if the freelancer should inspect before final
+                        pricing.
+                      </small>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="job-form-subsection">
+              <h4 className="job-form-subsection-title">
+                Access and safety notes
+              </h4>
+              <label htmlFor="safetyNotes" className="form-label">
+                Safety / Access Notes
+              </label>
+              <textarea
+                id="safetyNotes"
+                value={formState.safetyNotes}
+                onChange={(e) =>
+                  handleFormChange("safetyNotes", e.target.value)
+                }
+                rows={4}
+                disabled={isPending}
+                className="form-input"
+                placeholder="Mention parking, access hours, staircase/elevator info, equipment restrictions, or any important safety detail."
+              />
+            </div>
           </div>
-          <div style={{ flex: "1", minWidth: "150px" }}>
-            <Input
-              label="District"
-              value={formState.locationDistrict}
-              onChange={(e) =>
-                handleFormChange("locationDistrict", e.target.value)
-              }
-              placeholder="Kathmandu"
-              disabled={isPending}
-              error={fieldErrors["location.district"]}
-            />
-          </div>
-          <div style={{ flex: "1", minWidth: "150px" }}>
-            <label
-              htmlFor="locationProvince"
-              style={{
-                display: "block",
-                marginBottom: "var(--space-1)",
-                fontWeight: "var(--font-weight-medium)",
-              }}
-            >
-              Province
-            </label>
-            <select
-              id="locationProvince"
-              value={formState.locationProvince}
-              onChange={(e) =>
-                handleFormChange("locationProvince", e.target.value)
-              }
-              disabled={isPending}
-              style={{
-                width: "100%",
-                padding: "var(--space-2)",
-                borderRadius: "var(--radius)",
-                border: `1px solid ${fieldErrors["location.province"] ? "var(--color-error)" : "var(--color-border)"}`,
-              }}
-            >
-              <option value="">Select Province</option>
-              {NEPAL_PROVINCES.map((province) => (
-                <option key={province} value={province}>
-                  {province}
-                </option>
-              ))}
-            </select>
-            {fieldErrors["location.province"] && (
-              <p className="form-error">{fieldErrors["location.province"]}</p>
-            )}
-          </div>
-          <div style={{ flex: "1", minWidth: "160px" }}>
-            <Input
-              label="Property Type"
-              value={formState.propertyType}
-              onChange={(e) => handleFormChange("propertyType", e.target.value)}
-              placeholder="Home, office, shop..."
-              disabled={isPending}
-              error={fieldErrors["physicalDetails.propertyType"]}
-            />
-          </div>
-          <div style={{ flex: "1", minWidth: "160px" }}>
-            <Input
-              label="Preferred Visit Date"
-              type="date"
-              value={formState.preferredVisitDate}
-              onChange={(e) =>
-                handleFormChange("preferredVisitDate", e.target.value)
-              }
-              disabled={isPending}
-              error={fieldErrors["physicalDetails.preferredVisitDate"]}
-            />
-          </div>
-          <div style={{ flex: "1", minWidth: "160px" }}>
-            <Input
-              label="Preferred Work Date"
-              type="date"
-              value={formState.preferredWorkDate}
-              onChange={(e) =>
-                handleFormChange("preferredWorkDate", e.target.value)
-              }
-              disabled={isPending}
-              error={fieldErrors["physicalDetails.preferredWorkDate"]}
-            />
-          </div>
-          <div style={{ flex: "1", minWidth: "160px" }}>
-            <Input
-              label="Estimated Duration"
-              value={formState.estimatedDuration}
-              onChange={(e) =>
-                handleFormChange("estimatedDuration", e.target.value)
-              }
-              placeholder="2 hours, 1 day..."
-              disabled={isPending}
-              error={fieldErrors["physicalDetails.estimatedDuration"]}
-            />
-          </div>
-          <div style={{ flex: "1", minWidth: "180px" }}>
-            <label
-              htmlFor="materialsPreference"
-              style={{
-                display: "block",
-                marginBottom: "var(--space-1)",
-                fontWeight: "var(--font-weight-medium)",
-              }}
-            >
-              Materials
-            </label>
-            <select
-              id="materialsPreference"
-              value={formState.materialsPreference}
-              onChange={(e) =>
-                handleFormChange("materialsPreference", e.target.value)
-              }
-              disabled={isPending}
-              style={{
-                width: "100%",
-                padding: "var(--space-2)",
-                borderRadius: "var(--radius)",
-                border: "1px solid var(--color-border)",
-              }}
-            >
-              <option value="">Select</option>
-              <option value="client">Client provides</option>
-              <option value="freelancer">Freelancer provides</option>
-              <option value="shared">Shared</option>
-            </select>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-2)",
-              minWidth: "180px",
-            }}
-          >
-            <input
-              type="checkbox"
-              id="siteVisitRequired"
-              checked={formState.siteVisitRequired}
-              onChange={(e) =>
-                handleFormChange("siteVisitRequired", e.target.checked)
-              }
-              disabled={isPending}
-            />
-            <label htmlFor="siteVisitRequired" style={{ cursor: "pointer" }}>
-              Site visit required
-            </label>
-          </div>
-          <div style={{ width: "100%" }}>
-            <div className="card-sm" style={{ marginBottom: "var(--space-3)" }}>
-              <strong>Physical service details</strong>
-              <p className="text-light" style={{ margin: "var(--space-2) 0 0" }}>
-                The main category above becomes the service type for this job.
-                Add the exact location, visit preference, and access notes here.
+        ) : (
+          <div className="job-form-digital-panel">
+            <div className="job-form-digital-card">
+              <h4 className="job-form-subsection-title">
+                Tips for a polished digital brief
+              </h4>
+              <ul className="job-form-bullet-list">
+                <li>Explain the final deliverable clearly.</li>
+                <li>
+                  Mention tools, platforms, or file formats if they matter.
+                </li>
+                <li>Upload sample files, screenshots, or references below.</li>
+              </ul>
+            </div>
+            <div className="job-form-digital-card">
+              <h4 className="job-form-subsection-title">
+                Example digital jobs
+              </h4>
+              <p className="job-form-helper" style={{ marginTop: 0 }}>
+                Landing page redesign, logo package, social media content plan,
+                SEO audit, mobile app fixes, dashboard UI cleanup.
               </p>
             </div>
-            <label
-              htmlFor="safetyNotes"
-              style={{
-                display: "block",
-                marginBottom: "var(--space-1)",
-                fontWeight: "var(--font-weight-medium)",
-              }}
-            >
-              Safety / Access Notes
-            </label>
-            <textarea
-              id="safetyNotes"
-              value={formState.safetyNotes}
-              onChange={(e) => handleFormChange("safetyNotes", e.target.value)}
-              rows={3}
-              disabled={isPending}
-              style={{
-                width: "100%",
-                padding: "var(--space-2)",
-                borderRadius: "var(--radius)",
-                border: "1px solid var(--color-border)",
-                fontFamily: "inherit",
-              }}
-            />
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      <div style={{ marginTop: "var(--space-4)" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "var(--space-3)",
-          }}
-        >
-          <strong>Job Attachments</strong>
+      <div className="job-form-section">
+        <div className="job-form-section-header">
+          <div>
+            <p className="job-form-section-eyebrow">Step 5</p>
+            <h3 className="job-form-section-title">Attachments</h3>
+            <p className="job-form-section-copy">
+              Upload references, briefs, drawings, photos, or supporting
+              documents.
+            </p>
+          </div>
         </div>
         <CloudinaryFileUploader
           buttonLabel="Upload Job Attachment"
@@ -692,6 +660,7 @@ export function ClientPostJobSection() {
           </p>
         )}
       </div>
+
       <div
         style={{
           marginTop: "var(--space-4)",

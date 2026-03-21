@@ -214,6 +214,129 @@ textarea.form-input {
   resize: vertical;
 }
 
+.job-form-section {
+  margin-bottom: var(--space-6);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92),
+    rgba(246, 250, 251, 0.98)
+  );
+}
+
+.job-form-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.job-form-section-eyebrow {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.job-form-section-title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-xl);
+}
+
+.job-form-section-copy {
+  margin: 0;
+  color: var(--color-text-light);
+  max-width: 640px;
+}
+
+.job-form-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.job-form-grid-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.job-form-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.job-form-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.job-form-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.job-form-helper {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-light);
+}
+
+.job-form-toggle-row {
+  margin-top: var(--space-2);
+}
+
+.job-form-checkbox {
+  display: inline-flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  cursor: pointer;
+}
+
+.job-form-checkbox input {
+  margin-top: 3px;
+}
+
+.job-form-checkbox span {
+  display: grid;
+  gap: 2px;
+}
+
+.job-form-checkbox small {
+  color: var(--color-text-light);
+  font-size: var(--text-sm);
+}
+
+.job-form-physical-layout,
+.job-form-digital-panel {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.job-form-subsection,
+.job-form-digital-card,
+.job-form-inline-panel {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.job-form-subsection-title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-base);
+}
+
+.job-form-bullet-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--color-text-light);
+}
+
 /* ===================================
    CARDS
    =================================== */
@@ -552,6 +675,18 @@ textarea.form-input {
 
   .message-bubble {
     max-width: 100%;
+  }
+
+  .job-form-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .job-form-grid-2,
+  .job-form-grid-3,
+  .job-form-grid-4 {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

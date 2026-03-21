@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neplance Buyer Guide</title>
+    <style>
+      :root {
+        --ink: #163342;
+        --muted: #5f7480;
+        --line: #d7e3e8;
+        --brand: #16926d;
+        --brand-dark: #0f6f53;
+        --brand-soft: #e8f7f1;
+        --paper: #ffffff;
+        --panel: #f7fbfc;
+        --accent: #eff5f8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      @page {
+        size: A4;
+        margin: 18mm;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Arial, sans-serif;
+        color: var(--ink);
+        background: #edf4f6;
+        line-height: 1.55;
+      }
+
+      .page {
+        max-width: 900px;
+        margin: 0 auto;
+        background: var(--paper);
+        padding: 40px 44px 56px;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, #0f6f53 0%, #16926d 55%, #4ac69e 100%);
+        color: #fff;
+        border-radius: 24px;
+        padding: 36px;
+        margin-bottom: 28px;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.16);
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 38px;
+        line-height: 1.1;
+      }
+
+      .hero p {
+        margin: 0;
+        font-size: 17px;
+        max-width: 700px;
+      }
+
+      .summary-grid,
+      .cards,
+      .two-col {
+        display: grid;
+        gap: 16px;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(3, 1fr);
+        margin-bottom: 30px;
+      }
+
+      .cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .two-col {
+        grid-template-columns: 1.2fr 0.8fr;
+        margin-top: 12px;
+      }
+
+      .card,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px 20px;
+      }
+
+      .stat {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px;
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+
+      .stat span {
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      h2 {
+        margin: 28px 0 10px;
+        font-size: 24px;
+      }
+
+      h3 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+
+      p {
+        margin: 0 0 10px;
+      }
+
+      ul,
+      ol {
+        margin: 10px 0 0 18px;
+        padding: 0;
+      }
+
+      li {
+        margin: 7px 0;
+      }
+
+      .flow {
+        counter-reset: step;
+        margin: 18px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .flow li {
+        counter-increment: step;
+        display: grid;
+        grid-template-columns: 42px 1fr;
+        gap: 14px;
+        align-items: start;
+        margin: 0 0 14px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #fff;
+      }
+
+      .flow li::before {
+        content: counter(step);
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: #fff;
+        background: var(--brand);
+      }
+
+      .label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--brand-dark);
+        margin-bottom: 6px;
+      }
+
+      .tag {
+        display: inline-block;
+        margin: 4px 8px 0 0;
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: var(--brand-soft);
+        color: var(--brand-dark);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .note {
+        background: #fff9e8;
+        border: 1px solid #ecd79a;
+        border-radius: 16px;
+        padding: 16px 18px;
+      }
+
+      .footer {
+        margin-top: 30px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .small {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        .page {
+          max-width: none;
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div class="eyebrow">Buyer Guide</div>
+        <h1>Neplance</h1>
+        <p>
+          A full freelance marketplace platform where businesses can post work,
+          freelancers can send proposals, both sides can communicate and sign
+          contracts, and payments are managed inside the system.
+        </p>
+      </section>
+
+      <section class="summary-grid">
+        <div class="stat">
+          <strong>Project Type</strong>
+          <span>Two-sided marketplace</span>
+        </div>
+        <div class="stat">
+          <strong>Main Users</strong>
+          <span>Clients, freelancers, admins</span>
+        </div>
+        <div class="stat">
+          <strong>Current Stage</strong>
+          <span>Working product foundation</span>
+        </div>
+      </section>
+
+      <section>
+        <h2>What This App Does</h2>
+        <div class="panel">
+          <p>
+            Neplance is similar in idea to platforms like Upwork or Fiverr, but
+            built as a custom product. It helps two groups meet in one place:
+            people who need work done and freelancers who can do that work.
+          </p>
+          <p>
+            The app is not only a landing page or design concept. It already
+            includes the main marketplace flow: account creation, job posting,
+            proposals, contract creation, internal payment tracking, messaging,
+            notifications, reviews, and admin tools.
+          </p>
+        </div>
+      </section>
+
+      <section class="two-col">
+        <div class="panel">
+          <h3>Who uses it</h3>
+          <ul>
+            <li><strong>Clients</strong>: post jobs, receive proposals, hire freelancers, manage payments</li>
+            <li><strong>Freelancers</strong>: browse jobs, apply, complete work, collect earnings</li>
+            <li><strong>Admins</strong>: review disputes and verification requests</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Business value</h3>
+          <ul>
+            <li>Creates trust between both sides</li>
+            <li>Keeps the full work process in one system</li>
+            <li>Can be expanded into a production marketplace business</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h2>How The Platform Works In Simple Words</h2>
+        <ol class="flow">
+          <li>
+            <div>
+              <div class="label">Step 1</div>
+              A user signs up and chooses whether they are acting as a client or
+              a freelancer.
+            </div>
+          </li>
+          <li>
+            <div>
+              <div class="label">Step 2</div>
+              A client posts a job with title, description, budget, deadline,
+              and required skills.
+            </div>
+          </li>
+          <li>
+            <div>
+              <div class="label">Step 3</div>
+              Freelancers browse available jobs and send proposals with price,
+              message, and delivery time.
+            </div>
+          </li>
+          <li>
+            <div>
+              <div class="label">Step 4</div>
+              The client reviews proposals and turns one of them into a contract.
+            </div>
+          </li>
+          <li>
+            <div>
+              <div class="label">Step 5</div>
+              The contract is funded inside the app, the freelancer signs it,
+              and the work begins.
+            </div>
+          </li>
+          <li>
+            <div>
+              <div class="label">Step 6</div>
+              Both sides can chat, track progress, approve delivery, and finish
+              the contract.
+            </div>
+          </li>
+          <li>
+            <div>
+              <div class="label">Step 7</div>
+              The app updates balances, creates notifications, stores reviews,
+              and allows dispute handling if needed.
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>What Is Already Built</h2>
+        <div class="cards">
+          <div class="card">
+            <h3>User accounts and roles</h3>
+            <p>
+              Login, signup, protected dashboards, and role-based access are in
+              place. One account can act as more than one role.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Job marketplace</h3>
+            <p>
+              Clients can create and publish jobs. Freelancers can browse jobs
+              and view detailed job pages.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Proposal system</h3>
+            <p>
+              Freelancers can submit proposals and clients can review, accept,
+              or reject them.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Contracts and work tracking</h3>
+            <p>
+              The system supports contract creation, signing, delivery, change
+              requests, completion, and cancellation.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Internal wallet and escrow logic</h3>
+            <p>
+              The app tracks available balance, held funds, releases, refunds,
+              and earnings inside a wallet ledger.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Messaging and notifications</h3>
+            <p>
+              Users can communicate within the platform and receive activity
+              alerts for proposals, contracts, disputes, and chat messages.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Trust and safety features</h3>
+            <p>
+              User verification, reviews, and admin dispute resolution are part
+              of the current project.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Admin area</h3>
+            <p>
+              Admin users can review pending verification requests, disputes,
+              jobs, and user-related information.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Buyer-Friendly Feature Summary</h2>
+        <div class="panel">
+          <span class="tag">Landing page</span>
+          <span class="tag">Login / signup</span>
+          <span class="tag">Client dashboard</span>
+          <span class="tag">Freelancer dashboard</span>
+          <span class="tag">Post job</span>
+          <span class="tag">Browse jobs</span>
+          <span class="tag">Send proposal</span>
+          <span class="tag">Hire freelancer</span>
+          <span class="tag">Contract signing</span>
+          <span class="tag">Milestone flow</span>
+          <span class="tag">Wallet</span>
+          <span class="tag">Reviews</span>
+          <span class="tag">Notifications</span>
+          <span class="tag">Messaging</span>
+          <span class="tag">Disputes</span>
+          <span class="tag">Verification review</span>
+        </div>
+      </section>
+
+      <section>
+        <h2>Technology, Explained Simply</h2>
+        <div class="cards">
+          <div class="card">
+            <h3>Frontend</h3>
+            <p>
+              This is the part users see in the browser. It is built with
+              Next.js and React, which are common modern tools for making fast
+              web apps.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Backend</h3>
+            <p>
+              This is the logic behind the scenes. It manages users, jobs,
+              contracts, wallets, permissions, and business rules using Express.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Database</h3>
+            <p>
+              Data is stored in MongoDB. That means users, jobs, proposals, and
+              financial records can be saved and retrieved reliably.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Security</h3>
+            <p>
+              The app already includes login protection, role-based permissions,
+              tokens, cookies, and guarded routes for authenticated areas.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>What Makes This Project Valuable</h2>
+        <div class="panel">
+          <ul>
+            <li>It covers the complete marketplace journey instead of just one isolated feature.</li>
+            <li>It separates the visual app and the server logic cleanly, which makes future upgrades easier.</li>
+            <li>It already includes important trust features like verification, reviews, and dispute handling.</li>
+            <li>It is suitable as a base product for a startup, agency offering, or custom freelance platform.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h2>Important Honest Notes For The Buyer</h2>
+        <div class="note">
+          <ul>
+            <li>The wallet system works as an internal ledger. It is not yet a real live payment gateway integration.</li>
+            <li>Blockchain-related fields and files exist, but the core working payment flow is currently the internal wallet logic.</li>
+            <li>Some marketing numbers and testimonials on the landing page appear to be sample content for presentation.</li>
+            <li>One admin page is still a placeholder, so not every admin screen is fully finished.</li>
+            <li>The project is a strong functional base, but a buyer may still want final polishing, real payment integration, and deployment hardening before large public launch.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h2>Best Way To Describe This To A Buyer</h2>
+        <div class="panel">
+          <p>
+            Neplance is a ready-to-extend freelance marketplace web application.
+            It already supports the full business workflow between clients and
+            freelancers, including job posting, proposal management, contracts,
+            internal escrow-style payments, messaging, notifications, reviews,
+            and admin dispute handling.
+          </p>
+          <p>
+            In simple terms: this is not just a website design. It is a working
+            marketplace system that can be used as the starting point for a real
+            platform business.
+          </p>
+        </div>
+      </section>
+
+      <section class="footer">
+        <div><strong>Prepared for buyer review</strong></div>
+        <div class="small">
+          Generated from the current Neplance codebase in
+          <code>D:\astro-cartoon-portfolio\Neplance</code>.
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
