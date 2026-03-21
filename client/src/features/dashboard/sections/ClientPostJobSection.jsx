@@ -93,7 +93,18 @@ export function ClientPostJobSection() {
   const fieldErrors = actionState?.errors || {};
 
   const handleFormChange = (field, value) => {
-    setFormState((prev) => ({ ...prev, [field]: value }));
+    setFormState((prev) => {
+      if (field === "jobType" && value === "digital") {
+        return {
+          ...prev,
+          jobType: value,
+          budgetType: "fixed_budget",
+          siteVisitRequired: false,
+        };
+      }
+
+      return { ...prev, [field]: value };
+    });
   };
 
   const handleDistrictChange = (district) => {
@@ -177,7 +188,10 @@ export function ClientPostJobSection() {
         max: formState.budgetMax ? Number(formState.budgetMax) : undefined,
         currency: "NPR",
       },
-      budgetType: formState.budgetType,
+      budgetType:
+        formState.jobType === "physical"
+          ? formState.budgetType
+          : "fixed_budget",
       deadline: formState.deadline || undefined,
       isUrgent: formState.isUrgent,
       location,
@@ -317,7 +331,13 @@ export function ClientPostJobSection() {
             </p>
           </div>
         </div>
-        <div className="job-form-grid job-form-grid-4">
+        <div
+          className={`job-form-grid ${
+            formState.jobType === "physical"
+              ? "job-form-grid-4"
+              : "job-form-grid-3"
+          }`}
+        >
           <Input
             label="Budget Min (NPR)"
             type="number"
@@ -339,22 +359,24 @@ export function ClientPostJobSection() {
             disabled={isPending}
             error={fieldErrors["budget.max"]}
           />
-          {renderSelect({
-            id: "budgetType",
-            label: "Pricing Intent",
-            value: formState.budgetType,
-            options: [
-              { value: "fixed_budget", label: "Client knows the budget" },
-              {
-                value: "inspection_required",
-                label: "Inspection required first",
-              },
-            ],
-            placeholder: "Select pricing intent",
-            onChange: (e) => handleFormChange("budgetType", e.target.value),
-            error: fieldErrors.budgetType,
-            disabled: isPending,
-          })}
+          {formState.jobType === "physical"
+            ? renderSelect({
+                id: "budgetType",
+                label: "Pricing Intent",
+                value: formState.budgetType,
+                options: [
+                  { value: "fixed_budget", label: "Client knows the budget" },
+                  {
+                    value: "inspection_required",
+                    label: "Inspection required first",
+                  },
+                ],
+                placeholder: "Select pricing intent",
+                onChange: (e) => handleFormChange("budgetType", e.target.value),
+                error: fieldErrors.budgetType,
+                disabled: isPending,
+              })
+            : null}
           <Input
             label="Deadline"
             type="date"
